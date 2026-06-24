@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Metrics — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="performance">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Performance <span>Metrics</span></h1>
+  <p class="subtitle">Before you can make the internet faster, you need to measure it precisely. These six metrics are how networking engineers think about performance.</p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h3>Bandwidth</h3>
+      <p>The <strong>maximum</strong> rate data can flow over a link. Think of it as the size of a pipe. <em>Does not</em> describe how much is actually flowing — just the capacity.</p>
+      <div class="formula">Bandwidth (bps) = max bits per second</div>
+      <p style="font-size:12px">Note: <strong>Kb = 2¹⁰ bits</strong> (binary, used for storage), but <strong>Kbps = 10³ bps</strong> (decimal, used for link speeds). This trips people up!</p>
+    </div>
+    <div class="card card-green">
+      <h3>Throughput</h3>
+      <p>The <strong>actual</strong> rate data moves end-to-end. Limited by the slowest link in the path — the <strong>bottleneck</strong>.</p>
+      <div class="formula">Throughput = min(link₁, link₂, ..., linkₙ)</div>
+      <p style="font-size:12px">Even if your home connection is 1 Gbps, if the server's link is 10 Mbps, your throughput is 10 Mbps.</p>
+    </div>
+    <div class="card card-orange">
+      <h3>Goodput</h3>
+      <p>The rate at which <strong>useful application data</strong> arrives. Excludes headers, retransmissions, and overhead.</p>
+      <p style="font-size:12px">Goodput ≤ Throughput ≤ Bandwidth. If you retransmit lots of lost packets, throughput can be high but goodput low.</p>
+    </div>
+    <div class="card card-pink">
+      <h3>Latency</h3>
+      <p>Time from when something is sent until it is received. The "something" must be defined consistently — a whole packet, a single bit, etc.</p>
+    </div>
+    <div class="card card-accent">
+      <h3>Round Trip Time</h3>
+      <p>Latency to and back.</p>
+      <p style="font-size:12px">Latency is directional (one-way). RTT measures the round trip.</p>
+    </div>
+  </div>
+
+  <h2>Bandwidth, Throughput &amp; Goodput — The Pipe Analogy</h2>
+  <p>The relationship between these three metrics is easiest to understand with a pipe: <strong>bandwidth</strong> is the pipe's diameter (max capacity), <strong>throughput</strong> is all the water actually flowing (including headers and retransmits), and <strong>goodput</strong> is only the useful water that reaches the application.</p>
+
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin:16px 0;">
+    <div id="perf-btns" style="display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showPipeScene('ideal',this)">Ideal (No Overhead)</button>
+      <button class="btn btn-ghost"   style="font-size:12px;padding:6px 14px;" onclick="showPipeScene('overhead',this)">Real World (Headers + Rocks)</button>
+      <button class="btn btn-ghost"   style="font-size:12px;padding:6px 14px;" onclick="showPipeScene('lossy',this)">Lossy Link (Retransmits)</button>
+    </div>
+    <svg id="perf-pipe-svg" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;border-radius:8px;background:var(--bg3);"></svg>
+    <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><div style="width:14px;height:14px;border-radius:3px;background:#3b82f6;flex-shrink:0"></div> Bandwidth (pipe capacity)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><div style="width:14px;height:14px;border-radius:3px;background:#f97316;flex-shrink:0"></div> Protocol overhead (headers)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><div style="width:14px;height:14px;border-radius:3px;background:#22c55e;flex-shrink:0"></div> Goodput (useful data)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><div style="width:14px;height:14px;border-radius:50%;background:#94a3b8;flex-shrink:0"></div> Rocks (errors / retransmits)</div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:14px;" id="perf-pipe-cards"></div>
+    <div style="font-size:13px; color:var(--text2); line-height:1.6; background:var(--bg3); border-radius:8px; border:1px solid var(--border); padding:12px 14px; margin-top:10px;" id="perf-pipe-explainer"></div>
+  </div>
+
+  <!-- ── Unit Conversions ─────────────────────────────────────────── -->
+  <h2>Unit Conversions</h2>
+  <p>Networking mixes two different unit systems. <strong>Link speeds</strong> use decimal (powers of 10); <strong>file/memory sizes</strong> use binary (powers of 2). Mixing them up is one of the most common sources of confusion.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0;">
+
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;">
+      <div style="font-weight:700; font-size:13px; color:#6c8ef7; margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em;">Speed — decimal (bps)</div>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border); color:var(--text2);">
+            <th style="text-align:left; padding:4px 0;">Unit</th>
+            <th style="text-align:left; padding:4px 0;">Value</th>
+            <th style="text-align:left; padding:4px 0;">Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:5px 0;"><strong>1 bps</strong></td><td>1 bit/s</td><td>—</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 Kbps</strong></td><td>10³ bps</td><td>old modem</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 Mbps</strong></td><td>10⁶ bps</td><td>DSL, cable</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 Gbps</strong></td><td>10⁹ bps</td><td>fiber, LAN</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 Tbps</strong></td><td>10¹² bps</td><td>backbone</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px; font-size:12px; color:var(--text2); background:var(--bg3); border-radius:8px; padding:8px 10px;">
+        To convert: 100 Mbps × 10⁶ = 100,000,000 bps<br>
+        To MB/s: 100 Mbps ÷ 8 = <strong>12.5 MB/s</strong>
+      </div>
+    </div>
+
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;">
+      <div style="font-weight:700; font-size:13px; color:#34d399; margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em;">Size — binary (bytes)</div>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border); color:var(--text2);">
+            <th style="text-align:left; padding:4px 0;">Unit</th>
+            <th style="text-align:left; padding:4px 0;">Value</th>
+            <th style="text-align:left; padding:4px 0;">≈ decimal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:5px 0;"><strong>1 B</strong></td><td>8 bits</td><td>—</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 KB</strong></td><td>2¹⁰ B</td><td>~1,024 B</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 MB</strong></td><td>2²⁰ B</td><td>~1.05 × 10⁶ B</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 GB</strong></td><td>2³⁰ B</td><td>~1.07 × 10⁹ B</td></tr>
+          <tr><td style="padding:5px 0;"><strong>1 TB</strong></td><td>2⁴⁰ B</td><td>~1.10 × 10¹² B</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px; font-size:12px; color:var(--text2); background:var(--bg3); border-radius:8px; padding:8px 10px;">
+        Bytes ↔ bits: multiply or divide by <strong>8</strong><br>
+        7 MB/s × 8 = <strong>56 Mbps</strong> &nbsp;|&nbsp; 64 Mbps ÷ 8 = <strong>8 MB/s</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="why">
+    <div class="why-label">The ×8 trap</div>
+    <p>Your ISP advertises <strong>100 Mbps</strong>. You download a file and your browser shows <strong>12.5 MB/s</strong>. Is something wrong? No — 100 Mbps ÷ 8 = 12.5 MB/s. Link speeds are always in <em>bits</em>; file sizes and transfer speeds shown by apps are in <em>bytes</em>. Always divide by 8 when crossing between them.</p>
+  </div>
+
+  <!-- ── Worked Example ───────────────────────────────────────────── -->
+  <h2>Worked Example — Throughput vs Goodput</h2>
+  <p>Given a scenario, here is how to calculate each metric step by step.</p>
+
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin:16px 0;">
+
+    <div style="font-weight:700; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:14px;">Given</div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;">
+      <div style="background:var(--bg3); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Bandwidth</div>
+        <div style="font-weight:700; font-size:18px; color:#6c8ef7;">100 Mbps</div>
+      </div>
+      <div style="background:var(--bg3); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Total sent</div>
+        <div style="font-weight:700; font-size:18px; color:#fb923c;">800 MB in 100 s</div>
+      </div>
+      <div style="background:var(--bg3); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Retransmissions</div>
+        <div style="font-weight:700; font-size:18px; color:#f472b6;">100 MB</div>
+      </div>
+    </div>
+
+    <div style="font-weight:700; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px;">Step 1 — Throughput</div>
+    <div style="background:var(--bg3); border-radius:8px; padding:14px; margin-bottom:16px; font-family:monospace; font-size:13px; line-height:1.9;">
+      Throughput = Total bytes sent ÷ Time<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 800 MB ÷ 100 s<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <strong>8 MB/s</strong><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 8 × 8 = <strong style="color:#fb923c;">64 Mbps</strong>
+      <span style="float:right; font-size:11px; color:var(--text2); font-family:system-ui;">(64% of 100 Mbps bandwidth)</span>
+    </div>
+
+    <div style="font-weight:700; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px;">Step 2 — Goodput</div>
+    <div style="background:var(--bg3); border-radius:8px; padding:14px; margin-bottom:16px; font-family:monospace; font-size:13px; line-height:1.9;">
+      Goodput = (Total sent − Retransmissions) ÷ Time<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = (800 MB − 100 MB) ÷ 100 s<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 700 MB ÷ 100 s<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <strong>7 MB/s</strong><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 7 × 8 = <strong style="color:#34d399;">56 Mbps</strong>
+      <span style="float:right; font-size:11px; color:var(--text2); font-family:system-ui;">(56% of 100 Mbps bandwidth)</span>
+    </div>
+
+    <div style="font-weight:700; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px;">Summary</div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+      <div style="border:2px solid #6c8ef7; border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Bandwidth</div>
+        <div style="font-weight:700; font-size:20px; color:#6c8ef7;">100 Mbps</div>
+        <div style="font-size:11px; color:var(--text2);">link capacity</div>
+      </div>
+      <div style="border:2px solid #fb923c; border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Throughput</div>
+        <div style="font-weight:700; font-size:20px; color:#fb923c;">64 Mbps</div>
+        <div style="font-size:11px; color:var(--text2);">all bytes ÷ time</div>
+      </div>
+      <div style="border:2px solid #34d399; border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">Goodput</div>
+        <div style="font-weight:700; font-size:20px; color:#34d399;">56 Mbps</div>
+        <div style="font-size:11px; color:var(--text2);">useful bytes ÷ time</div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Round-Trip Time (RTT)</h2>
+  <p>RTT is the total time for something to travel to a destination and for the response to come back. The <code>ping</code> command measures RTT.</p>
+  <div class="formula">RTT = send latency + receive latency</div>
+
+  <h2>Jitter</h2>
+  <p><strong>Jitter</strong> is the <em>variation</em> in latency over time. If packets sometimes take 10ms and sometimes 100ms, that's high jitter.</p>
+  <p>Causes of jitter:</p>
+  <ul>
+    <li><strong>Different paths</strong> — packets may take different routes with different delays</li>
+    <li><strong>Network congestion</strong> — queues fill up unpredictably</li>
+    <li><strong>No packet prioritization</strong> — all traffic treated equally</li>
+    <li><strong>Wireless interference</strong> — WiFi signal varies with environment</li>
+    <li><strong>Old/slow hardware</strong> — processing takes inconsistent time</li>
+  </ul>
+
+  <div class="why">
+    <div class="why-label">Why Jitter Matters</div>
+    <p>For a file download, jitter doesn't matter — you just want it to eventually arrive. But for a video call, if your voice packets arrive at wildly different times, they can't be played back smoothly. <strong>Real-time applications are jitter-sensitive</strong>; batch applications are not. This is one reason VoIP and video conferencing are harder to design than HTTP.</p>
+  </div>
+
+  <h2>The Metric Hierarchy</h2>
+  <svg viewBox="0 0 700 80" style="width:100%; margin:16px 0; border-radius:8px; background:var(--bg3); overflow:visible;">
+    <text x="30"  y="40" fill="#6c8ef7" font-weight="bold" font-size="13" font-family="system-ui">Bandwidth</text>
+    <text x="30"  y="58" fill="#64748b" font-size="10"     font-family="system-ui">Max capacity</text>
+    <text x="155" y="48" fill="#94a3b8" font-size="18"     font-family="system-ui">≥</text>
+    <text x="185" y="40" fill="#fb923c" font-weight="bold" font-size="13" font-family="system-ui">Throughput</text>
+    <text x="185" y="58" fill="#64748b" font-size="10"     font-family="system-ui">Actual flow</text>
+    <text x="315" y="48" fill="#94a3b8" font-size="18"     font-family="system-ui">≥</text>
+    <text x="345" y="40" fill="#34d399" font-weight="bold" font-size="13" font-family="system-ui">Goodput</text>
+    <text x="345" y="58" fill="#64748b" font-size="10"     font-family="system-ui">Useful data</text>
+    <text x="455" y="48" fill="#94a3b8" font-size="18"     font-family="system-ui">≥</text>
+    <text x="485" y="40" fill="#f472b6" font-weight="bold" font-size="13" font-family="system-ui">Effective Rate</text>
+    <text x="485" y="58" fill="#64748b" font-size="10"     font-family="system-ui">After loss &amp; overhead</text>
+  </svg>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">You have a 100 Mbps home connection. You download a file through a server with a 5 Mbps upload link. What is your maximum throughput?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q4')">A) 100 Mbps — your connection is the limit</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q4')">B) 5 Mbps — the bottleneck is the server's upload link</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q4')">C) 52.5 Mbps — the average of both</div>
+    </div>
+    <div class="quiz-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="layers.html" class="btn btn-ghost">← Back</a>
+    <a href="delay.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script src="../assets/performance.js"></script>
+</body>
+</html>

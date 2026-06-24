@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network of Networks — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="networks">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Network <span>of Networks</span></h1>
+  <p class="subtitle">The internet isn't one big network — it's thousands of networks that agree to cooperate. Here's the hierarchy.</p>
+
+  <h2>What is a Local Network?</h2>
+  <p>A <strong>local network (LAN)</strong> is a group of devices that can communicate <em>directly</em> with each other — no router needed, just switches.</p>
+  <ul>
+    <li>A device knows something is local by checking the first <em>X</em> bits of its IP address against its own — if they match, it's on the same network</li>
+    <li>Within the LAN, <strong>switches</strong> forward traffic using <strong>MAC addresses</strong></li>
+    <li>The value of <em>X</em> is set by the router (this is the subnet mask)</li>
+  </ul>
+
+  <h2>The Players</h2>
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h3>End Systems / Hosts</h3>
+      <p>The devices users interact with — laptops, phones, servers. They run application programs and sit at the "edges" of the internet.</p>
+    </div>
+    <div class="card card-green">
+      <h3>Switches</h3>
+      <p>Forward packets <em>within</em> a single local network using MAC addresses. They operate at the <strong>Link Layer</strong>.</p>
+    </div>
+    <div class="card card-orange">
+      <h3>Routers</h3>
+      <p>Connect <em>different</em> networks. They forward packets based on <strong>IP addresses</strong> and operate at the Network Layer.</p>
+    </div>
+    <div class="card card-pink">
+      <h3>ISPs</h3>
+      <p>Internet Service Providers are themselves networks of routers and links. Small ISPs connect to larger ones, up to backbone networks.</p>
+    </div>
+  </div>
+
+  <div class="why">
+    <div class="why-label">Why this hierarchy?</div>
+    <p>No single organization can own or manage the entire internet. Instead, each ISP manages its own network and buys "transit" from larger ISPs to reach the rest of the internet. This creates a market-based, decentralized design that scales globally. Top-tier (Tier-1) ISPs peer directly with each other for free, carrying backbone traffic over high-speed fiber.</p>
+  </div>
+
+  <h2>Protocols Are the Glue</h2>
+  <p>Different networks can run different hardware — fiber, copper, WiFi, satellite. They cooperate because they all speak the same <strong>protocols</strong>: TCP, IP, HTTP, SMTP, etc.</p>
+  <p>A <strong>protocol</strong> is a set of rules defining:</p>
+  <ul>
+    <li>Message <strong>format</strong> — what fields exist and in what order</li>
+    <li>Message <strong>order</strong> — who speaks first, who responds</li>
+    <li>What <strong>actions</strong> to take on receipt</li>
+    <li>How <strong>errors</strong> are handled</li>
+  </ul>
+
+  <div class="why">
+    <div class="why-label">Why Protocols?</div>
+    <p>Without protocols, a packet from your MacBook might be completely misunderstood by a server running different software. Protocols are like agreeing to speak English at an international conference — the content varies, but the language is shared.</p>
+  </div>
+
+  <h2>Private vs Public IP Addresses</h2>
+  <table class="compare">
+    <tr><th></th><th>Private IP</th><th>Public IP</th></tr>
+    <tr><td>Example range</td><td>192.168.x.x, 10.x.x.x</td><td>Everything else</td></tr>
+    <tr><td>Uniqueness</td><td>Unique <em>within</em> a local network</td><td>Globally unique</td></tr>
+    <tr><td>Appears on internet?</td><td>Never — only internal routing</td><td>Yes</td></tr>
+    <tr><td>Who assigns?</td><td>Your router (DHCP)</td><td>ISP / IANA</td></tr>
+  </table>
+  <p>Your home router translates private → public addresses via <strong>NAT (Network Address Translation)</strong> before packets leave for the internet.</p>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">Your laptop has IP <code>192.168.1.5</code>. Your friend's laptop across the country has IP <code>192.168.1.5</code> too. Is this a conflict?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q2')">A) Yes — IP addresses must be globally unique</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q2')">B) No — private IPs only need to be unique within their own local network</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q2')">C) It depends on the ISP</div>
+    </div>
+    <div class="quiz-feedback" id="q2-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="routers.html" class="btn btn-ghost">← Back</a>
+    <a href="layers.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>

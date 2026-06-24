@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Layer — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="applayer">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Application <span>Layer</span></h1>
+  <p class="subtitle">The layer you interact with every day — HTTP, DNS, email. But before the data, there are architectural decisions: who talks to whom?</p>
+
+  <h2>Open vs Proprietary Protocols</h2>
+  <div class="card-grid">
+    <div class="card card-green">
+      <h3>Open Protocols</h3>
+      <p>Publicly documented, usually in IETF RFC documents. Anyone can implement them.</p>
+      <ul>
+        <li>HTTP, HTTPS</li>
+        <li>SMTP (email)</li>
+        <li>SSH</li>
+        <li>DNS</li>
+      </ul>
+      <p style="font-size:12px; margin-top:8px">Result: many competing implementations, interoperability across vendors</p>
+    </div>
+    <div class="card card-orange">
+      <h3>Proprietary Protocols</h3>
+      <p>Private, company-controlled. Only one implementation — yours.</p>
+      <ul>
+        <li>Skype</li>
+        <li>iCloud</li>
+        <li>Zoom</li>
+      </ul>
+      <p style="font-size:12px; margin-top:8px">Result: platform lock-in, but the company controls the full stack</p>
+    </div>
+  </div>
+
+  <h2>Network Architectures</h2>
+  <h3>Client-Server Architecture</h3>
+  <p>The most common model on the web. Strict roles: the <strong>server</strong> is always on, always reachable at a known address. The <strong>client</strong> initiates connections.</p>
+  <ul>
+    <li>Server: always on, permanent address/hostname, serves multiple clients at once</li>
+    <li>Client: starts the connection, may be behind NAT or on a changing IP</li>
+    <li>Each connection is strictly one client ↔ one server</li>
+    <li>Examples: web browsing (HTTP), email (SMTP), DNS</li>
+  </ul>
+
+  <div class="why">
+    <div class="why-label">Why Client-Server?</div>
+    <p>Simplicity and reliability. By keeping the server at a known, stable address, clients never have to "find" it. The server can be optimized, secured, and scaled independently. The downside: scaling requires adding more servers (costly), and if the server goes down, so does the service.</p>
+  </div>
+
+  <h3>Peer-to-Peer (P2P) Architecture</h3>
+  <p>No permanently-on server with a fixed address. Peers (ordinary devices) connect to each other directly and play both client and server roles.</p>
+  <ul>
+    <li>Each peer both requests and provides service</li>
+    <li><strong>Self-scaling</strong>: each new peer adds demand <em>and</em> capacity</li>
+    <li>Challenges: peers have dynamic IPs, go offline, sit behind firewalls</li>
+    <li>Examples: BitTorrent, early Skype, blockchain networks</li>
+  </ul>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h3>P2P Self-Scaling</h3>
+      <p>Imagine 1000 users downloading a file. In client-server, the server bears all the upload load. In P2P, every downloader also uploads to others — the more users, the more capacity. This is why BitTorrent can distribute huge files cheaply.</p>
+    </div>
+    <div class="card card-pink">
+      <h3>P2P Address Problem</h3>
+      <p>How do peers find each other if there's no server? Solutions: centralized index (Napster's approach, but a single point of failure), distributed hash tables (DHT, fully decentralized), or tracker servers (BitTorrent's hybrid).</p>
+    </div>
+  </div>
+
+  <h2>How Chrome Opens a Webpage — Step by Step</h2>
+  <p>When you type <code>https://google.com</code>:</p>
+  <ol style="line-height:2">
+    <li>Chrome sees <code>https://</code> → defaults to <strong>port 443</strong></li>
+    <li>Chrome asks <strong>DNS</strong> for the public IP of <code>google.com</code></li>
+    <li>Chrome now knows the destination IP — tells the OS to send a packet there</li>
+    <li>The OS checks: is this IP on my local network? (compare first X bits of IP)</li>
+    <li>No → packet goes to the <strong>default gateway</strong> (home router)</li>
+    <li>To reach the router, the OS does an <strong>ARP request</strong>: "Who has IP 192.168.1.1?"</li>
+    <li>Router replies with its MAC address</li>
+    <li>Packet is sent with destination MAC = router's MAC, destination IP = Google's IP</li>
+  </ol>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">You're building a file-sharing app that needs to work even when most users are offline. Which architecture is better?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q6')">A) Client-Server — a reliable server is always available</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q6')">B) P2P — but you'll need a discovery mechanism since peers have dynamic addresses</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q6')">C) P2P — peers are always online and easy to find</div>
+    </div>
+    <div class="quiz-feedback" id="q6-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="delay.html"     class="btn btn-ghost">← Back</a>
+    <a href="transport.html" class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>

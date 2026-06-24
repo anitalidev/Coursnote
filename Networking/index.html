@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer Networks — Interactive Study Guide</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-section="home">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <div class="badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    Networking
+  </div>
+
+  <h1><span>Computer Networks</span><br>Interactive Study Guide</h1>
+  <p class="subtitle">Your lecture notes, reimagined as an interactive course. Each module explains not just <em>what</em> happens, but <em>why</em> the internet was designed this way — the tradeoffs, the constraints, the clever solutions.</p>
+
+  <div class="home-grid">
+    <a class="home-card" href="modules/switching.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></div>
+      <div class="hc-title">Circuit vs Packet Switching</div>
+      <div class="hc-sub">Why the internet uses packets instead of dedicated lines</div>
+    </a>
+    <a class="home-card" href="modules/routers.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 14V8"/><path d="M18 14V8"/><path d="M6 8a6 6 0 0 1 12 0"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg></div>
+      <div class="hc-title">Routers vs Switches</div>
+      <div class="hc-sub">What each device does, where it operates, and why both exist</div>
+    </a>
+    <a class="home-card" href="modules/networks.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+      <div class="hc-title">Network of Networks</div>
+      <div class="hc-sub">ISPs, routers, switches, and how the internet is structured</div>
+    </a>
+    <a class="home-card" href="modules/layers.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
+      <div class="hc-title">Protocol Layers</div>
+      <div class="hc-sub">The 5-layer model and why layering exists</div>
+    </a>
+    <a class="home-card" href="modules/performance.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
+      <div class="hc-title">Performance Metrics</div>
+      <div class="hc-sub">Bandwidth, throughput, goodput, latency, jitter</div>
+    </a>
+    <a class="home-card" href="modules/delay.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="hc-title">Delay &amp; Packet Loss</div>
+      <div class="hc-sub">Interactive delay calculator with all 4 delay types</div>
+    </a>
+    <a class="home-card" href="modules/applayer.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+      <div class="hc-title">Application Layer</div>
+      <div class="hc-sub">Client-server vs P2P, open vs proprietary protocols</div>
+    </a>
+    <a class="home-card" href="modules/transport.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+      <div class="hc-title">Transport Layer</div>
+      <div class="hc-sub">TCP vs UDP — reliability vs speed tradeoffs</div>
+    </a>
+    <a class="home-card" href="modules/journey.html">
+      <div class="hc-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>
+      <div class="hc-title">Packet Journey</div>
+      <div class="hc-sub">Step-by-step: your browser to Google's server</div>
+    </a>
+  </div>
+
+  <div class="why">
+    <div class="why-label">How to use this guide</div>
+    <p>Each section ends with a short quiz to test your understanding. Look for the <strong style="color:var(--accent)">Why?</strong> boxes — they explain the design reasoning, not just the facts. Concepts build on each other, so the order matters.</p>
+  </div>
+
+  <div class="section-nav">
+    <div></div>
+    <a href="modules/switching.html" class="btn btn-primary">Start →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

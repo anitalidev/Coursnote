@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport Layer — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="transport">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Transport <span>Layer</span></h1>
+  <p class="subtitle">TCP and UDP are the two transport protocols. They make opposite tradeoffs — understanding when to use each requires knowing <em>why</em> they differ.</p>
+
+  <h2>The Core Question: Process to Process</h2>
+  <p>IP addresses get a packet to the right <em>computer</em>. But a computer runs many processes at once (browser, Spotify, email). The transport layer uses <strong>port numbers</strong> to identify which process should receive each packet.</p>
+  <div class="formula">Socket = IP Address + Port Number</div>
+  <p>A socket is the unique identifier for a network endpoint — like an apartment address (IP) + unit number (port).</p>
+
+  <h2>Choose Your Protocol</h2>
+  <div class="proto-toggle">
+    <div class="proto-btn" id="tcp-btn" onclick="showProto('tcp')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;display:inline-block"><line x1="2" y1="18" x2="22" y2="18"/><path d="M6 18V9a6 6 0 0 1 12 0v9"/><line x1="2" y1="9" x2="6" y2="9"/><line x1="18" y1="9" x2="22" y2="9"/><line x1="9" y1="18" x2="9" y2="13"/><line x1="15" y1="18" x2="15" y2="13"/></svg>
+      TCP<br><small style="font-weight:400">Reliable, ordered</small>
+    </div>
+    <div class="proto-btn" id="udp-btn" onclick="showProto('udp')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;display:inline-block"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      UDP<br><small style="font-weight:400">Fast, best-effort</small>
+    </div>
+  </div>
+
+  <div class="proto-detail" id="tcp-detail">
+    <div class="card card-accent" style="margin:0">
+      <h3>TCP — Transmission Control Protocol</h3>
+      <p><em>"Like walking across the room before talking to someone — takes longer, but you know they heard you."</em></p>
+      <ul>
+        <li><strong>Connection-oriented:</strong> Must establish a connection (3-way handshake) before sending data</li>
+        <li><strong>Reliable delivery:</strong> Guarantees all packets arrive, in order</li>
+        <li><strong>Flow control:</strong> Doesn't overwhelm the receiver</li>
+        <li><strong>Congestion control:</strong> Slows down if network is congested</li>
+        <li><strong>Cost:</strong> Higher overhead, higher latency</li>
+      </ul>
+      <p style="font-size:12px; margin-top:10px; color:var(--text3)"><strong>Use when:</strong> Data loss is unacceptable — web pages, file downloads, email, SSH</p>
+    </div>
+  </div>
+
+  <div class="proto-detail" id="udp-detail">
+    <div class="card card-orange" style="margin:0">
+      <h3>UDP — User Datagram Protocol</h3>
+      <p><em>"Like shouting at someone across the room — no guarantee they heard, but if they did, it was instant."</em></p>
+      <ul>
+        <li><strong>Connectionless:</strong> Just fire packets and hope for the best</li>
+        <li><strong>No reliability:</strong> Lost packets stay lost — no retransmission</li>
+        <li><strong>No ordering:</strong> Packets may arrive out of order</li>
+        <li><strong>No congestion control:</strong> Sends at full rate regardless</li>
+        <li><strong>Benefit:</strong> Very low overhead, very low latency</li>
+      </ul>
+      <p style="font-size:12px; margin-top:10px; color:var(--text3)"><strong>Use when:</strong> Speed matters more than perfection — video calls, gaming, live streams, DNS</p>
+    </div>
+  </div>
+
+  <div class="why">
+    <div class="why-label">Why Does UDP Exist If TCP is More Reliable?</div>
+    <p>TCP's reliability mechanisms add latency. In a video call, a 200ms-late packet is worse than no packet — by the time it arrives, the speaker has moved on. It's better to just skip it. DNS queries are tiny and need responses in milliseconds — the overhead of TCP's handshake would double the time. For these use cases, you want to control reliability at the application layer, not blindly use TCP.</p>
+  </div>
+
+  <h2>Comparison Table</h2>
+  <table class="compare">
+    <tr><th></th><th>TCP</th><th>UDP</th></tr>
+    <tr><td>Connection</td><td>3-way handshake required</td><td>None — connectionless</td></tr>
+    <tr><td>Reliability</td><td>Guaranteed delivery + ordering</td><td>Best-effort only</td></tr>
+    <tr><td>Speed</td><td>Slower (overhead)</td><td>Faster (no overhead)</td></tr>
+    <tr><td>Flow control</td><td>Yes</td><td>No</td></tr>
+    <tr><td>Congestion control</td><td>Yes</td><td>No</td></tr>
+    <tr><td>Use cases</td><td>HTTP, HTTPS, email, SSH, FTP</td><td>Video call, gaming, DNS, streaming</td></tr>
+    <tr><td>Data loss</td><td>Retransmitted</td><td>Lost forever</td></tr>
+  </table>
+
+  <h2>How to Choose?</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Use TCP when…</h3>
+      <ul>
+        <li>Data loss is unacceptable</li>
+        <li>Order matters (file content, web pages)</li>
+        <li>You don't need real-time delivery</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Use UDP when…</h3>
+      <ul>
+        <li>Latency matters more than completeness</li>
+        <li>You can tolerate or handle loss yourself</li>
+        <li>You need low overhead (DNS, small queries)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">You're building a live multiplayer game. Players need position updates 60 times per second. A slightly old position is fine, but lag is not. Which protocol?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q7')">A) TCP — game state is important, can't lose packets</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q7')">B) UDP — old packets aren't useful; low latency matters more than perfect delivery</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q7')">C) Doesn't matter — game data is small</div>
+    </div>
+    <div class="quiz-feedback" id="q7-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="applayer.html" class="btn btn-ghost">← Back</a>
+    <a href="journey.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>showProto(null);</script>
+</body>
+</html>

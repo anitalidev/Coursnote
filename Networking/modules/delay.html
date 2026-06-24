@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delay & Packet Loss — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="delay">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Delay &amp; <span>Packet Loss</span></h1>
+  <p class="subtitle">Every packet passes through four types of delay at each node. Understanding each one tells you where to optimize.</p>
+
+  <h2>The Four Sources of Nodal Delay</h2>
+  <p>When a packet arrives at a router, it goes through four stages — in order. Since they happen sequentially, the delays <strong>add up</strong>.</p>
+
+  <div class="card-grid">
+    <div class="card" style="border-top:3px solid #f472b6">
+      <h3 style="color:#f472b6">1 · Processing Delay</h3>
+      <p>Time to read the packet header and decide where to send it next.</p>
+      <p style="font-size:12px; color:var(--text3)"><strong>Characteristics:</strong> Small, roughly constant. Usually microseconds.</p>
+    </div>
+    <div class="card" style="border-top:3px solid #fbbf24">
+      <h3 style="color:#fbbf24">2 · Queuing Delay</h3>
+      <p>Time waiting in various switch/routers' queues for the link to be free. Depends entirely on how congested the network is.</p>
+      <p style="font-size:12px; color:var(--text3)"><strong>Characteristics:</strong> Highly variable. Zero when empty; can be very large when congested. If the queue fills up — <strong>packets are dropped</strong>.</p>
+    </div>
+    <div class="card" style="border-top:3px solid #6c8ef7">
+      <h3 style="color:#6c8ef7">3 · Transmission Delay</h3>
+      <p>Time to push all bits of the packet onto the link.</p>
+      <div class="formula" style="font-size:13px">L / R</div>
+      <p style="font-size:12px; color:var(--text3)"><strong>L</strong> = packet size in bits &nbsp;|&nbsp; <strong>R</strong> = link bandwidth in bps</p>
+    </div>
+    <div class="card" style="border-top:3px solid #34d399">
+      <h3 style="color:#34d399">4 · Propagation Delay</h3>
+      <p>Time for a bit to physically travel across the link medium (wire, fiber, air).</p>
+      <div class="formula" style="font-size:13px">D / V</div>
+      <p style="font-size:12px; color:var(--text3)"><strong>D</strong> = distance of link &nbsp;|&nbsp; <strong>V</strong> = propagation speed (~2×10⁸ m/s in fiber)</p>
+    </div>
+  </div>
+
+  <p style="font-size:13px; color:var(--text2); margin-top:10px; margin-bottom:0;">
+    The <strong>total end-to-end delay</strong> across a path of <em>N</em> routers is the sum of all four delay types at every hop:
+    <span style="font-family:monospace; color:var(--accent)">d<sub>end-to-end</sub> = N × (d<sub>proc</sub> + d<sub>queue</sub> + d<sub>trans</sub> + d<sub>prop</sub>)</span>.
+    Each router adds its own set — so a packet crossing 10 routers accumulates 10 layers of nodal delay.
+  </p>
+
+  <div class="why">
+    <div class="why-label">Transmission vs Propagation — Easy to Confuse!</div>
+    <p><strong>Transmission delay</strong> is about the <em>size</em> of your packet and the <em>speed</em> of your link — like how long it takes to load a truck. <strong>Propagation delay</strong> is about <em>distance</em> — like how long the truck takes to drive. A huge packet on a slow link has high transmission delay. A small packet crossing a continent has high propagation delay.</p>
+  </div>
+
+  <h2>Delay Animation — One Link/Router</h2>
+  <p style="font-size:13.5px; color:var(--text2); margin-bottom:4px">Watch a single packet pass through <strong>one router hop</strong>. Each phase runs its own timer so you can see exactly where time is being spent. <strong>Please note that the transmission calculated is the delay involving the single ROUTER shown below</strong>. In a real network, <strong>every link and switch/router along the path adds its own set of delays</strong> — the total end-to-end delay is the sum of all of them.</p>
+
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin:16px 0 24px;">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 16px;" id="delay-anim-btn" onclick="delayAnimToggle()">▶ Play</button>
+      <button class="btn btn-ghost"   style="font-size:12px;padding:6px 14px;" onclick="delayAnimReset()">↺ Reset</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <label style="font-size:12px;color:var(--text3);">Queue length:</label>
+        <select id="delay-queue-len" onchange="delayAnimReset()" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-size:12px;">
+          <option value="0">Empty (0 packets ahead)</option>
+          <option value="2" selected>Light (2 packets ahead)</option>
+          <option value="5">Heavy (5 packets ahead)</option>
+        </select>
+      </div>
+    </div>
+
+    <canvas id="delay-anim-canvas" width="756" height="200" style="width:100%;border-radius:8px;background:var(--bg3);display:block;"></canvas>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:12px;" id="delay-phase-bar">
+      <div id="dph-proc" style="border-radius:6px;padding:8px 10px;background:var(--bg3);border:1.5px solid var(--border);transition:all .2s;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#f472b6;margin-bottom:2px;">Processing</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text3);font-variant-numeric:tabular-nums;" id="dph-proc-t">—</div>
+        <div style="font-size:10px;color:var(--text3);">header inspection</div>
+      </div>
+      <div id="dph-queue" style="border-radius:6px;padding:8px 10px;background:var(--bg3);border:1.5px solid var(--border);transition:all .2s;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fbbf24;margin-bottom:2px;">Queuing</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text3);font-variant-numeric:tabular-nums;" id="dph-queue-t">—</div>
+        <div style="font-size:10px;color:var(--text3);">waiting in line</div>
+      </div>
+      <div id="dph-trans" style="border-radius:6px;padding:8px 10px;background:var(--bg3);border:1.5px solid var(--border);transition:all .2s;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6c8ef7;margin-bottom:2px;">Transmission</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text3);font-variant-numeric:tabular-nums;" id="dph-trans-t">—</div>
+        <div style="font-size:10px;color:var(--text3);">bits onto/off wire</div>
+      </div>
+      <div id="dph-prop" style="border-radius:6px;padding:8px 10px;background:var(--bg3);border:1.5px solid var(--border);transition:all .2s;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#34d399;margin-bottom:2px;">Propagation</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text3);font-variant-numeric:tabular-nums;" id="dph-prop-t">—</div>
+        <div style="font-size:10px;color:var(--text3);">bits cross the wire</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:12px;color:var(--text3);">Total nodal delay <em>(this one hop)</em> — add up all hops for end-to-end latency</span>
+      <span style="font-size:18px;font-weight:700;color:var(--accent2);font-variant-numeric:tabular-nums;" id="dph-total-t">—</span>
+    </div>
+  </div>
+
+  <div class="why" style="margin-bottom:24px;">
+    <div class="why-label">What the animation reveals</div>
+    <p style="margin-bottom:8px;"><strong style="color:#fbbf24">Queuing delay is the most variable.</strong> It depends entirely on how busy the router is — with an empty queue it's zero, but under heavy load it can dominate all other delays combined. This is why the same route can feel fast at 2 am and sluggish at peak hours.</p>
+    <p style="margin-bottom:8px;"><strong style="color:#f472b6">Processing delay is essentially fixed.</strong> Inspecting a packet header and looking up the forwarding table takes roughly the same time regardless of network conditions — modern routers do this in nanoseconds using dedicated hardware.</p>
+    <p style="margin-bottom:8px;"><strong style="color:#6c8ef7">Transmission delay scales with packet size.</strong> Pushing bits onto the wire takes longer for bigger packets and slower links (L/R). Fragmentation and smaller MTUs exist partly to keep this delay bounded.</p>
+    <p style="margin-bottom:0;"><strong style="color:#34d399">Propagation delay is also fixed for a given path.</strong> Once bits are on the wire, they travel at a constant fraction of the speed of light — nothing in software can change this. It's purely physics and distance, which is why satellite links (≥600 ms round-trip) feel laggy no matter how much bandwidth you add.</p>
+  </div>
+
+  <h2>Interactive Delay Calculator</h2>
+  <p style="font-size:13px; color:var(--text3)">Enter values below to calculate delay at a single node.</p>
+  <div class="calc-grid">
+    <div class="calc-input">
+      <label>Packet Size (L) — bits</label>
+      <input type="number" id="calc-L" placeholder="e.g. 8000" oninput="calcDelay()">
+    </div>
+    <div class="calc-input">
+      <label>Link Bandwidth (R) — bps</label>
+      <input type="number" id="calc-R" placeholder="e.g. 1000000" oninput="calcDelay()">
+    </div>
+    <div class="calc-input">
+      <label>Distance (D) — meters</label>
+      <input type="number" id="calc-D" placeholder="e.g. 2000000" oninput="calcDelay()">
+    </div>
+    <div class="calc-input">
+      <label>Propagation Speed (V) — m/s</label>
+      <input type="number" id="calc-V" placeholder="e.g. 200000000" oninput="calcDelay()">
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px">
+    <div class="calc-result">
+      <div class="result-label">Transmission Delay (L/R)</div>
+      <div class="result-val" id="calc-trans">—</div>
+    </div>
+    <div class="calc-result">
+      <div class="result-label">Propagation Delay (D/V)</div>
+      <div class="result-val" id="calc-prop">—</div>
+    </div>
+    <div class="calc-result" style="border-color:var(--accent2)">
+      <div class="result-label">Total (no queuing)</div>
+      <div class="result-val" id="calc-total" style="color:var(--accent2)">—</div>
+    </div>
+  </div>
+  <p style="font-size:12px; color:var(--text3); margin-top:8px;"><strong style="color:var(--text2)">N/A</strong> — not enough values specified to calculate this result. Fill in the required inputs above.</p>
+
+  <h2>Queue Traffic Intensity</h2>
+  <p>The key metric for queuing delay is <strong>traffic intensity</strong>:</p>
+  <div class="formula">Traffic Intensity = (a × L) / R</div>
+  <p>Where <strong>a</strong> = avg packets/second arriving, <strong>L</strong> = avg packet size (bits), <strong>R</strong> = link bandwidth (bps).</p>
+  <ul>
+    <li>If intensity &gt; 1 → queue grows <em>forever</em> → system breaks down. <strong>Never design for this.</strong></li>
+    <li>As intensity → 1 → queuing delay grows rapidly (non-linear!)</li>
+    <li>Below ~0.7 → queuing delay stays manageable</li>
+  </ul>
+
+  <div class="demo-wrap">
+    <div class="demo-controls">
+      <label>Traffic Intensity: <span id="intensity-val">0.5</span></label>
+      <input type="range" min="0" max="99" value="50" id="intensity-slider" oninput="updateQueueDemo()">
+    </div>
+    <canvas id="queue-canvas" width="760" height="100"></canvas>
+  </div>
+
+  <h2>Packet Loss</h2>
+  <p>Every router has a finite queue. When the queue is <strong>full</strong> and a new packet arrives, that packet is <strong>dropped and permanently lost</strong>. There's no recovery at the network layer — it's gone.</p>
+  <ul>
+    <li>Packet loss at the IP layer requires higher layers (like TCP) to detect and retransmit</li>
+    <li>UDP does not retransmit — lost packets are gone forever</li>
+    <li>High traffic intensity → frequent loss → worse goodput even if throughput looks OK</li>
+  </ul>
+
+  <div class="why">
+    <div class="why-label">Why Packets Are Just Dropped (Not Delayed)</div>
+    <p>The internet uses "drop-tail" queuing: when the buffer is full, new arrivals are dropped. The alternative — storing them somewhere else — would require unbounded memory. Dropping is a deliberate design choice that signals congestion to higher layers, letting TCP slow down. This is the internet's congestion control mechanism.</p>
+  </div>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">A 1000-bit packet is sent over a 1 Mbps link across a 2000 km fiber link (propagation speed = 2×10⁸ m/s). Which delay is larger?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q5')">A) Transmission delay (1000 / 10⁶ = 0.001 ms)</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q5')">B) Propagation delay (2×10⁶ / 2×10⁸ = 10 ms) — propagation dominates</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q5')">C) They're equal</div>
+    </div>
+    <div class="quiz-feedback" id="q5-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="performance.html" class="btn btn-ghost">← Back</a>
+    <a href="applayer.html"    class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script src="../assets/delay.js"></script>
+</body>
+</html>

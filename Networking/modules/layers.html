@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protocol Layers — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="layers">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Protocol <span>Layers</span></h1>
+  <p class="subtitle">Protocols are organized into layers, where each layer handles a specific job and relies on the layer below. Click any layer to learn more.</p>
+
+  <div class="why">
+    <div class="why-label">Why Layer at All?</div>
+    <p>Layering is like building with Lego bricks instead of sculpting one piece. <strong>Advantage:</strong> you can swap out one layer's implementation without touching the others. Replace WiFi with Ethernet — the IP layer above doesn't care. <strong>Disadvantage:</strong> sometimes a lower layer has information a higher layer needs, and layering forces you to work around that; there's also duplication of some functions across layers.</p>
+  </div>
+
+  <p>Click each layer to expand it:</p>
+  <div class="layer-stack" id="layer-stack">
+
+    <div class="layer-row">
+      <div class="layer-label">App</div>
+      <div class="layer-block" style="background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.3);" onclick="toggleLayer('l5')">
+        <div class="layer-name" style="color:#f472b6">5 · Application Layer</div>
+        <div class="layer-eg">HTTP, DNS, SMTP, FTP</div>
+      </div>
+    </div>
+    <div class="layer-detail" id="l5">
+      <strong>Job:</strong> Where network <em>applications</em> live — your browser, email client, etc.<br><br>
+      <strong>What it answers:</strong> <em>"What do you want to do?"</em> — GET a webpage, send an email, look up a name.<br><br>
+      <strong>Unit of data:</strong> called a <em>message</em><br><br>
+      <strong>Examples:</strong> HTTP request (<code>GET /index.html HTTP/1.1</code>), DNS query for google.com, SMTP email.<br><br>
+      <strong>Key insight:</strong> The application layer doesn't care how the data gets there — it just hands off to the transport layer below.
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Transport</div>
+      <div class="layer-block" style="background:rgba(251,146,60,.15);border-color:rgba(251,146,60,.3);" onclick="toggleLayer('l4')">
+        <div class="layer-name" style="color:#fb923c">4 · Transport Layer</div>
+        <div class="layer-eg">TCP, UDP — Port Numbers</div>
+      </div>
+    </div>
+    <div class="layer-detail" id="l4">
+      <strong>Job:</strong> Get data from one <em>process</em> to another process on a different machine.<br><br>
+      <strong>What it answers:</strong> <em>"Which app on the destination should receive this?"</em> — identified by a <strong>port number</strong>.<br><br>
+      <strong>Unit of data:</strong> called a <em>segment</em><br><br>
+      <strong>Examples:</strong> Port 80 = HTTP, Port 443 = HTTPS, Port 25 = SMTP.<br><br>
+      <strong>Key insight:</strong> IP addresses find the computer; port numbers find the <em>application</em> on that computer.
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Network</div>
+      <div class="layer-block" style="background:rgba(108,142,247,.15);border-color:rgba(108,142,247,.3);" onclick="toggleLayer('l3')">
+        <div class="layer-name" style="color:#6c8ef7">3 · Network Layer</div>
+        <div class="layer-eg">IP — IP Addresses</div>
+      </div>
+    </div>
+    <div class="layer-detail" id="l3">
+      <strong>Job:</strong> Move packets from the <em>source host</em> all the way to the <em>destination host</em> across multiple networks.<br><br>
+      <strong>What it answers:</strong> <em>"Which computer (globally) is the destination?"</em> — identified by an <strong>IP address</strong>.<br><br>
+      <strong>Unit of data:</strong> called a <em>datagram</em><br><br>
+      <strong>Key insight:</strong> Routers only need to look at the network layer and below. The IP address stays constant end-to-end — it's the final destination. The MAC address changes at each hop.
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Link</div>
+      <div class="layer-block" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.3);" onclick="toggleLayer('l2')">
+        <div class="layer-name" style="color:#34d399">2 · Link Layer</div>
+        <div class="layer-eg">Ethernet, WiFi — MAC Addresses</div>
+      </div>
+    </div>
+    <div class="layer-detail" id="l2">
+      <strong>Job:</strong> Transfer a packet between two <em>directly connected</em> devices on the same link.<br><br>
+      <strong>What it answers:</strong> <em>"Which physical device on this local network do I deliver to next?"</em> — identified by a <strong>MAC address</strong>.<br><br>
+      <strong>Unit of data:</strong> called a <em>frame</em><br><br>
+      <strong>Key insight:</strong> MAC addresses are hardware-assigned and fixed. They're used to get a packet to the <em>next hop</em> only — each router replaces the destination MAC with the next router's MAC.
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Physical</div>
+      <div class="layer-block" style="background:rgba(100,116,139,.15);border-color:rgba(100,116,139,.3);" onclick="toggleLayer('l1')">
+        <div class="layer-name" style="color:#94a3b8">1 · Physical Layer</div>
+        <div class="layer-eg">Cables, Fiber, Radio Waves</div>
+      </div>
+    </div>
+    <div class="layer-detail" id="l1">
+      <strong>Job:</strong> Transmit raw <em>bits</em> over the physical medium.<br><br>
+      <strong>How:</strong> Electrical signals on copper wire, light pulses on fiber optic, radio waves for WiFi.<br><br>
+      <strong>Key insight:</strong> This is the only layer that deals with actual physics. All the "intelligence" lives above it. Different physical media can carry the same data — the layers above are unaffected.
+    </div>
+
+  </div>
+
+  <h2>Which Layer Does Each Device Use?</h2>
+  <table class="compare">
+    <tr><th>Device</th><th>Layers Used</th><th>Why?</th></tr>
+    <tr><td>End Host (your laptop)</td><td>All 5 layers</td><td>Needs to run apps, address packets, and send bits</td></tr>
+    <tr><td>Router</td><td>1–3 (Physical, Link, Network)</td><td>Only needs to find the next hop — doesn't care about apps or ports</td></tr>
+    <tr><td>Switch (L2)</td><td>1–2 (Physical, Link)</td><td>Only moves frames within a LAN using MAC addresses</td></tr>
+  </table>
+
+  <div class="why">
+    <div class="why-label">Why Routers Don't Need Layers 4–5</div>
+    <p>A router's job is purely forwarding packets to the next hop. It doesn't care if you're watching YouTube or sending email — that's the application's business. By only reading up to Layer 3, routers can process packets much faster. This separation is key to internet scalability.</p>
+  </div>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">A packet travels from your laptop → home router → ISP router → Google's server. What changes at each router hop?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q3')">A) The destination IP address changes to the next router's IP</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q3')">B) The destination MAC address changes to the next router's MAC; the IP stays the same</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q3')">C) Both the IP and MAC address change at each hop</div>
+    </div>
+    <div class="quiz-feedback" id="q3-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="networks.html"     class="btn btn-ghost">← Back</a>
+    <a href="performance.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>

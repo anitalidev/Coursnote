@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit vs Packet Switching — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="switching">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1><span>Circuit vs Packet</span> Switching</h1>
+  <p class="subtitle">The internet was built on a deliberate choice: break messages into packets instead of reserving dedicated lines. Here's why.</p>
+
+  <h2>Circuit Switching — The Telephone Approach</h2>
+  <p>The original telephone network used <strong>circuit switching</strong>. When you called someone, a physical path was <em>reserved</em> entirely for your call — from start to finish — for the whole duration.</p>
+
+  <h3>Multiplexing Circuit Lines</h3>
+  <p>Since reserving an entire physical wire per call wastes most of its capacity, two methods split one wire among many calls:</p>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Frequency Division (FDM)</h3>
+      <p>Divides the bandwidth into frequency bands — like radio stations each on their own frequency. Each call gets its slice of spectrum simultaneously.</p>
+    </div>
+    <div class="card">
+      <h3>Time Division (TDM)</h3>
+      <p>Divides time into repeating slots — each call gets the full bandwidth, but only during its time slot. Like taking turns very fast.</p>
+    </div>
+  </div>
+
+  <h3>Circuit Switching: Advantages &amp; Disadvantages</h3>
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h3>✓ Advantages</h3>
+      <ul>
+        <li>Guaranteed, constant rate</li>
+        <li>Deterministic — every bit takes the same path</li>
+        <li>No queuing delay once connected</li>
+        <li>Great for continuous streams (voice calls)</li>
+      </ul>
+    </div>
+    <div class="card card-orange">
+      <h3>✗ Disadvantages</h3>
+      <ul>
+        <li>Reserved line sits idle during silence</li>
+        <li>Cannot share line with others</li>
+        <li>Bursty traffic = wasted capacity</li>
+        <li>Physical break = connection lost</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Packet Switching — The Internet Way</h2>
+  <p>Circuit switching is good for things like phone calls, since it is generally expected for a phone call to involve continuous speaking, so the reserved line is consistently used to send data. Thus, in modern times circuit switching still has some use cases. However, for other cases like web browsing, file transfers, and most internet traffic, usage is <strong>bursty</strong> — you request a page, get a burst, then nothing while you read. Reserving a dedicated line for that is wasteful.</p>
+
+  <div class="why">
+    <div class="why-label">Why Packets?</div>
+    <p>Instead of reserving a whole lane on a highway for one car, packet switching is more like a shared road: many cars (packets) share the road and route independently. The tradeoff: you can't <em>guarantee</em> arrival time, and if there's a traffic jam, some cars might be turned away (dropped packets). As well, different cars may have to take different routes to try and get to their destination, even if they have the same destination.</p>
+  </div>
+
+  <p>In packet switching:</p>
+  <ul>
+    <li>Messages are broken into <strong>packets</strong> containing some data + metadata (destination, ordering for when one message is broken into multiple packets, etc.)</li>
+    <li>Each packet is sent <strong>separately</strong> and may take <strong>different paths</strong></li>
+    <li>Routers use <strong>forwarding tables</strong> (keyed by IP address) to decide where each packet goes next</li>
+    <li>Each link carries <strong>one packet at a time</strong> — others must wait in a queue</li>
+    <li>If the queue is full, packets are <strong>dropped and lost permanently</strong></li>
+  </ul>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h3>✓ Advantages</h3>
+      <ul>
+        <li>No wasted reservation — links only used when data is actually sent</li>
+        <li>Many users can share the same link efficiently</li>
+        <li>No setup delay before sending</li>
+        <li>Resilient — packets can reroute around failures</li>
+        <li>Works well for <strong>bursty</strong> traffic (web, email, files)</li>
+      </ul>
+    </div>
+    <div class="card card-orange">
+      <h3>✗ Disadvantages</h3>
+      <ul>
+        <li>No guaranteed delivery time — variable delay</li>
+        <li>Packets may arrive <strong>out of order</strong> and must be reassembled</li>
+        <li>Full queues cause <strong>permanent packet loss</strong></li>
+        <li>Unpredictable jitter — bad for real-time audio/video</li>
+        <li>Overhead from per-packet headers (metadata)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Live Demo: Packet vs Circuit</h3>
+  <p style="font-size:13px; color:var(--text3)">Each user (circle, left) communicates with its color-matched server (square, right). Watch how traffic flows differently under each model.</p>
+  <div class="demo-wrap">
+    <div class="demo-controls">
+      <button class="btn btn-ghost" onclick="startSwitchDemo('circuit')" style="font-size:12px">▶ Circuit</button>
+      <button class="btn btn-ghost" onclick="startSwitchDemo('packet')"  style="font-size:12px">▶ Packet</button>
+      <button class="btn btn-ghost" onclick="stopSwitchDemo()"           style="font-size:12px">⏹ Stop</button>
+    </div>
+    <canvas id="switch-canvas" width="760" height="210"></canvas>
+    <div id="switch-label" style="font-size:12px; color:var(--text3); text-align:center; margin-top:6px"></div>
+  </div>
+
+  <table class="compare">
+    <tr><th>Property</th><th>Circuit Switching</th><th>Packet Switching</th></tr>
+    <tr><td>Reservation</td><td>Dedicated path reserved</td><td>Shared on demand</td></tr>
+    <tr><td>Delay type</td><td>Setup delay, then constant</td><td>Variable (queuing)</td></tr>
+    <tr><td>Ideal for</td><td>Voice calls, real-time streams</td><td>Web, email, files (bursty)</td></tr>
+    <tr><td>Path</td><td>Fixed for whole session</td><td>Each packet may differ</td></tr>
+    <tr><td>Data loss</td><td>Essentially none (once connected)</td><td>Possible (full queues)</td></tr>
+    <tr><td>Efficiency</td><td>Low (idle reservation)</td><td>High (shared links)</td></tr>
+  </table>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">You're streaming a video — spikes when it buffers, then quiet. Which switching type is more efficient for this?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','q1')">A) Circuit Switching — it guarantees bandwidth</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','q1')">B) Packet Switching — shared links handle bursts better</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','q1')">C) It doesn't matter — they perform the same</div>
+    </div>
+    <div class="quiz-feedback" id="q1-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="../index.html" class="btn btn-ghost">← Back</a>
+    <a href="routers.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script src="../assets/switching.js"></script>
+</body>
+</html>

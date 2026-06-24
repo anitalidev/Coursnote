@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Routers vs Switches — Computer Networks</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-section="routers">
+
+<nav id="sidebar"></nav>
+
+<main id="main">
+<div class="section">
+
+  <h1>Routers <span>vs Switches</span></h1>
+  <p class="subtitle">Both routers and switches move data — but they operate at different layers of the network stack and solve different problems.</p>
+
+  <div class="why">
+    <div class="why-label">Why two devices?</div>
+    <p>Networks have two distinct addressing problems. Inside a local network you need to find a specific machine by its hardware identity. Between different networks you need to know <em>which network</em> to send traffic toward. These require different address spaces, different lookup tables, and different logic — so networking split them into two specialised devices.</p>
+  </div>
+
+  <h2>Switches — the LAN organiser</h2>
+  <p>A switch connects devices <strong>within the same local area network (LAN)</strong>. It operates at the <strong>Link Layer (Layer 2)</strong> and uses <strong>MAC addresses</strong> to decide where to forward a frame.</p>
+  <ul>
+    <li>Every network interface has a burned-in 48-bit MAC address (e.g. <code>a4:c3:f0:12:34:56</code>).</li>
+    <li>A switch maintains a <strong>MAC address table</strong>: it learns which MAC address is reachable out of which port by watching incoming frames.</li>
+    <li>When a frame arrives, the switch looks up the destination MAC and forwards it <em>only</em> out the correct port — no broadcast storm.</li>
+    <li>Switches are fast because the lookup is simple and hardware-accelerated.</li>
+    <li>A switch has <strong>no concept of IP addresses</strong> — it cannot send traffic outside its LAN.</li>
+  </ul>
+
+  <div class="card-grid" style="margin-top:1rem">
+    <div class="card">
+      <h3>MAC table example</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+        <thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:.3rem .5rem">MAC Address</th><th style="text-align:left;padding:.3rem .5rem">Port</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:.3rem .5rem"><code>a4:c3:f0:12:34:56</code></td><td style="padding:.3rem .5rem">Port 1</td></tr>
+          <tr><td style="padding:.3rem .5rem"><code>b8:27:eb:ff:11:22</code></td><td style="padding:.3rem .5rem">Port 3</td></tr>
+          <tr><td style="padding:.3rem .5rem"><code>dc:a6:32:00:ab:cd</code></td><td style="padding:.3rem .5rem">Port 7</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>How a switch learns</h3>
+      <ol style="font-size:.9rem;padding-left:1.2rem">
+        <li>Frame arrives on Port 2 from MAC <code>AA:BB:…</code></li>
+        <li>Switch records: <code>AA:BB:…</code> → Port 2</li>
+        <li>Switch looks up destination MAC in table</li>
+        <li>If found → forward out that port only</li>
+        <li>If not found → flood all ports except source</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem">Routers — the inter-network navigator</h2>
+  <p>A router connects <strong>different networks</strong> together. It operates at the <strong>Network Layer (Layer 3)</strong> and uses <strong>IP addresses</strong> to decide where to forward a packet.</p>
+  <ul>
+    <li>IP addresses are logical and hierarchical (e.g. <code>192.168.1.0/24</code> is a subnet). This hierarchy enables efficient routing across the globe.</li>
+    <li>A router maintains a <strong>forwarding table (routing table)</strong>: each entry maps a destination IP prefix to a next-hop router or outgoing interface.</li>
+    <li>When a packet arrives, the router performs <strong>longest-prefix matching</strong> to find the best route.</li>
+    <li>Routers <strong>decrement the IP TTL</strong> on every hop and discard packets whose TTL reaches 0 — preventing infinite loops.</li>
+    <li>A router <em>does</em> understand Link Layer (it must unwrap and rewrap frames at each hop), but its forwarding decision is always based on IP.</li>
+  </ul>
+
+  <div class="card-grid" style="margin-top:1rem">
+    <div class="card">
+      <h3>Routing table example</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+        <thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:.3rem .5rem">Destination</th><th style="text-align:left;padding:.3rem .5rem">Next Hop</th><th style="text-align:left;padding:.3rem .5rem">Interface</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:.3rem .5rem"><code>10.0.0.0/8</code></td><td style="padding:.3rem .5rem">direct</td><td style="padding:.3rem .5rem">eth0</td></tr>
+          <tr><td style="padding:.3rem .5rem"><code>172.16.0.0/16</code></td><td style="padding:.3rem .5rem"><code>10.0.0.1</code></td><td style="padding:.3rem .5rem">eth0</td></tr>
+          <tr><td style="padding:.3rem .5rem"><code>0.0.0.0/0</code></td><td style="padding:.3rem .5rem"><code>10.0.0.254</code></td><td style="padding:.3rem .5rem">eth1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Longest-prefix match</h3>
+      <p style="font-size:.9rem">Packet destined for <code>172.16.5.3</code>:</p>
+      <ul style="font-size:.85rem">
+        <li><code>0.0.0.0/0</code> — matches (0 bits)</li>
+        <li><code>172.16.0.0/16</code> — matches (16 bits) ✓ winner</li>
+      </ul>
+      <p style="font-size:.85rem;margin-top:.5rem">The most specific (longest) matching prefix wins. This is how the internet routes billions of destinations with finite table entries.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem">Side-by-side comparison</h2>
+  <table class="compare">
+    <tr><th></th><th>Switch</th><th>Router</th></tr>
+    <tr><td>Layer</td><td>Layer 2 (Link)</td><td>Layer 3 (Network)</td></tr>
+    <tr><td>Address used</td><td>MAC address</td><td>IP address</td></tr>
+    <tr><td>Scope</td><td>Within one LAN</td><td>Between networks</td></tr>
+    <tr><td>Table type</td><td>MAC address table</td><td>Routing / forwarding table</td></tr>
+    <tr><td>Learns via</td><td>Watching traffic (self-learning)</td><td>Routing protocols (OSPF, BGP…) or static config</td></tr>
+    <tr><td>Speed</td><td>Very fast (hardware ASIC)</td><td>Slower (more complex lookup)</td></tr>
+  </table>
+
+  <div class="why" style="margin-top:2rem">
+    <div class="why-label">Why not one device?</div>
+    <p>MAC addresses are flat — there is no structure telling you which port a far-away address is behind. Scaling MAC lookup to billions of devices is impossible. IP addresses are hierarchical: prefixes aggregate millions of hosts behind a single route. Routers exploit this hierarchy; switches cannot. Keeping the two layers separate lets each do what it is good at.</p>
+  </div>
+
+  <div class="quiz-block">
+    <h3>✦ Check Your Understanding</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px">A frame arrives at a switch destined for a MAC address not in its table. What does the switch do?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" data-choice="a" onclick="quiz(this,'a','qr1')">A) Drop the frame</div>
+      <div class="quiz-opt" data-choice="b" onclick="quiz(this,'b','qr1')">B) Send it to the router</div>
+      <div class="quiz-opt" data-choice="c" onclick="quiz(this,'c','qr1')">C) Flood it out all ports except the source port</div>
+      <div class="quiz-opt" data-choice="d" onclick="quiz(this,'d','qr1')">D) Reply with an error to the sender</div>
+    </div>
+    <div class="quiz-feedback" id="qr1-feedback"></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="switching.html" class="btn btn-ghost">← Back</a>
+    <a href="networks.html"  class="btn btn-primary">Next →</a>
+  </div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>
