@@ -1,9 +1,18 @@
 package models
 
 type PrivateNote struct {
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	PrivateNoteID string `json:"moduleID"` // self
+	PrivateNoteID string `json:"privateNoteID"` // self
 
-	TopicID string `json:"courseID"` // owner
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	TopicID     string `json:"topicID"` // owner
+}
+
+func newPrivateNote(privNoteID string, name string, desc string, topicID string) *PrivateNote {
+	return &PrivateNote{
+		PrivateNoteID: privNoteID,
+		Name:          name,
+		Description:   desc,
+		TopicID:       topicID,
+	}
 }
