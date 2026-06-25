@@ -1,7 +1,7 @@
 package models
 
 type Topic struct {
-	TopicID string `json:"courseID"` // self
+	TopicID string `json:"topicID"` // self
 
 	Name          string `json:"name"`
 	Description   string `json:"description"`
