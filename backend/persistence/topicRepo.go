@@ -39,6 +39,16 @@ func (repo *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, err
 	return topic, nil
 }
 
+func (repo *SQLTopicRepository) UpdateTopic(id string, name string, description string) error {
+	topic, ok := repo.db.Topics[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	topic.Name = name
+	topic.Description = description
+	return nil
+}
+
 func (repo *SQLTopicRepository) DeleteTopicByID(id string) error {
 	if _, ok := repo.db.Topics[id]; !ok {
 		return errors.New("id does not exist")

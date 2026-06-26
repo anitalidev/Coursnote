@@ -32,6 +32,15 @@ func (repo *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (
 	return note, nil
 }
 
+func (repo *SQLPrivateNoteRepository) UpdatePrivateNoteDescription(id string, description string) error {
+	note, ok := repo.db.PrivateNotes[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	note.Description = description
+	return nil
+}
+
 func (repo *SQLPrivateNoteRepository) DeletePrivateNoteByID(id string) error {
 	if _, ok := repo.db.PrivateNotes[id]; !ok {
 		return errors.New("id does not exist")

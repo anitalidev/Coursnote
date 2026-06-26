@@ -38,6 +38,16 @@ func (repo *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course,
 	return course, nil
 }
 
+func (repo *SQLCourseRepository) UpdateCourse(id string, name string, description string) error {
+	course, ok := repo.db.Courses[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	course.Name = name
+	course.Description = description
+	return nil
+}
+
 func (repo *SQLCourseRepository) DeleteCourseByID(id string) error {
 	if _, ok := repo.db.Courses[id]; !ok {
 		return errors.New("id does not exist")

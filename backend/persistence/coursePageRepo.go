@@ -32,6 +32,15 @@ func (repo *SQLCoursePageRepository) CreateCoursePage(info *CoursePageInfo) (*mo
 	return page, nil
 }
 
+func (repo *SQLCoursePageRepository) UpdateCoursePageDescription(id string, description string) error {
+	page, ok := repo.db.CoursePages[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	page.Description = description
+	return nil
+}
+
 func (repo *SQLCoursePageRepository) DeleteCoursePageByID(id string) error {
 	if _, ok := repo.db.CoursePages[id]; !ok {
 		return errors.New("id does not exist")

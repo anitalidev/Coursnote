@@ -38,6 +38,16 @@ func (repo *SQLModuleRepository) CreateModule(info *ModuleInfo) (*models.Module,
 	return module, nil
 }
 
+func (repo *SQLModuleRepository) UpdateModule(id string, name string, description string) error {
+	module, ok := repo.db.Modules[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	module.Name = name
+	module.Description = description
+	return nil
+}
+
 func (repo *SQLModuleRepository) DeleteModuleByID(id string) error {
 	if _, ok := repo.db.Modules[id]; !ok {
 		return errors.New("id does not exist")
