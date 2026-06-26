@@ -15,5 +15,6 @@ type DatabaseData struct {
 	NextModuleId      int `json:"nextModuleId"`
 	NextTopicId       int `json:"nextTopicId"`
 	NextCoursePageId  int `json:"nextCoursePageId"`
-	NextPrivateNoteID int `json:"nextPrivateNoteID"`
+	NextPrivateNoteId int `json:"nextPrivateNoteID"`
+	NextElementId     int `json:"nextElementID"`
 }

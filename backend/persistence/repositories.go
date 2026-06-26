@@ -1,6 +1,8 @@
 package persistence
 
 import (
+	"encoding/json"
+
 	"github.com/anitalidev/Coursnote/backend/models"
 )
 
@@ -37,6 +39,7 @@ type TopicInfo struct {
 	ModuleID      string
 	PrivateNoteID string
 	CoursePageID  string
+	RawElements   json.RawMessage
 }
 
 type CoursePageInfo struct {

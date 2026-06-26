@@ -35,12 +35,13 @@ func main() {
 	// link handlers
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", handlers.HealthHandler)
+	mux.HandleFunc("/api/user", handlers.UsersHandler)
+	mux.HandleFunc("/api/course", handlers.CourseHandler)
+	mux.HandleFunc("/api/module", handlers.ModuleHandler)
+	mux.HandleFunc("/api/topic", handlers.TopicHandler)
+	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
+	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
 
 	log.Println("Starting Go backend on :8081")
-	go func() {
-		if err := http.ListenAndServe(":8081", withCORS(mux)); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	log.Fatal(http.ListenAndServe(":8081", withCORS(mux)))
 }

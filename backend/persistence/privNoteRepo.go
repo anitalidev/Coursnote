@@ -20,8 +20,8 @@ func (repo *SQLPrivateNoteRepository) GetPrivateNoteByID(id string) (*models.Pri
 }
 
 func (repo *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (*models.PrivateNote, error) {
-	repo.db.NextPrivateNoteID++
-	id := fmt.Sprintf("%d", repo.db.NextPrivateNoteID)
+	repo.db.NextPrivateNoteId++
+	id := fmt.Sprintf("%d", repo.db.NextPrivateNoteId)
 	note := &models.PrivateNote{
 		PrivateNoteID: id,
 		Name:          info.Name,

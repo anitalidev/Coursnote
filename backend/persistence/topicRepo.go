@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/anitalidev/Coursnote/backend/models"
+	"github.com/anitalidev/Coursnote/backend/models/elements"
 )
 
 type SQLTopicRepository struct {
@@ -16,6 +17,15 @@ func (repo *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
 	if !ok {
 		return nil, errors.New("id does not exist")
 	}
+
+	if len(topic.RawElements) > 0 {
+		elems, err := elements.UnmarshalElements(topic.RawElements)
+		if err != nil {
+			return nil, fmt.Errorf("deserializing elements for topic %s: %w", id, err)
+		}
+		topic.Elements = elems
+	}
+
 	return topic, nil
 }
 
@@ -33,6 +43,7 @@ func (repo *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, err
 		ModuleID:      info.ModuleID,
 		PrivateNoteID: info.PrivateNoteID,
 		CoursePageID:  info.CoursePageID,
+		RawElements:   info.RawElements,
 	}
 	repo.db.Topics[id] = topic
 	module.TopicIDs = append(module.TopicIDs, id)
