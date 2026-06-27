@@ -29,8 +29,28 @@ async function createModule(name, desc) {
   const updated = await GET('/course?id=' + S.currentCourse.courseID);
   S.currentCourse = updated;
   S.modules = await loadAll('/module?id=', updated.moduleIDs || []);
+  S.modules.forEach(m => { if (!S.moduleTopics[m.moduleID]) S.moduleTopics[m.moduleID] = []; });
   render();
   toast('Module created');
+}
+
+async function toggleTopicCompleted() {
+  const t = S.currentTopic;
+  const next = !t.completed;
+  try {
+    await PUT('/topic', { id: t.topicID, name: t.name, description: t.description || '', completed: next });
+    t.completed = next;
+    S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
+    renderSidebar();
+    const btn = document.getElementById('mark-completed-btn');
+    if (btn) {
+      btn.classList.toggle('mark-completed-done', next);
+      btn.textContent = next ? '✓ Completed' : 'Mark Complete';
+    }
+    toast(next ? 'Marked complete' : 'Marked incomplete');
+  } catch (e) {
+    toast(e.message || 'Failed to update topic', 'err');
+  }
 }
 
 async function createTopic(name, desc) {
@@ -39,6 +59,7 @@ async function createTopic(name, desc) {
   S.currentModule = updated;
   S.topics = await loadAll('/topic?id=', updated.topicIDs || []);
   S.moduleTopics[S.currentModule.moduleID] = S.topics;
+  S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
   render();
   toast('Topic created');
 }
@@ -92,6 +113,7 @@ async function deleteModule(id) {
   const updated = await GET('/course?id=' + S.currentCourse.courseID);
   S.currentCourse = updated;
   S.modules = await loadAll('/module?id=', updated.moduleIDs || []);
+  delete S.moduleTopics[id];
   render();
   toast('Module deleted', 'err');
 }
@@ -102,6 +124,8 @@ async function deleteTopic(id) {
   const updated = await GET('/module?id=' + S.currentModule.moduleID);
   S.currentModule = updated;
   S.topics = await loadAll('/topic?id=', updated.topicIDs || []);
+  S.moduleTopics[S.currentModule.moduleID] = S.topics;
+  S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
   render();
   toast('Topic deleted', 'err');
 }

@@ -583,3 +583,13 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   color: var(--text3); transition: border-color .2s, color .2s;
 }
 .mod-add-card:hover { border-color: var(--accent); color: var(--accent); }
+
+.mark-completed-btn {
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: transparent; color: var(--text2);
+  transition: background .15s, color .15s, border-color .15s;
+  margin-top: 7px;
+}
+.mark-completed-btn:hover { border-color: #34d399; color: #34d399; }
+.mark-completed-btn.mark-completed-done { background: rgba(52,211,153,.15); color: #34d399; border-color: #34d399; }

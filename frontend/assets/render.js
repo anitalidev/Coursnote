@@ -56,9 +56,8 @@ function renderSidebar() {
   document.getElementById('sidebar').classList.remove('icon-mode');
 
   const total = S.modules.length;
-  const done  = S.modules.filter(m => m.slashed).length;
   const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const pct   = total ? Math.round(done / total * 100) : 0;
+  const pct   = Math.round((S.currentCourse?.pcompleted || 0) * 100);
   const initial = (S.user.username || '?')[0].toUpperCase();
 
   header.innerHTML = `
@@ -156,5 +155,5 @@ function switchNotesTab(tab) {
   document.getElementById('tab-pn').classList.toggle('notes-tab-active', tab === 'pn');
   document.getElementById('tab-cp').classList.toggle('notes-tab-active', tab === 'cp');
   if (tab === 'pn') { const ta = document.getElementById('pn-text'); if (ta) autoResize(ta); }
-  if (S.currentTopic) pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + S.currentTopic.topicID + '/' + tab);
+  if (S.currentTopic) pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + S.currentTopic.topicID + '/' + tab + (S.editMode ? '/edit' : ''));
 }

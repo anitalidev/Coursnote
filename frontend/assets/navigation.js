@@ -45,18 +45,23 @@ async function goTopics(module) {
     S.topics = await loadAll('/topic?id=', module.topicIDs || []);
     S.moduleTopics[module.moduleID] = S.topics;
     S.view = 'topics';
-    pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID);
+    pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID + (S.editMode ? '/edit' : ''));
     render();
   } catch (e) { toast(e.message || 'Failed to open module', 'err'); }
 }
 
 async function goTopic(topic) {
   try {
+    if (!S.currentModule || S.currentModule.moduleID !== topic.moduleID) {
+      S.currentModule = await GET('/module?id=' + topic.moduleID);
+      S.topics = await loadAll('/topic?id=', S.currentModule.topicIDs || []);
+      S.moduleTopics[S.currentModule.moduleID] = S.topics;
+    }
     S.currentTopic = topic;
     S.notebookCells = parseRawElements(topic.rawElements);
     S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
     S.view = 'topic';
-    pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.notesTab);
+    pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.notesTab + (S.editMode ? '/edit' : ''));
     render();
   } catch (e) {
     toast(e.message || 'Failed to open topic', 'err');
@@ -68,22 +73,26 @@ async function restoreFromHash(hash) {
   const m = {
     courses: hash.match(/^#courses$/),
     modules: hash.match(/^#course\/([^/]+)(\/edit)?$/),
-    topics:  hash.match(/^#course\/([^/]+)\/module\/([^/]+)$/),
-    topic:   hash.match(/^#course\/([^/]+)\/module\/([^/]+)\/topic\/([^/]+)(?:\/(pn|cp))?$/),
+    topics:  hash.match(/^#course\/([^/]+)\/module\/([^/]+)(\/edit)?$/),
+    topic:   hash.match(/^#course\/([^/]+)\/module\/([^/]+)\/topic\/([^/]+)(?:\/(pn|cp))?(\/edit)?$/),
   };
   try {
     if (m.topic) {
       const [courseID, moduleID, topicID] = [m.topic[1], m.topic[2], m.topic[3]];
       S.notesTab = m.topic[4] || 'cp';
+      S.editMode = !!m.topic[5];
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
       S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
       S.courses = await loadCourses(S.user.courseIDs || []);
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
       S.currentTopic = topic; S.notebookCells = parseRawElements(topic.rawElements);
+      S.moduleTopics = await loadAllTopics(S.modules);
+      S.moduleTopics[module.moduleID] = S.topics;
       S.view = 'topic';
     } else if (m.topics) {
       const [courseID, moduleID] = [m.topics[1], m.topics[2]];
+      S.editMode = !!m.topics[3];
       const [course, module] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID)]);
       S.courses = await loadCourses(S.user.courseIDs || []);
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);

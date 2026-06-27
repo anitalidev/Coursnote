@@ -46,7 +46,7 @@ function ccUpdated(iso) {
 function coursesHTML() {
   const cards = S.courses.map(c => {
     const mods = (c.moduleIDs || []).length;
-    const pct  = (S.courseProgress || {})[c.courseID] ?? 0;
+    const pct  = Math.round((c.pcompleted || 0) * 100);
     const pal  = ccPalette(c.courseID || c.name);
     return `
     <div class="course-card2" onclick="goModules(${jsonAttr(c)}, false)">
@@ -83,13 +83,7 @@ function coursesHTML() {
       <div class="cc2-add-sub">Start something new</div>
     </div>`;
 
-  const emptyState = !S.courses.length ? `
-    <div class="cc2-empty">
-      <div class="cc2-empty-icon">📖✨</div>
-      <h2>Ready to build something great?</h2>
-      <p>Create your first course and start organizing your knowledge.</p>
-      <button class="btn btn-primary" onclick="toggleForm('course-form')">+ New Course</button>
-    </div>` : '';
+  const emptyState = '';
 
   return `<div class="section">
     <div class="section-header" style="margin-bottom:20px">
@@ -135,8 +129,8 @@ function coursesHTML() {
 function modulesHTML() {
   const c = S.currentCourse;
   const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const doneMods = S.modules.filter(m => m.slashed).length;
-  const pct = S.modules.length ? Math.round(doneMods / S.modules.length * 100) : 0;
+  const pct = Math.round((S.currentCourse.pcompleted || 0) * 100);
+  const doneMods = Math.round(pct / 100 * S.modules.length);
   const pal = ccPalette(c.courseID || c.name);
 
   const modPalettes = [
@@ -147,14 +141,14 @@ function modulesHTML() {
     { bg: 'rgba(244,114,182,.15)', color: '#f472b6' },
   ];
 
-  const addModCard = `
+  const addModCard = S.editMode ? `
     <div class="mod2-add-card" onclick="toggleForm('module-form')">
       <div class="mod2-add-circle">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </div>
-      <div class="mod2-add-label">Add content</div>
+      <div class="mod2-add-label">Add module</div>
       <div class="mod2-add-sub">Create a new module or topic</div>
-    </div>`;
+    </div>` : '';
 
   const modCards = S.modules.map((m, i) => {
     const topics = (m.topicIDs || []).length;
@@ -197,13 +191,13 @@ function modulesHTML() {
         </div>
       </div>
       <div class="ch2-actions">
-        <button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">
+        ${S.editMode ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>
         <button class="ch2-more" onclick="openCourseMenu('${c.courseID}',${jsonAttr(c)},this)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-        </button>
+        </button>` : ''}
       </div>
       </div><!-- ch2-top -->
     <div class="ch2-stats-row">
@@ -288,7 +282,7 @@ function topicsHTML() {
     <div class="breadcrumb">
       <span onclick="goCourses()">All Courses</span>
       <span class="sep">›</span>
-      <span onclick="goModules(${jsonAttr(S.currentCourse)})">${esc(S.currentCourse.name)}</span>
+      <span onclick="goModules(${jsonAttr(S.currentCourse)},${S.editMode})">${esc(S.currentCourse.name)}</span>
     </div>
     <div class="page-hero">
       <div class="section-header" style="align-items:flex-start;margin-bottom:0">
@@ -319,7 +313,7 @@ function topicHTML() {
     <div class="breadcrumb">
       <span onclick="goCourses()">All Courses</span>
       <span class="sep">›</span>
-      <span onclick="goModules(${jsonAttr(S.currentCourse)})">${esc(S.currentCourse.name)}</span>
+      <span onclick="goModules(${jsonAttr(S.currentCourse)},${S.editMode})">${esc(S.currentCourse.name)}</span>
       <span class="sep">›</span>
       <span onclick="goTopics(${jsonAttr(S.currentModule)})">${esc(S.currentModule.name)}</span>
     </div>
@@ -328,9 +322,14 @@ function topicHTML() {
         <h1><span>${esc(t.name)}</span></h1>
         ${t.description ? `<p class="subtitle">${esc(t.description)}</p>` : ''}
       </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">
+          ${t.completed ? '✓ Completed' : 'Mark Complete'}
+        </button>
       <div class="notes-tab-group">
         <button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>
         <button class="notes-tab ${S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
+      </div>
       </div>
     </div>
     <div id="pane-pn" class="note-pane" style="${S.notesTab === 'pn' ? '' : 'display:none'}">
