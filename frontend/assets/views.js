@@ -18,38 +18,78 @@ function loginHTML() {
   </div>`;
 }
 
+const CC_PALETTES = [
+  { bg: 'linear-gradient(135deg,#3b82f6,#06b6d4)', icon: '#bfdbfe' },
+  { bg: 'linear-gradient(135deg,#8b5cf6,#a855f7)', icon: '#e9d5ff' },
+  { bg: 'linear-gradient(135deg,#10b981,#06b6d4)', icon: '#a7f3d0' },
+  { bg: 'linear-gradient(135deg,#f59e0b,#ef4444)', icon: '#fde68a' },
+  { bg: 'linear-gradient(135deg,#ec4899,#8b5cf6)', icon: '#fbcfe8' },
+  { bg: 'linear-gradient(135deg,#14b8a6,#3b82f6)', icon: '#99f6e4' },
+];
+function ccPalette(id) {
+  let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return CC_PALETTES[h % CC_PALETTES.length];
+}
+function ccUpdated(iso) {
+  if (!iso) return 'Never updated';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Updated just now';
+  if (m < 60) return `Updated ${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Updated ${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `Updated ${d} day${d !== 1 ? 's' : ''} ago`;
+  return `Updated ${Math.floor(d / 7)} week${Math.floor(d / 7) !== 1 ? 's' : ''} ago`;
+}
+
 function coursesHTML() {
-  const cards = S.courses.length
-    ? S.courses.map(c => {
-        const mods = (c.moduleIDs || []).length;
-        const pct  = (S.courseProgress || {})[c.courseID] ?? 0;
-        return `
-      <div class="course-card" onclick="goModules(${jsonAttr(c)}, false)">
-        <div class="cc-card-header">
-          <button class="btn btn-ghost btn-sm cc-edit-btn" onclick="event.stopPropagation();goModules(${jsonAttr(c)}, true)" title="Edit course">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Edit
-          </button>
-        </div>
-        <div class="cc-title">${esc(c.name)}</div>
-        <div class="cc-desc">${esc(c.description) || '<span style="color:var(--border)">No description</span>'}</div>
-        <div class="cc-meta">
+  const cards = S.courses.map(c => {
+    const mods = (c.moduleIDs || []).length;
+    const pct  = (S.courseProgress || {})[c.courseID] ?? 0;
+    const pal  = ccPalette(c.courseID || c.name);
+    return `
+    <div class="course-card2" onclick="goModules(${jsonAttr(c)}, false)">
+      <div class="cc2-banner" style="background:${pal.bg}">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${pal.icon}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <button class="cc2-menu" onclick="event.stopPropagation();openCourseMenu('${c.courseID}',${jsonAttr(c)},this)" title="Options">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+      <div class="cc2-body">
+        <div class="cc2-title">${esc(c.name)}</div>
+        <div class="cc2-desc">${esc(c.description) || '<span style="opacity:.4">No description</span>'}</div>
+        <div class="cc2-meta">
           <span class="tag">${mods} module${mods !== 1 ? 's' : ''}</span>
         </div>
-        <div class="cc-progress">
-          <div class="cc-progress-bar"><div class="cc-progress-fill" style="width:${pct}%"></div></div>
-          <span class="cc-progress-pct">${pct}%</span>
+        <div class="cc2-progress">
+          <div class="cc2-progress-bar"><div class="cc2-progress-fill" style="width:${pct}%"></div></div>
+          <span class="cc2-progress-pct">${pct}%</span>
         </div>
-      </div>`;
-      }).join('')
-    : '';
+        <div class="cc2-updated">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${ccUpdated(c.updatedAt)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
-  const addCourseCard = `<div class="cc-add-card" onclick="toggleForm('course-form')">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-    New Course
-  </div>`;
+  const addCourseCard = `
+    <div class="cc2-add-card" onclick="toggleForm('course-form')">
+      <div class="cc2-add-circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div class="cc2-add-label">New Course</div>
+      <div class="cc2-add-sub">Start something new</div>
+    </div>`;
 
-  const grid = `<div class="course-grid">${addCourseCard}${cards}</div>`;
+  const emptyState = !S.courses.length ? `
+    <div class="cc2-empty">
+      <div class="cc2-empty-icon">📖✨</div>
+      <h2>Ready to build something great?</h2>
+      <p>Create your first course and start organizing your knowledge.</p>
+      <button class="btn btn-primary" onclick="toggleForm('course-form')">+ New Course</button>
+    </div>` : '';
 
   return `<div class="section">
     <div class="section-header" style="margin-bottom:20px">
@@ -81,7 +121,14 @@ function coursesHTML() {
         <button class="btn btn-ghost" onclick="toggleForm('course-edit-card-form')">Cancel</button>
       </div>
     </div>
-    ${grid}
+    <div class="cc2-toolbar">
+      <div class="cc2-search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cc2-search" class="cc2-search" placeholder="Search courses..." oninput="filterCourseCards()" />
+      </div>
+    </div>
+    <div class="course-grid2">${addCourseCard}${cards}</div>
+    ${emptyState}
   </div>`;
 }
 
@@ -90,46 +137,47 @@ function modulesHTML() {
   const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
   const doneMods = S.modules.filter(m => m.slashed).length;
   const pct = S.modules.length ? Math.round(doneMods / S.modules.length * 100) : 0;
+  const pal = ccPalette(c.courseID || c.name);
 
-  const palettes = [
-    { strip: '#6c8ef7', bg: 'rgba(108,142,247,.13)', text: '#6c8ef7' },
-    { strip: '#a78bfa', bg: 'rgba(167,139,250,.13)',  text: '#a78bfa' },
-    { strip: '#34d399', bg: 'rgba(52,211,153,.13)',   text: '#34d399' },
-    { strip: '#fb923c', bg: 'rgba(251,146,60,.13)',   text: '#fb923c' },
-    { strip: '#f472b6', bg: 'rgba(244,114,182,.13)',  text: '#f472b6' },
+  const modPalettes = [
+    { bg: 'rgba(108,142,247,.15)', color: '#6c8ef7' },
+    { bg: 'rgba(167,139,250,.15)', color: '#a78bfa' },
+    { bg: 'rgba(52,211,153,.15)',  color: '#34d399' },
+    { bg: 'rgba(251,146,60,.15)',  color: '#fb923c' },
+    { bg: 'rgba(244,114,182,.15)', color: '#f472b6' },
   ];
 
-  const addModCard = S.editMode
-    ? `<div class="mod-card mod-add-card" onclick="toggleForm('module-form')">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </div>`
-    : '';
+  const addModCard = `
+    <div class="mod2-add-card" onclick="toggleForm('module-form')">
+      <div class="mod2-add-circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div class="mod2-add-label">Add content</div>
+      <div class="mod2-add-sub">Create a new module or topic</div>
+    </div>`;
 
-  const items = S.modules.length || S.editMode
-    ? `<div class="mod-grid">${addModCard}${S.modules.map((m, i) => {
-        const topics = (m.topicIDs || []).length;
-        const p = palettes[i % palettes.length];
-        const doneClass = m.slashed ? ' mod-done' : '';
-        return `
-        <div class="mod-card${doneClass}" onclick="goTopics(${jsonAttr(m)})">
-          <div class="mod-strip" style="background:${p.strip}"></div>
-          <div class="mod-body">
-            <div class="mod-icon" style="background:${p.bg};color:${p.text}">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M8 8h8"/><path d="M8 16h4"/></svg>
-            </div>
-            <div class="mod-name">${esc(m.name)}</div>
-            <div class="mod-desc">${esc(m.description) || '<span style="color:var(--text3);font-style:italic">No description</span>'}</div>
-          </div>
-          <div class="mod-foot">
-            <span class="mod-chip" style="background:${p.bg};color:${p.text}">${topics} topic${topics !== 1 ? 's' : ''}</span>
-            ${S.editMode ? `<button class="btn btn-danger" onclick="event.stopPropagation();deleteModule('${m.moduleID}')">Delete</button>` : ''}
-          </div>
-        </div>`;
-      }).join('')}</div>`
-    : `<div class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
-        <p>No modules yet.<br>Enter this course in edit mode to add modules.</p>
-      </div>`;
+  const modCards = S.modules.map((m, i) => {
+    const topics = (m.topicIDs || []).length;
+    const p = modPalettes[i % modPalettes.length];
+    const doneClass = m.slashed ? ' mod2-done' : '';
+    return `
+    <div class="mod2-card${doneClass}" onclick="goTopics(${jsonAttr(m)})">
+      <div class="mod2-card-top">
+        <div class="mod2-icon" style="background:${p.bg};color:${p.color}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        ${S.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>` : ''}
+      </div>
+      <div class="mod2-name">${esc(m.name)}</div>
+      <div class="mod2-desc">${esc(m.description) || '<span style="font-style:italic;opacity:.5">No description</span>'}</div>
+      <div class="mod2-foot">
+        <span class="mod2-chip" style="background:${p.bg};color:${p.color}">${topics} topic${topics !== 1 ? 's' : ''}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text3)"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>`;
+  }).join('');
 
   return `<div class="course-page">
     <div class="back-link" onclick="goCourses()">
@@ -137,47 +185,53 @@ function modulesHTML() {
       All Courses
     </div>
 
-    <div class="course-hero" id="course-view-header">
-      <div class="ch-top">
-        <div class="ch-title-row">
-          <div class="ch-badge">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          </div>
-          <div>
-            <h1 id="course-title-display" style="margin-bottom:3px"><span>${esc(c.name)}</span></h1>
-            <p id="course-desc-display" class="ch-desc">${esc(c.description) || '<span style="opacity:.45">No description — click Edit to add one</span>'}</p>
-          </div>
+    <div class="course-hero2" id="course-view-header">
+      <div class="ch2-top">
+      <div class="ch2-left">
+        <div class="ch2-icon" style="background:${pal.bg}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         </div>
-        <div class="ch-actions">
-          ${S.editMode
-            ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">✎ Edit</button>
-               <button class="btn btn-primary btn-sm" onclick="saveCourseFromEditMode()">Save</button>`
-            : ''
-          }
+        <div>
+          <h1 id="course-title-display">${esc(c.name)}</h1>
+          <p class="ch2-desc" id="course-desc-display">${esc(c.description) || '<span style="opacity:.4">No description</span>'}</p>
         </div>
       </div>
-      <div class="ch-stats">
-        <div class="ch-stat">
-          <span class="ch-stat-val">${S.modules.length}</span>
-          <span class="ch-stat-label">Modules</span>
-        </div>
-        <div class="ch-stat">
-          <span class="ch-stat-val">${totalTopics}</span>
-          <span class="ch-stat-label">Topics</span>
-        </div>
-        <div class="ch-stat">
-          <span class="ch-stat-val">${doneMods}</span>
-          <span class="ch-stat-label">Completed</span>
-        </div>
-        <div class="ch-stat-prog">
-          <div class="ch-prog-label">
-            <span>Progress</span>
-            <span style="color:var(--accent);font-weight:700">${pct}%</span>
-          </div>
-          <div class="ch-prog"><div class="ch-prog-fill" style="width:${pct}%"></div></div>
-        </div>
+      <div class="ch2-actions">
+        <button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="ch2-more" onclick="openCourseMenu('${c.courseID}',${jsonAttr(c)},this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
       </div>
-    </div>
+      </div><!-- ch2-top -->
+    <div class="ch2-stats-row">
+      <div class="ch2-stat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h4"/></svg>
+        <span class="ch2-stat-val">${S.modules.length}</span>
+        <span class="ch2-stat-label">Modules</span>
+      </div>
+      <div class="ch2-stat-div"></div>
+      <div class="ch2-stat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="ch2-stat-val">${totalTopics}</span>
+        <span class="ch2-stat-label">Topics</span>
+      </div>
+      <div class="ch2-stat-div"></div>
+      <div class="ch2-stat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="ch2-stat-val">${doneMods}</span>
+        <span class="ch2-stat-label">Completed</span>
+      </div>
+      <div class="ch2-stat-div"></div>
+      <div class="ch2-stat ch2-stat-prog">
+        <span class="ch2-stat-label">Progress</span>
+        <div class="ch2-prog-bar"><div class="ch2-prog-fill" style="width:${pct}%"></div></div>
+        <span class="ch2-stat-pct">${pct}%</span>
+      </div>
+    </div><!-- ch2-stats-row -->
+    </div><!-- course-hero2 -->
 
     ${S.editMode ? `
     <div id="course-edit-form" style="display:none;margin-bottom:24px">
@@ -204,7 +258,8 @@ function modulesHTML() {
         <button class="btn btn-ghost" onclick="toggleForm('module-form')">Cancel</button>
       </div>
     </div>` : ''}
-    ${items}
+
+    <div class="mod2-grid">${addModCard}${modCards}</div>
   </div>`;
 }
 
@@ -238,7 +293,7 @@ function topicsHTML() {
     <div class="page-hero">
       <div class="section-header" style="align-items:flex-start;margin-bottom:0">
         <h1><span>${esc(m.name)}</span></h1>
-        <button class="btn btn-primary" onclick="toggleForm('topic-form')">+ New Topic</button>
+        ${S.editMode ? `<button class="btn btn-primary" onclick="toggleForm('topic-form')">+ New Topic</button>` : ''}
       </div>
       ${m.description ? `<p class="subtitle">${esc(m.description)}</p>` : '<div style="margin-bottom:24px"></div>'}
     </div>

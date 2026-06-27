@@ -43,6 +43,39 @@ async function createTopic(name, desc) {
   toast('Topic created');
 }
 
+function filterCourseCards() {
+  const q = (document.getElementById('cc2-search')?.value || '').toLowerCase();
+  document.querySelectorAll('.course-card2').forEach(el => {
+    const name = el.querySelector('.cc2-title')?.textContent.toLowerCase() || '';
+    const desc = el.querySelector('.cc2-desc')?.textContent.toLowerCase() || '';
+    el.style.display = (!q || name.includes(q) || desc.includes(q)) ? '' : 'none';
+  });
+}
+
+function openModuleMenu(moduleID, btn) {
+  document.querySelectorAll('.cc2-dropdown').forEach(d => d.remove());
+  const menu = document.createElement('div');
+  menu.className = 'cc2-dropdown';
+  menu.innerHTML = `
+    <div class="cc2-dd-item cc2-dd-danger" onclick="deleteModule('${moduleID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete</div>`;
+  btn.style.position = 'relative';
+  btn.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+}
+
+function openCourseMenu(courseID, course, btn) {
+  document.querySelectorAll('.cc2-dropdown').forEach(d => d.remove());
+  const menu = document.createElement('div');
+  menu.className = 'cc2-dropdown';
+  menu.innerHTML = `
+    <div class="cc2-dd-item" onclick="goModules(${jsonAttr(course)},false);document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Open</div>
+    <div class="cc2-dd-item" onclick="goModules(${jsonAttr(course)},true);document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Edit</div>
+    <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete</div>`;
+  btn.style.position = 'relative';
+  btn.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+}
+
 async function deleteCourse(id) {
   if (!confirm('Delete this course and all its contents?')) return;
   await DEL('/course?id=' + id);
