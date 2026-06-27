@@ -1,0 +1,80 @@
+name: Bug Report
+description: Report a bug / enhancement
+title: "[Issue] - "
+labels: []
+assignees: []
+
+body:
+  - type: checkboxes
+    id: sub_type
+    attributes:
+      label: Sub Type (Component)
+      description: Select the affected component(s)
+      options:
+        - label: 🎨 UI
+        - label: 🛠 Backend
+        - label: 🚀 Deployment
+        - label: ⚡ Performance
+        - label: 🔒 Security
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear and concise description of the issue.
+      placeholder: Describe the issue.
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Follow the template below to describe the bug and steps to reproduce it.
+      placeholder: |
+        Describe the bug
+        A clear and concise description of what the bug is.
+
+        To Reproduce
+        Steps to reproduce the behavior:
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+
+        Expected behavior
+        A clear and concise description of what you expected to happen.
+
+        Screenshots or Recording
+        If applicable, add screenshots to help explain your problem.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+
+  - type: dropdown
+    id: rank
+    attributes:
+      label: Priority / Rank
+      description: How urgently does this issue need to be addressed?
+      options:
+        - 🔴 Critical – blocking progress
+        - 🟠 High – should resolve soon
+        - 🟡 Medium – important but not urgent
+        - 🟢 Low – nice to fix
+        - ⚪ Unranked
+      default: 4
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context / Screenshots
+      description: Add any other context, screenshots, or logs here.

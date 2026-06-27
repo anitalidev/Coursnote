@@ -1,0 +1,46 @@
+name: Feature Request
+description: Submit a new feature request
+title: "[Feature] - "
+labels: []
+assignees: []
+
+body:
+  - type: checkboxes
+    id: sub_type
+    attributes:
+      label: Sub Type (Component)
+      description: Select the affected component(s)
+      options:
+        - label: 🎨 UI
+        - label: 🛠 Backend
+        - label: 🚀 Deployment
+        - label: ⚡ Performance
+        - label: 🔒 Security
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear and concise description of the feature that is requested.
+      placeholder: Describe the feature you'd like to request.
+
+  - type: dropdown
+    id: rank
+    attributes:
+      label: Priority / Rank
+      description: How urgently does this feature need to be addressed?
+      options:
+        - 🔴 Critical – blocking progress
+        - 🟠 High – should resolve soon
+        - 🟡 Medium – important but not urgent
+        - 🟢 Low – nice to have
+        - ⚪ Unranked
+      default: 4
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context / Screenshots
+      description: Add any other context, screenshots, or logs here.

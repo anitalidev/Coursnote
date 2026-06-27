@@ -1,0 +1,59 @@
+name: Open Question
+description: Log an open question, capture your thoughts on resolution, and rank its priority
+title: "[Question] - "
+labels: []
+assignees: []
+
+body:
+  - type: checkboxes
+    id: sub_type
+    attributes:
+      label: Sub Type (Component)
+      description: Select the affected component(s)
+      options:
+        - label: 🎨 UI
+        - label: 🛠 Backend
+        - label: 🚀 Deployment
+        - label: ⚡ Performance
+        - label: 🔒 Security
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Open Question
+      description: What is the question you are trying to answer?
+      placeholder: State the open question clearly and concisely.
+    validations:
+      required: true
+
+  - type: textarea
+    id: thoughts
+    attributes:
+      label: Thoughts on Resolution
+      description: How do you think this question could be answered or resolved? List any approaches, ideas, or leads you have so far.
+      placeholder: |
+        Approach 1: ...
+        Approach 2: ...
+        Open unknowns: ...
+
+  - type: dropdown
+    id: rank
+    attributes:
+      label: Priority / Rank
+      description: How urgently does this question need to be answered?
+      options:
+        - 🔴 Critical – blocking progress
+        - 🟠 High – should resolve soon
+        - 🟡 Medium – important but not urgent
+        - 🟢 Low – nice to know
+        - ⚪ Unranked
+      default: 4
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context / References
+      description: Add any other context, links, screenshots, or related issues here.
+

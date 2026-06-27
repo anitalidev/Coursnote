@@ -1,0 +1,53 @@
+# Serialization + Deserialization of Elements
+Serialization is the act of converting an object in memory into a storable format. Deserialization is the opposite, converting from the storable format back to the object in memory.
+
+In this case, the "object in memory" is an []Element (specifically the "Elements" field of Topic).
+The "storable format" is a text, specifically in the form of a JSON.
+
+The idea is that, since there are many different elements, this JSON will be a list of JSON Objects, where each JSON Object contains an identifier (eg. "Text") for the element type, as well as the necessary fields representing the details of that element.
+
+As an example of what might be stored:
+
+```json
+[
+  {
+    "type": "text",
+    "content": "Binary search runs in O(log n) time."
+  },
+  {
+    "type": "table",
+    "cells": [
+      ["Operation", "Time"],
+      ["Search",    "O(log n)"],
+      ["Insert",    "O(log n)"]
+    ]
+  }
+]
+```
+
+To facilitate a consistent and usable "type" identifier, the Element interface contains the ElementType() method, which returns a string (eg. the "type" identifier for that Element type)
+As well, to facilitate the easy conversion of an Element to it's JSON form, all relevant element fields will have a `json:"..."` tag. 
+
+MarshalElements function in elements.go is in charge of serializing a slice of elements. 
+It does this by, for each element in the slice:
+1. Use the json library to easily serialize each individual Element
+2. Call ElementType() on the element to get it's "type" identifier
+3. Merge the "type" identifier into the serialization of the Element
+Then combining all of these into a JSON list, and returning that as a json.Message
+
+UnmarshalElements function in elements.go is in charge of deserializing a slice of elements.
+It does this by first converting the json.Message, which is a list of sub- json.Message s, into that list. Each of these json.Message s represents the element corresponding to the "type" identifier, as well as its fields.
+We can finally convert into a list of Elements by, for each of these sub- json.Message s:
+1. Use the json library to unmarshal the message into a type like below, so that we can find out what type of element that sub-message represents
+   - ```txt
+     var probe struct {
+        Type string `json:"type"`
+     }
+     ```
+2. Create the implementation of Element that corresponds to the extracted Type
+- To do this, we store a map from String "type" to a function that takes no parameters and produces an Element. Each implementation of Element is in charge of calling Register(string, func) using it's identifier as well as passing in a function that returns an empty pointer to an object of that implementation of Element.   
+3. Unmarshal the message into the implementation of Element created above
+Then combining all of these Elements into a slice, and returning that
+
+# Why is this needed/how is it used
+Different elements have different fields and so would likely have to each be stored with their own repository/table. But I would not like to do this. So instead, a Topic's elements are serialized into a single JSON blob and stored as one text column in the database. When a Topic is loaded, that blob is deserialized back into the concrete Element types. This keeps the schema simple — Topics have one `elements` column — at the cost of not being able to query individual elements directly from the database.

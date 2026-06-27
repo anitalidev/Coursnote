@@ -1,0 +1,65 @@
+name: Append Priority to Issue Title
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  update-title:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Parse priority and update title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body  = context.payload.issue.body ?? '';
+            const title = context.payload.issue.title ?? '';
+
+            // Map dropdown values to bracket suffixes
+            const priorityMap = {
+              '🔴': '(Critical Priority)',
+              '🟠': '(High Priority)',
+              '🟡': '(Medium Priority)',
+              '🟢': '(Low Priority)',
+              '⚪': '(Unranked)',
+            };
+
+            // Find the selected rank line in the issue body
+            let suffix = null;
+            for (const [emoji, label] of Object.entries(priorityMap)) {
+              if (body.includes(emoji)) {
+                suffix = label;
+                break;
+              }
+            }
+
+            if (!suffix) {
+              console.log('No priority found in body — skipping.');
+              return;
+            }
+
+            // Strip any existing priority tag from the end of the title
+            const cleaned = title
+              .replace(/\s*\((Critical|High|Medium|Low) Priority\)\s*$/, '')
+              .replace(/\s*\(Unranked\)\s*$/, '')
+              .trimEnd();
+
+            const newTitle = `${cleaned} ${suffix}`;
+
+            if (newTitle === title) {
+              console.log('Title already up to date — skipping.');
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.payload.issue.number,
+              title: newTitle,
+            });
+
+            console.log(`Title updated to: ${newTitle}`);
+
