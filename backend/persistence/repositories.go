@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/anitalidev/Coursnote/backend/models"
+	"github.com/anitalidev/Coursnote/backend/models/elements"
 )
 
 // Calls to any non-repo-creation MUST hold lock when calling.
@@ -81,6 +82,7 @@ type TopicRepository interface {
 	CreateTopic(topic *TopicInfo) (*models.Topic, error)
 	DeleteTopicByID(id string) error
 	UpdateTopic(id string, name string, description string) error
+	SaveTopicElements(id string, elems []elements.Element) error
 }
 
 type CoursePageRepository interface {

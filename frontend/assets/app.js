@@ -9,11 +9,11 @@ const S = {
   currentCourse: null,
   modules: [],
   moduleTopics: {},     // moduleID → topic[]
-  editMode: false,
+  editMode: false, notesTab: 'cp',
   currentModule: null,
   topics: [],
   currentTopic: null,
-  coursePage: null,
+  notebookCells: [],    // [{id, type, content?, cells?}]
   privateNote: null,
   view: 'login',        // login | courses | modules | topics | topic
 };
@@ -72,35 +72,39 @@ async function goCourses() {
 }
 
 async function goModules(course, editMode = false) {
-  S.currentCourse = course; S.currentModule = null; S.currentTopic = null;
-  S.editMode = editMode;
-  S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-  S.moduleTopics = await loadAllTopics(S.modules);
-  S.view = 'modules';
-  pushHash('#course/' + course.courseID);
-  render();
+  try {
+    S.currentCourse = course; S.currentModule = null; S.currentTopic = null;
+    S.editMode = editMode;
+    S.modules = await loadAll('/module?id=', course.moduleIDs || []);
+    S.moduleTopics = await loadAllTopics(S.modules);
+    S.view = 'modules';
+    pushHash('#course/' + course.courseID + (editMode ? '/edit' : ''));
+    render();
+  } catch (e) { toast(e.message || 'Failed to open course', 'err'); }
 }
 
 async function goTopics(module) {
-  S.currentModule = module; S.currentTopic = null;
-  S.topics = await loadAll('/topic?id=', module.topicIDs || []);
-  S.moduleTopics[module.moduleID] = S.topics;
-  S.view = 'topics';
-  pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID);
-  render();
+  try {
+    S.currentModule = module; S.currentTopic = null;
+    S.topics = await loadAll('/topic?id=', module.topicIDs || []);
+    S.moduleTopics[module.moduleID] = S.topics;
+    S.view = 'topics';
+    pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID);
+    render();
+  } catch (e) { toast(e.message || 'Failed to open module', 'err'); }
 }
 
 async function goTopic(topic) {
-  S.currentTopic = topic;
-  const [cp, pn] = await Promise.all([
-    GET('/coursepages?id=' + topic.coursePageID),
-    GET('/privatenotes?id=' + topic.privateNoteID),
-  ]);
-  S.coursePage = cp;
-  S.privateNote = pn;
-  S.view = 'topic';
-  pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID);
-  render();
+  try {
+    S.currentTopic = topic;
+    S.notebookCells = parseRawElements(topic.rawElements);
+    S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
+    S.view = 'topic';
+    pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.notesTab);
+    render();
+  } catch (e) {
+    toast(e.message || 'Failed to open topic', 'err');
+  }
 }
 
 // Restore state from a hash URL (e.g. on page load or browser back/forward)
@@ -108,19 +112,20 @@ async function restoreFromHash(hash) {
   if (!S.user) return;
   const m = {
     courses: hash.match(/^#courses$/),
-    modules: hash.match(/^#course\/([^/]+)$/),
+    modules: hash.match(/^#course\/([^/]+)(\/edit)?$/),
     topics:  hash.match(/^#course\/([^/]+)\/module\/([^/]+)$/),
-    topic:   hash.match(/^#course\/([^/]+)\/module\/([^/]+)\/topic\/([^/]+)$/),
+    topic:   hash.match(/^#course\/([^/]+)\/module\/([^/]+)\/topic\/([^/]+)(?:\/(pn|cp))?$/),
   };
   try {
     if (m.topic) {
       const [courseID, moduleID, topicID] = [m.topic[1], m.topic[2], m.topic[3]];
+      S.notesTab = m.topic[4] || 'cp';
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
-      const [cp, pn] = await Promise.all([GET('/coursepages?id=' + topic.coursePageID), GET('/privatenotes?id=' + topic.privateNoteID)]);
+      S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
       S.courses = await loadCourses(S.user.courseIDs || []);
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
-      S.currentTopic = topic; S.coursePage = cp; S.privateNote = pn;
+      S.currentTopic = topic; S.notebookCells = parseRawElements(topic.rawElements);
       S.view = 'topic';
     } else if (m.topics) {
       const [courseID, moduleID] = [m.topics[1], m.topics[2]];
@@ -137,6 +142,7 @@ async function restoreFromHash(hash) {
       S.courses = await loadCourses(S.user.courseIDs || []);
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.moduleTopics = await loadAllTopics(S.modules);
+      S.editMode = !!m.modules[2];
       S.view = 'modules';
     } else {
       await goCourses(); return;
@@ -251,16 +257,199 @@ async function deleteTopic(id) {
   toast('Topic deleted', 'err');
 }
 
-// ── Save notes ─────────────────────────────────────────────────────────────
-let cpSaveTimer, pnSaveTimer;
+// ── Notebook ───────────────────────────────────────────────────────────────
+let nbIdCounter = 0;
+function nbGenId() { return 'nb' + (++nbIdCounter); }
 
-function scheduleCPSave(text) {
-  clearTimeout(cpSaveTimer);
+function parseRawElements(raw) {
+  if (!Array.isArray(raw) || !raw.length) return [];
+  return raw.map(e => ({
+    id: nbGenId(),
+    type: e.type || 'text',
+    content: e.content ?? '',
+    cells: e.cells ?? [['', ''], ['', '']],
+  }));
+}
+
+function nbCellsToElements() {
+  return S.notebookCells.map(c =>
+    c.type === 'text'
+      ? { type: 'text', content: c.content }
+      : { type: 'table', cells: c.cells }
+  );
+}
+
+function nbAddCell(type, insertIdx) {
+  const cell = type === 'table'
+    ? { id: nbGenId(), type: 'table', cells: [['', ''], ['', '']], content: '' }
+    : { id: nbGenId(), type: 'text', content: '', cells: [] };
+  S.notebookCells.splice(insertIdx, 0, cell);
+  renderNotebook();
+  scheduleElementsSave();
+  // Focus the new cell's first input
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${cell.id}"] textarea, [data-id="${cell.id}"] input`);
+    if (el) el.focus();
+  }, 0);
+}
+
+function nbDeleteCell(id) {
+  S.notebookCells = S.notebookCells.filter(c => c.id !== id);
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+function nbUpdateText(id, val) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (c) c.content = val;
+}
+
+function nbUpdateTableCell(id, r, col, val) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (c && c.cells[r]) c.cells[r][col] = val;
+}
+
+function nbAddRow(id) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c) return;
+  const cols = c.cells[0]?.length || 1;
+  c.cells.push(Array(cols).fill(''));
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+function nbDelRow(id) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c || c.cells.length <= 1) return;
+  c.cells.pop();
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+function nbAddCol(id) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c || (c.cells[0]?.length ?? 0) >= 10) return;
+  c.cells.forEach(row => row.push(''));
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+function nbDelCol(id) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c || (c.cells[0]?.length ?? 0) <= 1) return;
+  c.cells.forEach(row => row.pop());
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+function nbAddZoneHTML(insertIdx) {
+  return `<div class="nb-add-zone">
+    <div class="nb-add-line"></div>
+    <button class="nb-add-btn" onclick="nbAddCell('text',${insertIdx})">＋ Text</button>
+    <button class="nb-add-btn" onclick="nbAddCell('table',${insertIdx})">＋ Table</button>
+    <div class="nb-add-line"></div>
+  </div>`;
+}
+
+function nbTextCellHTML(c) {
+  return `<div class="nb-cell" data-id="${c.id}">
+    <div class="nb-cell-left"><span class="nb-type-pill text-pill">Text</span></div>
+    <div class="nb-cell-body">
+      <textarea class="nb-textarea"
+        oninput="nbUpdateText('${c.id}',this.value);autoResize(this);scheduleElementsSave()"
+        placeholder="Type here…">${esc(c.content)}</textarea>
+    </div>
+    <div class="nb-cell-right">
+      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
+    </div>
+  </div>`;
+}
+
+function nbTableCellHTML(c) {
+  const rows = c.cells.length;
+  const cols = c.cells[0]?.length ?? 0;
+  let tbl = '<table class="nb-table">';
+  c.cells.forEach((row, r) => {
+    tbl += '<tr>';
+    row.forEach((val, col) => {
+      tbl += `<td><textarea class="nb-cell-input" rows="1"
+        oninput="nbUpdateTableCell('${c.id}',${r},${col},this.value);scheduleElementsSave();autoResize(this)">${esc(val)}</textarea></td>`;
+    });
+    tbl += '</tr>';
+  });
+  tbl += '</table>';
+  return `<div class="nb-cell" data-id="${c.id}">
+    <div class="nb-cell-left"><span class="nb-type-pill table-pill">Table</span></div>
+    <div class="nb-cell-body">
+      <div class="nb-table-controls">
+        <button class="nb-ctrl-btn" onclick="nbAddRow('${c.id}')">+ Row</button>
+        <button class="nb-ctrl-btn" onclick="nbDelRow('${c.id}')" ${rows <= 1 ? 'disabled' : ''}>− Row</button>
+        <button class="nb-ctrl-btn" onclick="nbAddCol('${c.id}')" ${cols >= 10 ? 'disabled' : ''}>+ Col</button>
+        <button class="nb-ctrl-btn" onclick="nbDelCol('${c.id}')" ${cols <= 1 ? 'disabled' : ''}>− Col</button>
+      </div>
+      <div class="nb-table-wrap">${tbl}</div>
+    </div>
+    <div class="nb-cell-right">
+      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
+    </div>
+  </div>`;
+}
+
+function buildNotebookHTML() {
+  if (!S.notebookCells.length) {
+    return nbAddZoneHTML(0) +
+      '<div class="nb-empty">No content yet — add a cell above.</div>';
+  }
+  return S.notebookCells.reduce((html, c, i) => {
+    const cellHTML = c.type === 'table' ? nbTableCellHTML(c) : nbTextCellHTML(c);
+    return html + cellHTML + nbAddZoneHTML(i + 1);
+  }, nbAddZoneHTML(0));
+}
+
+function buildCourseViewHTML() {
+  if (!S.notebookCells.length) return '<div class="nb-empty">No course content yet.</div>';
+  return S.notebookCells.map(c => {
+    if (c.type === 'table') {
+      const tbl = c.cells.map(row =>
+        '<tr>' + row.map(val => `<td>${esc(val)}</td>`).join('') + '</tr>'
+      ).join('');
+      return `<table class="cv-table">${tbl}</table>`;
+    }
+    return `<div class="cv-text">${esc(c.content).replace(/\n/g, '<br>')}</div>`;
+  }).join('');
+}
+
+function renderNotebook() {
+  const nb = document.getElementById('notebook');
+  if (!nb) return;
+  if (S.editMode) {
+    nb.innerHTML = buildNotebookHTML();
+    nb.querySelectorAll('.nb-textarea, .nb-cell-input').forEach(ta => autoResize(ta));
+  } else {
+    nb.innerHTML = buildCourseViewHTML();
+  }
+}
+
+
+// ── Save notes ─────────────────────────────────────────────────────────────
+let elemSaveTimer, pnSaveTimer;
+
+function scheduleElementsSave() {
+  clearTimeout(elemSaveTimer);
   setStatus('cp', 'saving...');
-  cpSaveTimer = setTimeout(async () => {
+  elemSaveTimer = setTimeout(async () => {
     try {
-      await PUT('/coursepages', { id: S.coursePage.coursePageID, description: text });
-      S.coursePage.description = text;
+      await PUT('/topic', {
+        id: S.currentTopic.topicID,
+        name: S.currentTopic.name,
+        description: S.currentTopic.description,
+        elements: nbCellsToElements(),
+      });
       setStatus('cp', 'Saved');
     } catch { setStatus('cp', 'Error saving'); }
   }, 800);
@@ -499,7 +688,13 @@ function modulesHTML() {
     { strip: '#f472b6', bg: 'rgba(244,114,182,.13)',  text: '#f472b6' },
   ];
 
-  const items = S.modules.length
+  const addModCard = S.editMode
+    ? `<div class="mod-card mod-add-card" onclick="toggleForm('module-form')">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>`
+    : '';
+
+  const items = S.modules.length || S.editMode
     ? `<div class="mod-grid">${S.modules.map((m, i) => {
         const topics = (m.topicIDs || []).length;
         const p = palettes[i % palettes.length];
@@ -519,10 +714,10 @@ function modulesHTML() {
             ${S.editMode ? `<button class="btn btn-danger" onclick="event.stopPropagation();deleteModule('${m.moduleID}')">Delete</button>` : ''}
           </div>
         </div>`;
-      }).join('')}</div>`
+      }).join('')}${addModCard}</div>`
     : `<div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
-        <p>No modules yet.<br>Add your first module above.</p>
+        <p>No modules yet.<br>Enter this course in edit mode to add modules.</p>
       </div>`;
 
   return `<div class="course-page">
@@ -545,8 +740,7 @@ function modulesHTML() {
         <div class="ch-actions">
           ${S.editMode
             ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">✎ Edit</button>
-               <button class="btn btn-primary btn-sm" onclick="toggleForm('module-form')">+ New Module</button>
-               <button class="btn btn-ghost btn-sm" onclick="S.editMode=false;render()" style="color:var(--accent3);border-color:var(--accent3)">✓ Done editing</button>`
+               <button class="btn btn-primary btn-sm" onclick="saveCourseFromEditMode()">Save</button>`
             : ''
           }
         </div>
@@ -615,9 +809,9 @@ function topicsHTML() {
           <div class="item-title">${esc(t.name)}</div>
           <div class="item-desc">${esc(t.description) || 'Open to add notes'}</div>
         </div>
-        <div class="item-actions">
+        ${S.editMode ? `<div class="item-actions">
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
-        </div>
+        </div>` : ''}
       </div>`).join('')
     : `<div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -654,7 +848,6 @@ function topicsHTML() {
 
 function topicHTML() {
   const t = S.currentTopic;
-  const cp = S.coursePage;
   const pn = S.privateNote;
   return `<div class="section topic-section">
     <div class="breadcrumb">
@@ -670,36 +863,39 @@ function topicHTML() {
         ${t.description ? `<p class="subtitle">${esc(t.description)}</p>` : ''}
       </div>
       <div class="notes-tab-group">
-        <button class="notes-tab ${S.editMode ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>
-        <button class="notes-tab ${!S.editMode ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
+        <button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>
+        <button class="notes-tab ${S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
       </div>
     </div>
-    <div id="pane-pn" class="note-pane" style="${S.editMode ? '' : 'display:none'}">
+    <div id="pane-pn" class="note-pane" style="${S.notesTab === 'pn' ? '' : 'display:none'}">
       <div class="note-pane-header">
         <span class="note-pane-title private">Private Notes</span>
         <span class="save-indicator" id="status-pn"></span>
       </div>
       <div class="note-pane-body">
-        <textarea id="pn-text" placeholder="Add your personal notes here…">${esc(pn?.description || '')}</textarea>
+        <textarea id="pn-text" ${S.editMode ? '' : 'readonly'}>${esc(pn?.description || '')}</textarea>
       </div>
     </div>
-    <div id="pane-cp" class="note-pane" style="${!S.editMode ? '' : 'display:none'}">
+    <div id="pane-cp" class="note-pane" style="${S.notesTab === 'cp' ? '' : 'display:none'}">
       <div class="note-pane-header">
         <span class="note-pane-title course">Course View</span>
         <span class="save-indicator" id="status-cp"></span>
       </div>
-      <div class="note-pane-body">
-        <textarea id="cp-text" placeholder="Add course view notes here…">${esc(cp?.description || '')}</textarea>
+      <div class="note-pane-body nb-pane-body">
+        <div class="notebook" id="notebook"></div>
       </div>
     </div>
   </div>`;
 }
 
 function switchNotesTab(tab) {
+  S.notesTab = tab;
   document.getElementById('pane-pn').style.display = tab === 'pn' ? '' : 'none';
   document.getElementById('pane-cp').style.display = tab === 'cp' ? '' : 'none';
   document.getElementById('tab-pn').classList.toggle('notes-tab-active', tab === 'pn');
   document.getElementById('tab-cp').classList.toggle('notes-tab-active', tab === 'cp');
+  if (tab === 'pn') { const ta = document.getElementById('pn-text'); if (ta) autoResize(ta); }
+  if (S.currentTopic) pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + S.currentTopic.topicID + '/' + tab);
 }
 
 // ── Form bindings ──────────────────────────────────────────────────────────
@@ -764,6 +960,12 @@ function exitCourseEditMode() {
   document.getElementById('course-view-header').style.display = '';
 }
 
+function saveCourseFromEditMode() {
+  if (document.getElementById('ce-name')) {
+    saveCourseEdit();
+  }
+}
+
 async function saveCourseEdit() {
   const name = document.getElementById('ce-name').value.trim();
   const desc = document.getElementById('ce-desc').value.trim();
@@ -792,8 +994,12 @@ function bindTopicsForm() {
 }
 
 function bindTopicListeners() {
-  document.getElementById('cp-text')?.addEventListener('input', e => scheduleCPSave(e.target.value));
-  document.getElementById('pn-text')?.addEventListener('input', e => schedulePNSave(e.target.value));
+  const pnText = document.getElementById('pn-text');
+  if (pnText) {
+    autoResize(pnText);
+    pnText.addEventListener('input', e => { schedulePNSave(e.target.value); autoResize(e.target); });
+  }
+  renderNotebook();
 }
 
 function enterSubmit(inputId, btnId) {

@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -57,6 +58,20 @@ func (repo *SQLTopicRepository) UpdateTopic(id string, name string, description 
 	}
 	topic.Name = name
 	topic.Description = description
+	return nil
+}
+
+func (repo *SQLTopicRepository) SaveTopicElements(id string, elems []elements.Element) error {
+	topic, ok := repo.db.Topics[id]
+	if !ok {
+		return errors.New("id does not exist")
+	}
+	raw, err := elements.MarshalElements(elems)
+	if err != nil {
+		return fmt.Errorf("serializing elements for topic %s: %w", id, err)
+	}
+	topic.RawElements = json.RawMessage(raw)
+	topic.Elements = elems
 	return nil
 }
 

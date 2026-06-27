@@ -187,15 +187,18 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .notes-tab:hover { color: var(--text2); }
 .notes-tab-active { background: var(--card); color: var(--text) !important; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
 .note-pane { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
-.note-pane-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.note-pane-header { padding: 6px 14px 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .note-pane-title { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .note-pane-title.course { color: var(--accent); }
 .note-pane-title.private { color: var(--accent5); }
 .note-pane-body { flex: 1; display: flex; flex-direction: column; padding: 0; }
 .note-pane-body textarea {
-  flex: 1; width: 100%; background: transparent; border: none; outline: none;
-  color: var(--text); font-size: 14px; line-height: 1.75; padding: 16px 18px;
-  font-family: inherit; resize: none; min-height: 480px;
+  width: 100%; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px; line-height: 1.75; padding: 0 18px;
+}
+#pn-text {
+  padding-top: 8px; padding-bottom: 0; margin-bottom: 10px;
+  font-family: inherit; resize: none; min-height: 38px; overflow: hidden;
 }
 .note-pane-footer { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 .save-indicator { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
@@ -327,3 +330,98 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 @media (max-width: 500px) {
   .course-grid { grid-template-columns: 1fr; }
 }
+
+/* ── COURSE VIEW (read-only) ── */
+.cv-text {
+  font-size: 14px; line-height: 1.75; color: var(--text);
+  white-space: pre-wrap; padding: 4px 18px;
+}
+.cv-table {
+  border-collapse: collapse; margin: 8px 18px; font-size: 13px;
+}
+.cv-table td {
+  border: 1px solid var(--border); padding: 6px 12px; color: var(--text);
+}
+.cv-table tr:first-child td { font-weight: 600; background: var(--bg3); }
+
+/* ── NOTEBOOK ── */
+.nb-pane-body { overflow-y: auto; }
+.notebook { padding: 10px 16px 24px; }
+
+.nb-add-zone {
+  display: flex; align-items: center; gap: 8px; padding: 5px 0;
+  opacity: 0; transition: opacity .15s;
+}
+.nb-add-zone:hover, .notebook:not(:has(.nb-cell)) .nb-add-zone { opacity: 1; }
+.nb-add-line { flex: 1; height: 1px; background: var(--border); }
+.nb-add-btn {
+  padding: 3px 12px; font-size: 11px; color: var(--text3); white-space: nowrap;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+  cursor: pointer; transition: all .15s;
+}
+.nb-add-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(108,142,247,.08); }
+
+.nb-cell {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin: 2px 0;
+  transition: border-color .15s;
+}
+.nb-cell:hover { border-color: color-mix(in srgb, var(--accent2) 50%, var(--border)); }
+.nb-cell:focus-within { border-color: var(--accent); }
+
+.nb-cell-left { padding-top: 2px; flex-shrink: 0; }
+.nb-type-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.text-pill  { background: rgba(108,142,247,.15); color: var(--accent); }
+.table-pill { background: rgba(167,139,250,.15);  color: var(--accent2); }
+
+.nb-cell-body { flex: 1; min-width: 0; }
+.nb-cell-right { flex-shrink: 0; padding-top: 1px; }
+
+.nb-textarea {
+  display: block; width: 100%; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px; font-family: inherit; line-height: 1.7;
+  resize: none; min-height: 56px; overflow: hidden;
+}
+
+.nb-table-controls { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.nb-ctrl-btn {
+  padding: 3px 10px; font-size: 11px; color: var(--text2);
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; transition: all .15s;
+}
+.nb-ctrl-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.nb-ctrl-btn:disabled { opacity: .35; cursor: default; }
+
+.nb-table-wrap { overflow-x: auto; }
+.nb-table { border-collapse: collapse; }
+.nb-table td { border: 1px solid var(--border); padding: 0; }
+.nb-cell-input {
+  padding: 1px 10px; min-width: 90px; width: 100%;
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 13px; font-family: inherit;
+  resize: none; overflow: hidden; display: block; min-height: 0; line-height: 1.4;
+}
+.nb-cell-input:focus { background: rgba(108,142,247,.06); }
+
+.nb-del-btn {
+  width: 26px; height: 26px; border-radius: 6px; font-size: 13px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.nb-del-btn:hover { color: var(--danger); border-color: var(--danger); background: rgba(248,113,113,.08); }
+
+.nb-empty { text-align: center; padding: 32px 20px; color: var(--text3); font-size: 13px; }
+
+/* ── ADD MODULE CARD ── */
+.mod-add-card {
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--border); background: transparent;
+  border-radius: 14px; cursor: pointer; min-height: 189px;
+  color: var(--text3); transition: border-color .2s, color .2s;
+}
+.mod-add-card:hover { border-color: var(--accent); color: var(--accent); }

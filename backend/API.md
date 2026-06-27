@@ -1,4 +1,4 @@
-# Coursnote API Reference
+m# Coursnote API Reference
 
 Base URL: `http://localhost:8081/api`
 
@@ -341,9 +341,20 @@ Returns a single topic by ID.
   "description":   "Resizing strategies and Big-O",
   "moduleID":      "10",
   "coursePageID":  "40",
-  "privateNoteID": "50"
+  "privateNoteID": "50",
+  "rawElements":   [
+    { "type": "text",  "content": "Arrays grow dynamically by doubling capacity." },
+    { "type": "table", "cells": [["Operation","Big-O"],["Access","O(1)"],["Insert","O(n)"]] }
+  ]
 }
 ```
+
+`rawElements` is `null` when no elements have been saved yet. Each element object always has a `"type"` field. Supported types:
+
+| Type    | Extra fields                            |
+|---------|-----------------------------------------|
+| `text`  | `content` — plain text string           |
+| `table` | `cells` — 2-D array of strings (rows × cols) |
 
 **Errors:**
 | Status | Condition |
@@ -379,20 +390,24 @@ Creates a new topic inside a module. **Automatically creates one CoursePage and 
 
 ### `PUT /api/topic`
 
-Updates a topic's name and/or description. Does **not** update the name or description of the associated CoursePage or PrivateNote — those are updated independently via their own PUT endpoints.
+Updates a topic's name, description, and/or elements. Does **not** update the name or description of the associated CoursePage or PrivateNote — those are updated independently via their own PUT endpoints.
 
 **Request body:**
 ```json
 {
   "id":          "20",
   "name":        "Dynamic Arrays & Amortised Analysis",
-  "description": "Updated description"
+  "description": "Updated description",
+  "elements": [
+    { "type": "text",  "content": "Arrays grow dynamically by doubling capacity." },
+    { "type": "table", "cells": [["Operation","Big-O"],["Access","O(1)"]] }
+  ]
 }
 ```
 
-`id` and `name` are required. `description` is optional.
+`id` and `name` are required. `description` and `elements` are optional. If `elements` is omitted or empty, the stored elements are left unchanged. Each element must have a `"type"` field matching a registered type (`"text"` or `"table"`).
 
-**Response `200 OK`:** Full updated topic object (same shape as GET).
+**Response `200 OK`:** Full updated topic object (same shape as GET, including `rawElements`).
 
 **Errors:**
 | Status | Condition |
