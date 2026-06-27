@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"sync"
 
-	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
@@ -21,7 +21,7 @@ type Store struct {
 	mu    sync.RWMutex
 }
 
-func newStore(db *persistence.DatabaseData) *Store {
+func newStore(db *sql.DB) *Store {
 	return &Store{
 		repos: repositories{
 			Users:        persistence.NewSQLUserRepository(db),
@@ -34,11 +34,8 @@ func newStore(db *persistence.DatabaseData) *Store {
 	}
 }
 
-var store = newStore(&persistence.DatabaseData{
-	Users:        make(map[string]*models.User),
-	Courses:      make(map[string]*models.Course),
-	Modules:      make(map[string]*models.Module),
-	Topics:       make(map[string]*models.Topic),
-	CoursePages:  make(map[string]*models.CoursePage),
-	PrivateNotes: make(map[string]*models.PrivateNote),
-})
+var store *Store
+
+func InitStore(db *sql.DB) {
+	store = newStore(db)
+}

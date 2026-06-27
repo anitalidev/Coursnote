@@ -14,6 +14,7 @@ type Topic struct {
 	PrivateNoteID string `json:"privateNoteID"` // owns
 	CoursePageID  string `json:"coursePageID"`  // owns
 	ModuleID      string `json:"moduleID"`      // owner
+	Completed     bool   `json:"completed"`
 
 	Elements    []elements.Element `json:"-"`
 	RawElements json.RawMessage    `json:"rawElements"`
@@ -29,5 +30,14 @@ func newTopic(topicID string, name string, desc string, moduleID string,
 		PrivateNoteID: privateNoteID,
 		CoursePageID:  coursePageID,
 		RawElements:   elementsJSON,
+		Completed:     false,
 	}
+}
+
+func (topic *Topic) markCompleted() {
+	topic.Completed = true
+}
+
+func (topic *Topic) markUncompleted() {
+	topic.Completed = false
 }

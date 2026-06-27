@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
 type CourseDTO struct {
 	CourseID    string   `json:"courseID"`
-	Name        string   `json:"name"`
+	Name        string   `jsfon:"name"`
 	Description string   `json:"description"`
 	ModuleIDs   []string `json:"moduleIDs"`
 	UserID      string   `json:"userID"`
+	PCompleted  float32  `json:"pcompleted"`
 }
 
 func CourseHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,12 +33,15 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
+
+		// calculate percentage completed:
 		writeJSON(w, http.StatusOK, CourseDTO{
 			CourseID:    course.CourseID,
 			Name:        course.Name,
 			Description: course.Description,
 			ModuleIDs:   course.ModuleIDs,
 			UserID:      course.UserID,
+			PCompleted:  PercentageCompleted(course),
 		})
 
 	case http.MethodPost:
@@ -114,4 +119,40 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+// Helpers
+
+// PercentageCompleted returns the fraction of topics completed across all modules in a course (0.0–1.0).
+// Returns 0 if the course has no topics.
+func PercentageCompleted(course *models.Course) float32 {
+	completed := 0
+	total := 0
+	for _, moduleID := range course.ModuleIDs {
+		module, err := store.repos.Modules.GetModuleByID(moduleID)
+		if err != nil {
+			continue
+		}
+		c, t := completedCountForModule(module)
+		completed += c
+		total += t
+	}
+	if total == 0 {
+		return 0
+	}
+	return float32(completed) / float32(total)
+}
+
+func completedCountForModule(module *models.Module) (completed, total int) {
+	for _, topicID := range module.TopicIDs {
+		topic, err := store.repos.Topics.GetTopicByID(topicID)
+		if err != nil {
+			continue
+		}
+		total++
+		if topic.Completed {
+			completed++
+		}
+	}
+	return
 }

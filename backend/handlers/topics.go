@@ -15,7 +15,8 @@ type TopicDTO struct {
 	ModuleID      string          `json:"moduleID"`
 	PrivateNoteID string          `json:"privateNoteID"`
 	CoursePageID  string          `json:"coursePageID"`
-	RawElements   json.RawMessage `json:"rawElements""`
+	Completed     bool            `json:"completed"`
+	RawElements   json.RawMessage `json:"rawElements"`
 }
 
 func TopicHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +42,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
+			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
@@ -57,10 +59,21 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
-		// CoursePage and PrivateNote are created alongside the topic since they have no independent existence
+		// Topic must be created first so course_page and private_note can reference its ID via FK
+		topic, err := store.repos.Topics.CreateTopic(&persistence.TopicInfo{
+			Name:        body.Name,
+			Description: body.Description,
+			ModuleID:    body.ModuleID,
+		})
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		coursePage, err := store.repos.CoursePages.CreateCoursePage(&persistence.CoursePageInfo{
 			Name:        body.Name,
 			Description: body.Description,
+			TopicID:     topic.TopicID,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
@@ -69,23 +82,14 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		privateNote, err := store.repos.PrivateNotes.CreatePrivateNote(&persistence.PrivateNoteInfo{
 			Name:        body.Name,
 			Description: body.Description,
+			TopicID:     topic.TopicID,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		topic, err := store.repos.Topics.CreateTopic(&persistence.TopicInfo{
-			Name:          body.Name,
-			Description:   body.Description,
-			ModuleID:      body.ModuleID,
-			CoursePageID:  coursePage.CoursePageID,
-			PrivateNoteID: privateNote.PrivateNoteID,
-		})
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
+		topic.CoursePageID = coursePage.CoursePageID
+		topic.PrivateNoteID = privateNote.PrivateNoteID
 		writeJSON(w, http.StatusCreated, TopicDTO{
 			TopicID:       topic.TopicID,
 			Name:          topic.Name,
@@ -93,6 +97,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
+			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
@@ -101,6 +106,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ID          string          `json:"id"`
 			Name        string          `json:"name"`
 			Description string          `json:"description"`
+			Completed   *bool           `json:"completed"`
 			RawElements json.RawMessage `json:"elements"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" || body.Name == "" {
@@ -113,6 +119,12 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description); err != nil {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
+		}
+		if body.Completed != nil {
+			if err := store.repos.Topics.SetTopicCompleted(body.ID, *body.Completed); err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 		if len(body.RawElements) > 0 {
 			elems, err := elements.UnmarshalElements(body.RawElements)
@@ -133,6 +145,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
+			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
