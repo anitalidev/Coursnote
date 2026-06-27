@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -8,47 +9,60 @@ import (
 )
 
 type SQLCoursePageRepository struct {
-	db *DatabaseData
+	db *sql.DB
 }
 
-func (repo *SQLCoursePageRepository) GetCoursePageByID(id string) (*models.CoursePage, error) {
-	page, ok := repo.db.CoursePages[id]
-	if !ok {
+func NewSQLCoursePageRepository(db *sql.DB) *SQLCoursePageRepository {
+	return &SQLCoursePageRepository{db: db}
+}
+
+func (r *SQLCoursePageRepository) GetCoursePageByID(id string) (*models.CoursePage, error) {
+	p := &models.CoursePage{CoursePageID: id}
+	err := r.db.QueryRow(`SELECT name, description, topic_id FROM course_pages WHERE course_page_id = ?`, id).
+		Scan(&p.Name, &p.Description, &p.TopicID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
-	return page, nil
+	return p, err
 }
 
-func (repo *SQLCoursePageRepository) CreateCoursePage(info *CoursePageInfo) (*models.CoursePage, error) {
-	repo.db.NextCoursePageId++
-	id := fmt.Sprintf("%d", repo.db.NextCoursePageId)
-	page := &models.CoursePage{
-		CoursePageID: id,
+func (r *SQLCoursePageRepository) CreateCoursePage(info *CoursePageInfo) (*models.CoursePage, error) {
+	res, err := r.db.Exec(
+		`INSERT INTO course_pages (name, description, topic_id) VALUES (?, ?, ?)`,
+		info.Name, info.Description, info.TopicID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return &models.CoursePage{
+		CoursePageID: fmt.Sprintf("%d", id),
 		Name:         info.Name,
 		Description:  info.Description,
 		TopicID:      info.TopicID,
-	}
-	repo.db.CoursePages[id] = page
-	return page, nil
+	}, nil
 }
 
-func (repo *SQLCoursePageRepository) UpdateCoursePageDescription(id string, description string) error {
-	page, ok := repo.db.CoursePages[id]
-	if !ok {
+func (r *SQLCoursePageRepository) UpdateCoursePageDescription(id string, description string) error {
+	res, err := r.db.Exec(`UPDATE course_pages SET description = ? WHERE course_page_id = ?`, description, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	page.Description = description
 	return nil
 }
 
-func (repo *SQLCoursePageRepository) DeleteCoursePageByID(id string) error {
-	if _, ok := repo.db.CoursePages[id]; !ok {
+func (r *SQLCoursePageRepository) DeleteCoursePageByID(id string) error {
+	res, err := r.db.Exec(`DELETE FROM course_pages WHERE course_page_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	delete(repo.db.CoursePages, id)
 	return nil
-}
-
-func NewSQLCoursePageRepository(db *DatabaseData) *SQLCoursePageRepository {
-	return &SQLCoursePageRepository{db: db}
 }

@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,79 +11,120 @@ import (
 )
 
 type SQLTopicRepository struct {
-	db *DatabaseData
+	db *sql.DB
 }
 
-func (repo *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
-	topic, ok := repo.db.Topics[id]
-	if !ok {
+func NewSQLTopicRepository(db *sql.DB) *SQLTopicRepository {
+	return &SQLTopicRepository{db: db}
+}
+
+func (r *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
+	t := &models.Topic{TopicID: id}
+	var rawElements sql.NullString
+	err := r.db.QueryRow(`SELECT name, description, module_id, completed, raw_elements FROM topics WHERE topic_id = ?`, id).
+		Scan(&t.Name, &t.Description, &t.ModuleID, &t.Completed, &rawElements)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
+	if err != nil {
+		return nil, err
+	}
 
-	if len(topic.RawElements) > 0 {
-		elems, err := elements.UnmarshalElements(topic.RawElements)
+	// Load associated course_page and private_note IDs
+	r.db.QueryRow(`SELECT course_page_id FROM course_pages WHERE topic_id = ?`, id).Scan(&t.CoursePageID)
+	r.db.QueryRow(`SELECT private_note_id FROM private_notes WHERE topic_id = ?`, id).Scan(&t.PrivateNoteID)
+
+	if rawElements.Valid && len(rawElements.String) > 0 {
+		t.RawElements = json.RawMessage(rawElements.String)
+		elems, err := elements.UnmarshalElements(t.RawElements)
 		if err != nil {
 			return nil, fmt.Errorf("deserializing elements for topic %s: %w", id, err)
 		}
-		topic.Elements = elems
+		t.Elements = elems
 	}
 
-	return topic, nil
+	return t, nil
 }
 
-func (repo *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, error) {
-	module, ok := repo.db.Modules[info.ModuleID]
-	if !ok {
+func (r *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, error) {
+	var exists int
+	if err := r.db.QueryRow(`SELECT 1 FROM modules WHERE module_id = ?`, info.ModuleID).Scan(&exists); err != nil {
 		return nil, errors.New("module id does not exist")
 	}
-	repo.db.NextTopicId++
-	id := fmt.Sprintf("%d", repo.db.NextTopicId)
-	topic := &models.Topic{
-		TopicID:       id,
+
+	var rawElements sql.NullString
+	if len(info.RawElements) > 0 {
+		rawElements = sql.NullString{String: string(info.RawElements), Valid: true}
+	}
+
+	res, err := r.db.Exec(
+		`INSERT INTO topics (name, description, module_id, raw_elements) VALUES (?, ?, ?, ?)`,
+		info.Name, info.Description, info.ModuleID, rawElements,
+	)
+	// completed defaults to FALSE on insert
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return &models.Topic{
+		TopicID:       fmt.Sprintf("%d", id),
 		Name:          info.Name,
 		Description:   info.Description,
 		ModuleID:      info.ModuleID,
 		PrivateNoteID: info.PrivateNoteID,
 		CoursePageID:  info.CoursePageID,
 		RawElements:   info.RawElements,
-	}
-	repo.db.Topics[id] = topic
-	module.TopicIDs = append(module.TopicIDs, id)
-	return topic, nil
+	}, nil
 }
 
-func (repo *SQLTopicRepository) UpdateTopic(id string, name string, description string) error {
-	topic, ok := repo.db.Topics[id]
-	if !ok {
+func (r *SQLTopicRepository) UpdateTopic(id string, name string, description string) error {
+	res, err := r.db.Exec(`UPDATE topics SET name = ?, description = ? WHERE topic_id = ?`, name, description, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	topic.Name = name
-	topic.Description = description
 	return nil
 }
 
-func (repo *SQLTopicRepository) SaveTopicElements(id string, elems []elements.Element) error {
-	topic, ok := repo.db.Topics[id]
-	if !ok {
-		return errors.New("id does not exist")
-	}
+func (r *SQLTopicRepository) SaveTopicElements(id string, elems []elements.Element) error {
 	raw, err := elements.MarshalElements(elems)
 	if err != nil {
 		return fmt.Errorf("serializing elements for topic %s: %w", id, err)
 	}
-	topic.RawElements = json.RawMessage(raw)
-	topic.Elements = elems
-	return nil
-}
-
-func (repo *SQLTopicRepository) DeleteTopicByID(id string) error {
-	if _, ok := repo.db.Topics[id]; !ok {
+	res, err := r.db.Exec(`UPDATE topics SET raw_elements = ? WHERE topic_id = ?`, string(raw), id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	delete(repo.db.Topics, id)
 	return nil
 }
 
-func NewSQLTopicRepository(db *DatabaseData) *SQLTopicRepository {
-	return &SQLTopicRepository{db: db}
+func (r *SQLTopicRepository) SetTopicCompleted(id string, completed bool) error {
+	res, err := r.db.Exec(`UPDATE topics SET completed = ? WHERE topic_id = ?`, completed, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return errors.New("id does not exist")
+	}
+	return nil
+}
+
+func (r *SQLTopicRepository) DeleteTopicByID(id string) error {
+	res, err := r.db.Exec(`DELETE FROM topics WHERE topic_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return errors.New("id does not exist")
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -8,54 +9,85 @@ import (
 )
 
 type SQLCourseRepository struct {
-	db *DatabaseData
+	db *sql.DB
 }
 
-func (repo *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
-	course, ok := repo.db.Courses[id]
-	if !ok {
+func NewSQLCourseRepository(db *sql.DB) *SQLCourseRepository {
+	return &SQLCourseRepository{db: db}
+}
+
+func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
+	c := &models.Course{CourseID: id}
+	err := r.db.QueryRow(`SELECT name, description, user_id FROM courses WHERE course_id = ?`, id).
+		Scan(&c.Name, &c.Description, &c.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
-	return course, nil
+	if err != nil {
+		return nil, err
+	}
+	c.ModuleIDs, err = r.moduleIDsForCourse(id)
+	return c, err
 }
 
-func (repo *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {
-	user, ok := repo.db.Users[info.UserID]
-	if !ok {
-		return nil, errors.New("user id does not exist")
+func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {
+	res, err := r.db.Exec(
+		`INSERT INTO courses (name, description, user_id) VALUES (?, ?, ?)`,
+		info.Name, info.Description, info.UserID,
+	)
+	if err != nil {
+		return nil, err
 	}
-	repo.db.NextCourseId++
-	id := fmt.Sprintf("%d", repo.db.NextCourseId)
-	course := &models.Course{
-		CourseID:    id,
+	id, _ := res.LastInsertId()
+	return &models.Course{
+		CourseID:    fmt.Sprintf("%d", id),
 		Name:        info.Name,
 		Description: info.Description,
-		ModuleIDs:   make([]string, 0),
 		UserID:      info.UserID,
-	}
-	repo.db.Courses[id] = course
-	user.CourseIDs = append(user.CourseIDs, id)
-	return course, nil
+		ModuleIDs:   []string{},
+	}, nil
 }
 
-func (repo *SQLCourseRepository) UpdateCourse(id string, name string, description string) error {
-	course, ok := repo.db.Courses[id]
-	if !ok {
+func (r *SQLCourseRepository) UpdateCourse(id string, name string, description string) error {
+	res, err := r.db.Exec(`UPDATE courses SET name = ?, description = ? WHERE course_id = ?`, name, description, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	course.Name = name
-	course.Description = description
 	return nil
 }
 
-func (repo *SQLCourseRepository) DeleteCourseByID(id string) error {
-	if _, ok := repo.db.Courses[id]; !ok {
+func (r *SQLCourseRepository) DeleteCourseByID(id string) error {
+	res, err := r.db.Exec(`DELETE FROM courses WHERE course_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	delete(repo.db.Courses, id)
 	return nil
 }
 
-func NewSQLCourseRepository(db *DatabaseData) *SQLCourseRepository {
-	return &SQLCourseRepository{db: db}
+func (r *SQLCourseRepository) moduleIDsForCourse(courseID string) ([]string, error) {
+	rows, err := r.db.Query(`SELECT module_id FROM modules WHERE course_id = ?`, courseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if ids == nil {
+		ids = []string{}
+	}
+	return ids, rows.Err()
 }

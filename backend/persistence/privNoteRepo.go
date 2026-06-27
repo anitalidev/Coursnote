@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -8,47 +9,60 @@ import (
 )
 
 type SQLPrivateNoteRepository struct {
-	db *DatabaseData
+	db *sql.DB
 }
 
-func (repo *SQLPrivateNoteRepository) GetPrivateNoteByID(id string) (*models.PrivateNote, error) {
-	note, ok := repo.db.PrivateNotes[id]
-	if !ok {
+func NewSQLPrivateNoteRepository(db *sql.DB) *SQLPrivateNoteRepository {
+	return &SQLPrivateNoteRepository{db: db}
+}
+
+func (r *SQLPrivateNoteRepository) GetPrivateNoteByID(id string) (*models.PrivateNote, error) {
+	n := &models.PrivateNote{PrivateNoteID: id}
+	err := r.db.QueryRow(`SELECT name, description, topic_id FROM private_notes WHERE private_note_id = ?`, id).
+		Scan(&n.Name, &n.Description, &n.TopicID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
-	return note, nil
+	return n, err
 }
 
-func (repo *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (*models.PrivateNote, error) {
-	repo.db.NextPrivateNoteId++
-	id := fmt.Sprintf("%d", repo.db.NextPrivateNoteId)
-	note := &models.PrivateNote{
-		PrivateNoteID: id,
+func (r *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (*models.PrivateNote, error) {
+	res, err := r.db.Exec(
+		`INSERT INTO private_notes (name, description, topic_id) VALUES (?, ?, ?)`,
+		info.Name, info.Description, info.TopicID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return &models.PrivateNote{
+		PrivateNoteID: fmt.Sprintf("%d", id),
 		Name:          info.Name,
 		Description:   info.Description,
 		TopicID:       info.TopicID,
-	}
-	repo.db.PrivateNotes[id] = note
-	return note, nil
+	}, nil
 }
 
-func (repo *SQLPrivateNoteRepository) UpdatePrivateNoteDescription(id string, description string) error {
-	note, ok := repo.db.PrivateNotes[id]
-	if !ok {
+func (r *SQLPrivateNoteRepository) UpdatePrivateNoteDescription(id string, description string) error {
+	res, err := r.db.Exec(`UPDATE private_notes SET description = ? WHERE private_note_id = ?`, description, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	note.Description = description
 	return nil
 }
 
-func (repo *SQLPrivateNoteRepository) DeletePrivateNoteByID(id string) error {
-	if _, ok := repo.db.PrivateNotes[id]; !ok {
+func (r *SQLPrivateNoteRepository) DeletePrivateNoteByID(id string) error {
+	res, err := r.db.Exec(`DELETE FROM private_notes WHERE private_note_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	delete(repo.db.PrivateNotes, id)
 	return nil
-}
-
-func NewSQLPrivateNoteRepository(db *DatabaseData) *SQLPrivateNoteRepository {
-	return &SQLPrivateNoteRepository{db: db}
 }

@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -8,54 +9,102 @@ import (
 )
 
 type SQLUserRepository struct {
-	db *DatabaseData
+	db *sql.DB
 }
 
-func (repo *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
-	user, ok := repo.db.Users[id]
-	if !ok {
+func NewSQLUserRepository(db *sql.DB) *SQLUserRepository {
+	return &SQLUserRepository{db: db}
+}
+
+func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
+	user := &models.User{UserID: id}
+	err := r.db.QueryRow(`SELECT username FROM users WHERE user_id = ?`, id).Scan(&user.Username)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
-	return user, nil
-}
-
-func (repo *SQLUserRepository) GetUserByUsername(username string) (*models.User, error) {
-	for _, user := range repo.db.Users {
-		if user.Username == username {
-			return user, nil
-		}
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("username does not exist")
+	user.CourseIDs, err = r.courseIDsForUser(id)
+	return user, err
 }
 
-func (repo *SQLUserRepository) CreateUser(info *UserInfo) (*models.User, error) {
-	repo.db.NextUserId++
-	id := fmt.Sprintf("%d", repo.db.NextUserId)
-	user := &models.User{
-		UserID:    id,
+func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, error) {
+	user := &models.User{Username: username}
+	err := r.db.QueryRow(`SELECT user_id FROM users WHERE username = ?`, username).Scan(&user.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, errors.New("username does not exist")
+	}
+	if err != nil {
+		return nil, err
+	}
+	user.CourseIDs, err = r.courseIDsForUser(user.UserID)
+	return user, err
+}
+
+func (r *SQLUserRepository) CreateUser(info *UserInfo) (*models.User, error) {
+	res, err := r.db.Exec(`INSERT INTO users (username) VALUES (?)`, info.Username)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return &models.User{
+		UserID:    fmt.Sprintf("%d", id),
 		Username:  info.Username,
-		CourseIDs: make([]string, 0),
-	}
-	repo.db.Users[id] = user
-	return user, nil
+		CourseIDs: []string{},
+	}, nil
 }
 
-func (repo *SQLUserRepository) DeleteUserByID(id string) error {
-	if _, ok := repo.db.Users[id]; !ok {
+func (r *SQLUserRepository) DeleteUserByID(id string) error {
+	res, err := r.db.Exec(`DELETE FROM users WHERE user_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
 		return errors.New("id does not exist")
 	}
-	delete(repo.db.Users, id)
 	return nil
 }
 
-func (repo *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
-	users := make([]*models.User, 0, len(repo.db.Users))
-	for _, user := range repo.db.Users {
-		users = append(users, user)
+func (r *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
+	rows, err := r.db.Query(`SELECT user_id, username FROM users`)
+	if err != nil {
+		return nil, err
 	}
-	return users, nil
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		u := &models.User{}
+		if err := rows.Scan(&u.UserID, &u.Username); err != nil {
+			return nil, err
+		}
+		u.CourseIDs, err = r.courseIDsForUser(u.UserID)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
 }
 
-func NewSQLUserRepository(db *DatabaseData) *SQLUserRepository {
-	return &SQLUserRepository{db: db}
+func (r *SQLUserRepository) courseIDsForUser(userID string) ([]string, error) {
+	rows, err := r.db.Query(`SELECT course_id FROM courses WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if ids == nil {
+		ids = []string{}
+	}
+	return ids, rows.Err()
 }

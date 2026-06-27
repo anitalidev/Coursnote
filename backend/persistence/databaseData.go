@@ -1,20 +1,27 @@
 package persistence
 
-import "github.com/anitalidev/Coursnote/backend/models"
+import (
+	"database/sql"
+	"fmt"
+	"os"
 
-type DatabaseData struct {
-	Users        map[string]*models.User        `json:"users"`
-	Courses      map[string]*models.Course      `json:"courses"`
-	Modules      map[string]*models.Module      `json:"modules"`
-	Topics       map[string]*models.Topic       `json:"topics"`
-	CoursePages  map[string]*models.CoursePage  `json:"coursePages"`
-	PrivateNotes map[string]*models.PrivateNote `json:"privateNotes"`
+	_ "github.com/go-sql-driver/mysql"
+)
 
-	NextUserId        int `json:"nextUserId"`
-	NextCourseId      int `json:"nextCourseId"`
-	NextModuleId      int `json:"nextModuleId"`
-	NextTopicId       int `json:"nextTopicId"`
-	NextCoursePageId  int `json:"nextCoursePageId"`
-	NextPrivateNoteId int `json:"nextPrivateNoteID"`
-	NextElementId     int `json:"nextElementID"`
+func OpenDB() (*sql.DB, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&clientFoundRows=true",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"),
+	)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("connecting to MySQL: %w", err)
+	}
+	return db, nil
 }
