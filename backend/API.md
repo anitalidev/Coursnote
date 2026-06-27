@@ -131,7 +131,8 @@ Returns a single course by ID.
   "name":        "Data Structures",
   "description": "Trees, graphs, sorting algorithms",
   "moduleIDs":   ["10", "11"],
-  "userID":      "1"
+  "userID":      "1",
+  "PCompleted": 80
 }
 ```
 
@@ -165,7 +166,8 @@ Creates a new course owned by a user. Also appends the new course ID to the user
   "name":        "Data Structures",
   "description": "Trees, graphs, sorting algorithms",
   "moduleIDs":   [],
-  "userID":      "1"
+  "userID":      "1",
+  "pcompleted": 0
 }
 ```
 
@@ -178,14 +180,15 @@ Creates a new course owned by a user. Also appends the new course ID to the user
 
 ### `PUT /api/course`
 
-Updates a course's name and/or description.
+Updates a course's name and/or description, and/or changes completion status.
 
 **Request body:**
 ```json
 {
   "id":          "3",
   "name":        "Data Structures & Algorithms",
-  "description": "Updated description"
+  "description": "Updated description",
+  "pcompleted": 20
 }
 ```
 

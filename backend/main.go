@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/anitalidev/Coursnote/backend/handlers"
+	"github.com/anitalidev/Coursnote/backend/persistence"
 	"github.com/joho/godotenv"
 )
 
@@ -27,12 +28,17 @@ func withCORS(h http.Handler) http.Handler {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// link handlers
+	db, err := persistence.OpenDB()
+	if err != nil {
+		log.Fatalf("Failed to connect to MySQL: %v", err)
+	}
+	defer db.Close()
+
+	handlers.InitStore(db)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
