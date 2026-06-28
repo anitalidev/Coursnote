@@ -88,6 +88,8 @@ function filterCourseCards() {
 }
 
 function openModuleMenu(moduleID, btn) {
+  const existing = btn.querySelector('.cc2-dropdown');
+  if (existing) { existing.remove(); return; }
   document.querySelectorAll('.cc2-dropdown').forEach(d => d.remove());
   const menu = document.createElement('div');
   menu.className = 'cc2-dropdown';
@@ -95,20 +97,24 @@ function openModuleMenu(moduleID, btn) {
     <div class="cc2-dd-item cc2-dd-danger" onclick="deleteModule('${moduleID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+  const wrap = btn.closest('.mod2-card') || btn;
+  const removeOnLeave = () => { menu.remove(); wrap.removeEventListener('mouseleave', removeOnLeave); };
+  wrap.addEventListener('mouseleave', removeOnLeave);
 }
 
 function openCourseMenu(courseID, course, btn) {
+  const existing = btn.querySelector('.cc2-dropdown');
+  if (existing) { existing.remove(); return; }
   document.querySelectorAll('.cc2-dropdown').forEach(d => d.remove());
   const menu = document.createElement('div');
   menu.className = 'cc2-dropdown';
   menu.innerHTML = `
-    <div class="cc2-dd-item" onclick="goModules(${jsonAttr(course)},false);document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Open</div>
-    <div class="cc2-dd-item" onclick="goModules(${jsonAttr(course)},true);document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Edit</div>
-    <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete</div>`;
+    <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete Course</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+  const wrap = btn.closest('.course-card2') || btn;
+  const removeOnLeave = () => { menu.remove(); wrap.removeEventListener('mouseleave', removeOnLeave); };
+  wrap.addEventListener('mouseleave', removeOnLeave);
 }
 
 async function deleteCourse(id) {

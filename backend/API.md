@@ -132,7 +132,10 @@ Returns a single course by ID.
   "description": "Trees, graphs, sorting algorithms",
   "moduleIDs":   ["10", "11"],
   "userID":      "1",
-  "PCompleted": 80
+  "pcompleted":  0.8,
+  "ntopics":     12,
+  "leftColour":  "#f97407",
+  "rightColour": "#e88cc2"
 }
 ```
 
@@ -153,11 +156,13 @@ Creates a new course owned by a user. Also appends the new course ID to the user
 {
   "name":        "Data Structures",
   "description": "Trees, graphs, sorting algorithms",
-  "userID":      "1"
+  "userID":      "1",
+  "leftColour":  "#f97407",
+  "rightColour": "#e88cc2"
 }
 ```
 
-`description` is optional. `name` and `userID` are required.
+`description`, `leftColour`, and `rightColour` are optional — if omitted, random hex colours are generated for each. `name` and `userID` are required.
 
 **Response `201 Created`:**
 ```json
@@ -167,7 +172,10 @@ Creates a new course owned by a user. Also appends the new course ID to the user
   "description": "Trees, graphs, sorting algorithms",
   "moduleIDs":   [],
   "userID":      "1",
-  "pcompleted": 0
+  "pcompleted":  0,
+  "ntopics":     0,
+  "leftColour":  "#f97407",
+  "rightColour": "#e88cc2"
 }
 ```
 
@@ -180,7 +188,7 @@ Creates a new course owned by a user. Also appends the new course ID to the user
 
 ### `PUT /api/course`
 
-Updates a course's name and/or description, and/or changes completion status.
+Updates a course's name, description, and/or banner colours.
 
 **Request body:**
 ```json
@@ -188,11 +196,12 @@ Updates a course's name and/or description, and/or changes completion status.
   "id":          "3",
   "name":        "Data Structures & Algorithms",
   "description": "Updated description",
-  "pcompleted": 20
+  "leftColour":  "#f97407",
+  "rightColour": "#e88cc2"
 }
 ```
 
-`id` and `name` are required. `description` is optional.
+`id` and `name` are required. `description`, `leftColour`, and `rightColour` are optional.
 
 **Response `200 OK`:** Full updated course object (same shape as GET).
 

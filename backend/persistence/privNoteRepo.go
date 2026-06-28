@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -43,7 +44,7 @@ func (r *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (*mo
 	}, nil
 }
 
-func (r *SQLPrivateNoteRepository) UpdatePrivateNoteDescription(id string, description string) error {
+func (r *SQLPrivateNoteRepository) UpdatePrivateNoteDescription(id string, description json.RawMessage) error {
 	res, err := r.db.Exec(`UPDATE private_notes SET description = ? WHERE private_note_id = ?`, description, id)
 	if err != nil {
 		return err

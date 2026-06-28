@@ -71,9 +71,8 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		coursePage, err := store.repos.CoursePages.CreateCoursePage(&persistence.CoursePageInfo{
-			Name:        body.Name,
-			Description: body.Description,
-			TopicID:     topic.TopicID,
+			Name:    body.Name,
+			TopicID: topic.TopicID,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
@@ -81,8 +80,8 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		privateNote, err := store.repos.PrivateNotes.CreatePrivateNote(&persistence.PrivateNoteInfo{
 			Name:        body.Name,
-			Description: body.Description,
 			TopicID:     topic.TopicID,
+			Description: json.RawMessage(`{ "type": "doc", "content": [] }`),
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())

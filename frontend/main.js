@@ -1,5 +1,9 @@
-import { Editor, Extension, generateHTML } from '@tiptap/core';
+import { Editor, Extension, Mark, generateHTML } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { TextStyle, Color } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
+import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
 
 const TabExtension = Extension.create({
   name: 'tab',
@@ -10,8 +14,35 @@ const TabExtension = Extension.create({
   },
 });
 
+const FontSize = Mark.create({
+  name: 'fontSize',
+  addAttributes() {
+    return { size: { default: null, parseHTML: el => el.style.fontSize?.replace('px','') || null, renderHTML: attrs => attrs.size ? { style: `font-size:${attrs.size}px` } : {} } };
+  },
+  parseHTML() { return [{ tag: 'span', getAttrs: el => el.style.fontSize ? { size: el.style.fontSize.replace('px','') } : false }]; },
+  renderHTML({ HTMLAttributes }) { return ['span', HTMLAttributes, 0]; },
+  addCommands() {
+    return {
+      setFontSize: size => ({ chain }) => chain().setMark('fontSize', { size }).run(),
+      unsetFontSize: () => ({ chain }) => chain().unsetMark('fontSize').run(),
+    };
+  },
+});
+
+const allExtensions = [
+  StarterKit,
+  TextStyle,
+  Color,
+  Highlight.configure({ multicolor: true }),
+  TabExtension,
+  FontSize,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Placeholder.configure({ placeholder: ({ editor }) => editor.options.element.getAttribute('data-placeholder') || '' }),
+];
+
 window.TipTapEditor = Editor;
 window.TipTapStarterKit = StarterKit;
 window.TipTapTabExtension = TabExtension;
-window.TipTapGenerateHTML = (doc) => generateHTML(doc, [StarterKit]);
+window.TipTapAllExtensions = allExtensions;
+window.TipTapGenerateHTML = (doc) => generateHTML(doc, allExtensions);
 window.dispatchEvent(new Event('tiptap-ready'));

@@ -121,7 +121,7 @@ function renderSidebar() {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       All Courses
     </div>
-    <div class="nav-group-item${isOverview ? ' active' : ''}" onclick="goModules(${jsonAttr(S.currentCourse)})">
+    <div class="nav-group-item${isOverview ? ' active' : ''}" onclick="goModules(${jsonAttr(S.currentCourse)},S.editMode)">
       <div style="display:flex;align-items:center;gap:10px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h4"/></svg>
         Overview
@@ -164,6 +164,6 @@ function switchNotesTab(tab) {
   document.getElementById('pane-cp').style.display = tab === 'cp' ? '' : 'none';
   document.getElementById('tab-pn').classList.toggle('notes-tab-active', tab === 'pn');
   document.getElementById('tab-cp').classList.toggle('notes-tab-active', tab === 'cp');
-  if (tab === 'pn') { const ta = document.getElementById('pn-text'); if (ta) autoResize(ta); }
+  if (tab === 'pn') mountPNEditor();
   if (S.currentTopic) pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + S.currentTopic.topicID + '/' + tab + (S.editMode ? '/edit' : ''));
 }

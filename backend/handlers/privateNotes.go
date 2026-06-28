@@ -6,10 +6,10 @@ import (
 )
 
 type PrivateNoteDTO struct {
-	PrivateNoteID string `json:"privateNoteID"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	TopicID       string `json:"topicID"`
+	PrivateNoteID string          `json:"privateNoteID"`
+	Name          string          `json:"name"`
+	Description   json.RawMessage `json:"description"`
+	TopicID       string          `json:"topicID"`
 }
 
 func PrivateNoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,8 +37,8 @@ func PrivateNoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPut:
 		var body struct {
-			ID          string `json:"id"`
-			Description string `json:"description"`
+			ID          string          `json:"id"`
+			Description json.RawMessage `json:"description"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" {
 			writeError(w, http.StatusBadRequest, "id required")

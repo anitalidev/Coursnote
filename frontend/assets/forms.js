@@ -1,5 +1,22 @@
 'use strict';
 
+function updateBannerPreview() {
+  const left  = document.getElementById('ce-left-colour')?.value;
+  const right = document.getElementById('ce-right-colour')?.value;
+  const el = document.getElementById('ce-banner-preview');
+  if (el && left && right) el.style.background = `linear-gradient(135deg,${left},${right})`;
+}
+
+function syncColourPicker(pickerId, hexId) {
+  const hex = document.getElementById(pickerId)?.value;
+  if (hex) document.getElementById(hexId).value = hex;
+}
+
+function syncColourHex(pickerId, hexId) {
+  const val = document.getElementById(hexId)?.value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) document.getElementById(pickerId).value = val;
+}
+
 function bindCoursesForm() {
   document.getElementById('cf-submit')?.addEventListener('click', () => {
     const name = document.getElementById('cf-name').value.trim();
@@ -67,11 +84,13 @@ function saveCourseFromEditMode() {
 }
 
 async function saveCourseEdit() {
-  const name = document.getElementById('ce-name').value.trim();
-  const desc = document.getElementById('ce-desc').value.trim();
+  const name        = document.getElementById('ce-name').value.trim();
+  const desc        = document.getElementById('ce-desc').value.trim();
+  const leftColour  = document.getElementById('ce-left-colour')?.value || S.currentCourse.leftColour;
+  const rightColour = document.getElementById('ce-right-colour')?.value || S.currentCourse.rightColour;
   if (!name) return;
   try {
-    const updated = await PUT('/course', { id: S.currentCourse.courseID, name, description: desc });
+    const updated = await PUT('/course', { id: S.currentCourse.courseID, name, description: desc, leftColour, rightColour });
     S.currentCourse = updated;
     const idx = S.courses.findIndex(c => c.courseID === updated.courseID);
     if (idx !== -1) S.courses[idx] = updated;
@@ -85,19 +104,14 @@ async function saveCourseEdit() {
 function bindTopicsForm() {
   document.getElementById('tf-submit')?.addEventListener('click', () => {
     const name = document.getElementById('tf-name').value.trim();
-    const desc = document.getElementById('tf-desc').value.trim();
     if (!name) return;
-    createTopic(name, desc);
+    createTopic(name, '');
   });
   enterSubmit('tf-name', 'tf-submit');
 }
 
 function bindTopicListeners() {
-  const pnText = document.getElementById('pn-text');
-  if (pnText) {
-    autoResize(pnText);
-    pnText.addEventListener('input', e => { schedulePNSave(e.target.value); autoResize(e.target); });
-  }
+  mountPNEditor();
   renderNotebook();
 }
 

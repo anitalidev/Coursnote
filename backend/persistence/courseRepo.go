@@ -18,8 +18,8 @@ func NewSQLCourseRepository(db *sql.DB) *SQLCourseRepository {
 
 func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 	c := &models.Course{CourseID: id}
-	err := r.db.QueryRow(`SELECT name, description, user_id FROM courses WHERE course_id = ?`, id).
-		Scan(&c.Name, &c.Description, &c.UserID)
+	err := r.db.QueryRow(`SELECT name, description, user_id, left_colour, right_colour FROM courses WHERE course_id = ?`, id).
+		Scan(&c.Name, &c.Description, &c.UserID, &c.LeftColour, &c.RightColour)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -32,8 +32,8 @@ func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 
 func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {
 	res, err := r.db.Exec(
-		`INSERT INTO courses (name, description, user_id) VALUES (?, ?, ?)`,
-		info.Name, info.Description, info.UserID,
+		`INSERT INTO courses (name, description, user_id, left_colour, right_colour) VALUES (?, ?, ?, ?, ?)`,
+		info.Name, info.Description, info.UserID, info.LeftColour, info.RightColour,
 	)
 	if err != nil {
 		return nil, err
@@ -44,12 +44,17 @@ func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, er
 		Name:        info.Name,
 		Description: info.Description,
 		UserID:      info.UserID,
+		LeftColour:  info.LeftColour,
+		RightColour: info.RightColour,
 		ModuleIDs:   []string{},
 	}, nil
 }
 
-func (r *SQLCourseRepository) UpdateCourse(id string, name string, description string) error {
-	res, err := r.db.Exec(`UPDATE courses SET name = ?, description = ? WHERE course_id = ?`, name, description, id)
+func (r *SQLCourseRepository) UpdateCourse(id string, name string, description string, leftColour string, rightColour string) error {
+	res, err := r.db.Exec(
+		`UPDATE courses SET name = ?, description = ?, left_colour = ?, right_colour = ? WHERE course_id = ?`,
+		name, description, leftColour, rightColour, id,
+	)
 	if err != nil {
 		return err
 	}

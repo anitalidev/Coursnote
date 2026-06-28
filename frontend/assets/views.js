@@ -51,28 +51,54 @@ function coursesHTML() {
   const cards = S.courses.map(c => {
     const mods = (c.moduleIDs || []).length;
     const pct  = Math.round((c.pcompleted || 0) * 100);
-    const pal  = ccPalette(c.courseID || c.name);
+    const topics = c.ntopics || 0;
+    const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
     return `
-    <div class="course-card2" onclick="goModules(${jsonAttr(c)}, false)">
-      <div class="cc2-banner" style="background:${pal.bg}">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${pal.icon}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <div class="course-card2">
+      <div class="cc2-banner" style="background:${bannerGrad}">
         <button class="cc2-menu" onclick="event.stopPropagation();openCourseMenu('${c.courseID}',${jsonAttr(c)},this)" title="Options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
       </div>
       <div class="cc2-body">
-        <div class="cc2-title">${esc(c.name)}</div>
-        <div class="cc2-desc">${esc(c.description) || '<span style="opacity:.4">No description</span>'}</div>
-        <div class="cc2-meta">
-          <span class="tag">${mods} module${mods !== 1 ? 's' : ''}</span>
+        <div class="cc2-course-title-block">
+          <div class="cc2-title">${esc(c.name)}</div>
+          ${c.description ? `<div class="cc2-desc">${esc(c.description)}</div>` : ''}
         </div>
-        <div class="cc2-progress">
+        <div class="cc2-stats-row">
+          <div class="cc2-stat">
+            <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <div class="cc2-stat-lines">
+              <span class="cc2-stat-main">${mods} Module${mods !== 1 ? 's' : ''}</span>
+              <span class="cc2-stat-sub">${topics} Topic${topics !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div class="cc2-stat-div"></div>
+          <div class="cc2-stat">
+            <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="cc2-stat-lines">
+              <span class="cc2-stat-main">${ccUpdated(c.updatedAt)}</span>
+              <span class="cc2-stat-sub">Last updated</span>
+            </div>
+          </div>
+        </div>
+        <div class="cc2-progress-section">
+          <div class="cc2-progress-label">
+            <span>PROGRESS</span>
+            <span class="cc2-progress-pct">${pct}%</span>
+          </div>
           <div class="cc2-progress-bar"><div class="cc2-progress-fill" style="width:${pct}%"></div></div>
-          <span class="cc2-progress-pct">${pct}%</span>
         </div>
-        <div class="cc2-updated">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          ${ccUpdated(c.updatedAt)}
+        <div class="cc2-actions">
+          <button class="cc2-edit-btn" onclick="goModules(${jsonAttr(c)},true)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit
+          </button>
+          <button class="cc2-continue-btn" onclick="goModules(${jsonAttr(c)},false)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Preview Course
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
       </div>
     </div>`;
@@ -135,7 +161,7 @@ function modulesHTML() {
   const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
   const pct = Math.round((S.currentCourse.pcompleted || 0) * 100);
   const doneMods = Math.round(pct / 100 * S.modules.length);
-  const pal = ccPalette(c.courseID || c.name);
+  const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
 
   const modPalettes = [
     { bg: 'rgba(108,142,247,.15)', color: '#6c8ef7' },
@@ -184,25 +210,22 @@ function modulesHTML() {
     </div>
 
     <div class="course-hero2" id="course-view-header">
-      <div class="ch2-top">
-      <div class="ch2-left">
-        <div class="ch2-icon" style="background:${pal.bg}">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <div class="ch2-banner" style="background:${bannerGrad}">
+        <div class="ch2-actions">
+          ${S.editMode ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()" style="color:#fff;border-color:rgba(255,255,255,.3)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="ch2-more" onclick="openCourseMenu('${c.courseID}',${jsonAttr(c)},this)" style="background:rgba(0,0,0,.2);border-color:transparent;color:#fff">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>` : ''}
         </div>
+      </div>
+      <div class="ch2-top">
         <div>
           <h1 id="course-title-display">${esc(c.name)}</h1>
           <p class="ch2-desc" id="course-desc-display">${esc(c.description) || '<span style="opacity:.4">No description</span>'}</p>
         </div>
-      </div>
-      <div class="ch2-actions">
-        ${S.editMode ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Edit
-        </button>
-        <button class="ch2-more" onclick="openCourseMenu('${c.courseID}',${jsonAttr(c)},this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-        </button>` : ''}
-      </div>
       </div><!-- ch2-top -->
     <div class="ch2-stats-row">
       <div class="ch2-stat">
@@ -239,6 +262,21 @@ function modulesHTML() {
           <div class="field"><label>Name</label><input id="ce-name" value="${esc(c.name)}" /></div>
           <div class="field"><label>Description</label><input id="ce-desc" value="${esc(c.description || '')}" placeholder="What's this course about?" /></div>
         </div>
+        <div class="ce-colour-row-outer">
+          <div class="ce-colour-pair">
+            <div class="ce-colour-block">
+              <label class="ce-colour-label">Banner Left Colour</label>
+              <input type="color" id="ce-left-colour" value="${c.leftColour || '#3b82f6'}" class="ce-colour-rect" oninput="syncColourPicker('ce-left-colour','ce-left-colour-hex');updateBannerPreview()" />
+              <input type="text" id="ce-left-colour-hex" value="${c.leftColour || '#3b82f6'}" class="ce-colour-hex" maxlength="7" oninput="syncColourHex('ce-left-colour','ce-left-colour-hex');updateBannerPreview()" />
+            </div>
+            <div class="ce-colour-block">
+              <label class="ce-colour-label">Banner Right Colour</label>
+              <input type="color" id="ce-right-colour" value="${c.rightColour || '#06b6d4'}" class="ce-colour-rect" oninput="syncColourPicker('ce-right-colour','ce-right-colour-hex');updateBannerPreview()" />
+              <input type="text" id="ce-right-colour-hex" value="${c.rightColour || '#06b6d4'}" class="ce-colour-hex" maxlength="7" oninput="syncColourHex('ce-right-colour','ce-right-colour-hex');updateBannerPreview()" />
+            </div>
+          </div>
+          <div class="ce-banner-preview" id="ce-banner-preview" style="background:linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})"></div>
+        </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="ce-save">Save</button>
           <button class="btn btn-ghost" onclick="exitCourseEditMode()">Cancel</button>
@@ -271,7 +309,7 @@ function topicsHTML() {
         </div>
         <div class="item-body">
           <div class="item-title">${esc(t.name)}</div>
-          <div class="item-desc">${esc(t.description) || 'Open to add notes'}</div>
+          <div class="item-desc">Open to add notes</div>
         </div>
         ${S.editMode ? `<div class="item-actions">
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
@@ -299,7 +337,6 @@ function topicsHTML() {
       <h3>New Topic</h3>
       <div class="form-row">
         <div class="field"><label>Name</label><input id="tf-name" placeholder="e.g. Binary Search Trees" /></div>
-        <div class="field"><label>Description</label><input id="tf-desc" placeholder="Short summary…" /></div>
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" id="tf-submit">Create</button>
@@ -324,7 +361,6 @@ function topicHTML() {
     <div class="topic-header">
       <div>
         <h1><span>${esc(t.name)}</span></h1>
-        ${t.description ? `<p class="subtitle">${esc(t.description)}</p>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">
@@ -341,8 +377,9 @@ function topicHTML() {
         <span class="note-pane-title private">Private Notes</span>
         <span class="save-indicator" id="status-pn"></span>
       </div>
-      <div class="note-pane-body">
-        <textarea id="pn-text" ${S.editMode ? '' : 'readonly'}>${esc(pn?.description || '')}</textarea>
+      <div class="note-pane-body nb-pane-body">
+        ${nbTtToolbarHTML('pn')}
+        <div id="tiptap-pn" class="nb-tiptap" onclick="_nbEditors['pn']?.commands.focus()"></div>
       </div>
     </div>
     <div id="pane-cp" class="note-pane" style="${S.notesTab === 'cp' ? '' : 'display:none'}">

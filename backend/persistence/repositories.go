@@ -26,6 +26,8 @@ type CourseInfo struct {
 	Name        string
 	Description string
 	UserID      string
+	LeftColour  string
+	RightColour string
 }
 
 type ModuleInfo struct {
@@ -51,7 +53,7 @@ type CoursePageInfo struct {
 
 type PrivateNoteInfo struct {
 	Name        string
-	Description string
+	Description json.RawMessage
 	TopicID     string
 }
 
@@ -67,7 +69,7 @@ type CourseRepository interface {
 	GetCourseByID(id string) (*models.Course, error)
 	CreateCourse(course *CourseInfo) (*models.Course, error)
 	DeleteCourseByID(id string) error
-	UpdateCourse(id string, name string, description string) error
+	UpdateCourse(id string, name string, description string, leftColour string, rightColour string) error
 }
 
 type ModuleRepository interface {
@@ -97,5 +99,5 @@ type PrivateNoteRepository interface {
 	GetPrivateNoteByID(id string) (*models.PrivateNote, error)
 	CreatePrivateNote(note *PrivateNoteInfo) (*models.PrivateNote, error)
 	DeletePrivateNoteByID(id string) error
-	UpdatePrivateNoteDescription(id string, description string) error
+	UpdatePrivateNoteDescription(id string, description json.RawMessage) error
 }

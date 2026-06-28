@@ -18,13 +18,13 @@ function scheduleElementsSave() {
   }, 800);
 }
 
-function schedulePNSave(text) {
+function schedulePNSave(doc) {
   clearTimeout(pnSaveTimer);
   setStatus('pn', 'saving...');
   pnSaveTimer = setTimeout(async () => {
     try {
-      await PUT('/privatenotes', { id: S.privateNote.privateNoteID, description: text });
-      S.privateNote.description = text;
+      await PUT('/privatenotes', { id: S.privateNote.privateNoteID, description: doc });
+      S.privateNote.description = doc;
       setStatus('pn', 'Saved');
     } catch { setStatus('pn', 'Error saving'); }
   }, 800);

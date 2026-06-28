@@ -7,8 +7,13 @@ type Course struct {
 	Description string   `json:"description"`
 	ModuleIDs   []string `json:"moduleIDs"` // owns
 	UserID      string   `json:"userID"`    // owner
+
+	// UI details
+	LeftColour  string `json:"leftColour"`
+	RightColour string `json:"rightColour"`
 }
 
+/*
 func newCourse(courseID string, name string, desc string, userID string) *Course {
 	return &Course{
 		CourseID:    courseID,
@@ -18,6 +23,7 @@ func newCourse(courseID string, name string, desc string, userID string) *Course
 		UserID:      userID,
 	}
 }
+*/
 
 func (course *Course) addModule(moduleID string) {
 	course.ModuleIDs = append(course.ModuleIDs, moduleID)

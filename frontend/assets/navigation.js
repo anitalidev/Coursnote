@@ -12,6 +12,7 @@ async function goLogin() {
 }
 
 async function goCourses() {
+  destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
   S.courses = await loadCourses(S.user.courseIDs || []);
   const progMap = {};
@@ -29,6 +30,7 @@ async function goCourses() {
 
 async function goModules(course, editMode = false) {
   try {
+    destroyPNEditor();
     S.currentCourse = course; S.currentModule = null; S.currentTopic = null;
     S.editMode = editMode;
     S.modules = await loadAll('/module?id=', course.moduleIDs || []);
@@ -41,6 +43,7 @@ async function goModules(course, editMode = false) {
 
 async function goTopics(module) {
   try {
+    destroyPNEditor();
     S.currentModule = module; S.currentTopic = null;
     S.topics = await loadAll('/topic?id=', module.topicIDs || []);
     S.moduleTopics[module.moduleID] = S.topics;
@@ -52,6 +55,7 @@ async function goTopics(module) {
 
 async function goTopic(topic) {
   try {
+    destroyPNEditor();
     if (!S.currentModule || S.currentModule.moduleID !== topic.moduleID) {
       S.currentModule = await GET('/module?id=' + topic.moduleID);
       S.topics = await loadAll('/topic?id=', S.currentModule.topicIDs || []);
