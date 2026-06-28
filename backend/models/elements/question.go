@@ -5,9 +5,9 @@ func init() {
 }
 
 type Question struct {
-	Question string   `json:"question"`
-	Options  []string `json:"options"`
-	Answer   int      `json:"answer"`
+	Question Text   `json:"question"`
+	Options  []Text `json:"options"`
+	Answer   int    `json:"answer"`
 }
 
 func (q *Question) ElementType() string { return "question" }

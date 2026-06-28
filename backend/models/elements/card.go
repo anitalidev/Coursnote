@@ -5,8 +5,8 @@ func init() {
 }
 
 type Card struct {
-	Header  string `json:"header"`
-	Content string `json:"content"`
+	Header  Text `json:"header"`
+	Content Text `json:"content"`
 }
 
 func (c *Card) ElementType() string {
