@@ -1,5 +1,9 @@
 'use strict';
 
+function settingsHTML() {
+  return `<div style="padding:40px"><h1>Settings</h1></div>`;
+}
+
 function loginHTML() {
   return `
   <div id="login-view">

@@ -31,7 +31,7 @@ function renderSidebar() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Home</span>
       </div>
-      <div class="icon-nav-item active" onclick="goCourses()">
+      <div class="icon-nav-item${S.view === 'courses' ? ' active' : ''}" onclick="goCourses()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Courses</span>
       </div>
@@ -44,12 +44,21 @@ function renderSidebar() {
         <span>Search</span>
       </div>`;
     footer.innerHTML = `
-      <div class="icon-nav-item" onclick="goLogin()">
+      <div class="icon-nav-item${S.view === 'settings' ? ' active' : ''}" onclick="goSettings()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Settings</span>
       </div>
-      <div class="icon-nav-avatar" onclick="goLogin()">${initial}</div>
-      <div class="icon-nav-avatar-label">${esc(S.user.username)} ▾</div>`;
+      <div class="icon-nav-avatar" onclick="toggleUserMenu(event)">${initial}</div>
+      <div class="icon-nav-avatar-label" onclick="toggleUserMenu(event)">${esc(S.user.username)} ▾</div>`;
+    let menu = document.getElementById('icon-user-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'icon-user-menu';
+      menu.className = 'icon-nav-user-menu';
+      menu.style.display = 'none';
+      menu.innerHTML = `<button onclick="goLogin()">Log Out</button>`;
+      document.body.appendChild(menu);
+    }
     return;
   }
 
@@ -146,6 +155,7 @@ function renderMain() {
   if (S.view === 'modules')  { main.innerHTML = modulesHTML(); bindModulesForm(); }
   if (S.view === 'topics')   { main.innerHTML = topicsHTML();  bindTopicsForm(); }
   if (S.view === 'topic')    { main.innerHTML = topicHTML();   bindTopicListeners(); }
+  if (S.view === 'settings') { main.innerHTML = settingsHTML(); }
 }
 
 function switchNotesTab(tab) {

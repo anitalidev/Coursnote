@@ -459,7 +459,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; width: 100%;
 }
 #sidebar.icon-mode #sidebar-footer {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); width: 100%; position: relative;
 }
 .icon-nav-logo {
   width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
@@ -479,6 +479,16 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   cursor: pointer; margin-top: 4px;
 }
 .icon-nav-avatar-label { font-size: 10px; color: var(--text3); margin-top: 2px; cursor: pointer; }
+.icon-nav-user-menu {
+  position: fixed;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.4); white-space: nowrap; z-index: 1000;
+}
+.icon-nav-user-menu button {
+  width: 100%; padding: 10px 14px; background: transparent; border: none;
+  color: var(--danger); font-size: 13px; text-align: left; cursor: pointer;
+}
+.icon-nav-user-menu button:hover { background: var(--surface3); }
 
 @media (max-width: 800px) {
   #sidebar { display: none; }

@@ -68,16 +68,26 @@ async function goTopic(topic) {
   }
 }
 
+async function goSettings() {
+  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
+  S.view = 'settings';
+  pushHash('#settings');
+  render();
+}
+
 async function restoreFromHash(hash) {
   if (!S.user) return;
   const m = {
+    settings: hash.match(/^#settings$/),
     courses: hash.match(/^#courses$/),
     modules: hash.match(/^#course\/([^/]+)(\/edit)?$/),
     topics:  hash.match(/^#course\/([^/]+)\/module\/([^/]+)(\/edit)?$/),
     topic:   hash.match(/^#course\/([^/]+)\/module\/([^/]+)\/topic\/([^/]+)(?:\/(pn|cp))?(\/edit)?$/),
   };
   try {
-    if (m.topic) {
+    if (m.settings) {
+      S.view = 'settings'; render(); return;
+    } else if (m.topic) {
       const [courseID, moduleID, topicID] = [m.topic[1], m.topic[2], m.topic[3]];
       S.notesTab = m.topic[4] || 'cp';
       S.editMode = !!m.topic[5];

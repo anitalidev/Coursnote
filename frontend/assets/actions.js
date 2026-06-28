@@ -1,5 +1,19 @@
 'use strict';
 
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('icon-user-menu');
+  if (!menu) return;
+  const open = menu.style.display !== 'none';
+  if (open) { menu.style.display = 'none'; return; }
+  const rect = e.currentTarget.getBoundingClientRect();
+  menu.style.display = 'block';
+  menu.style.left = (rect.right + 8) + 'px';
+  menu.style.top = rect.top + 'px';
+  const close = () => { menu.style.display = 'none'; document.removeEventListener('click', close); };
+  document.addEventListener('click', close);
+}
+
 async function handleLogin(username) {
   username = username.trim();
   if (!username) return;
