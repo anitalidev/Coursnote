@@ -10,7 +10,7 @@ import (
 
 type CourseDTO struct {
 	CourseID    string   `json:"courseID"`
-	Name        string   `jsfon:"name"`
+	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	ModuleIDs   []string `json:"moduleIDs"`
 	UserID      string   `json:"userID"`

@@ -3,8 +3,9 @@
   "configurations": [
     {
       "name": "coursnote-frontend",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3334", "--directory", "frontend"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
       "port": 3334
     }
   ]

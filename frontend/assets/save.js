@@ -14,7 +14,7 @@ function scheduleElementsSave() {
         elements: nbCellsToElements(),
       });
       setStatus('cp', 'Saved');
-    } catch { setStatus('cp', 'Error saving'); }
+    } catch(e) { setStatus('cp', 'Error: ' + (e.message || 'saving')); console.error('Save error:', e); }
   }, 800);
 }
 

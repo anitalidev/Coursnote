@@ -1,5 +1,7 @@
 package models
 
+// TODO: Add "Content" of type Text element (?) or just have it be json.RawMessage
+
 type PrivateNote struct {
 	PrivateNoteID string `json:"privateNoteID"` // self
 

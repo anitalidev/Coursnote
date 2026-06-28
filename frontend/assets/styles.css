@@ -523,6 +523,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   font-family: inherit; padding: 4px 0; margin-bottom: 10px; }
 .nb-q-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .nb-q-option { display: flex; align-items: center; gap: 8px; }
+.nb-q-option .nb-tiptap-inline { flex: 1; border-bottom: none; margin-bottom: 0; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; }
 .nb-q-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
 
 /* ── COURSE VIEW: card / slide / question ── */
@@ -531,24 +532,33 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   border-radius: 10px; padding: 14px 18px;
 }
 .cv-card-header { font-weight: 700; font-size: 15px; margin-bottom: 6px; color: var(--text); }
-.cv-card-content { font-size: 14px; line-height: 1.7; color: var(--text2); white-space: pre-wrap; }
+.cv-card-content { font-size: 14px; line-height: 1.7; color: var(--text2); }
+.cv-card-content p { margin: 0 0 4px; }
+.cv-card-content p:last-child { margin-bottom: 0; }
+.cv-card-content strong { font-weight: 800; }
+.cv-card-header p { margin: 0; }
+.cv-card-header strong { font-weight: 800; }
 
 .cv-slide { margin: 8px 18px; }
 .cv-slide-track { position: relative; }
-.cv-slide-card { display: none; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+.cv-slide-card { display: none; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; overflow: hidden; }
 .cv-slide-card.active { display: block; }
 .cv-slide-nav { display: flex; align-items: center; gap: 10px; margin-top: 8px; justify-content: center; }
 .cv-slide-btn {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
   color: var(--text2); font-size: 18px; padding: 2px 12px; cursor: pointer; line-height: 1.4;
 }
-.cv-slide-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cv-slide-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cv-slide-btn:disabled { opacity: 0.3; cursor: default; }
 .cv-slide-counter { font-size: 12px; color: var(--text3); }
 
 .cv-question { margin: 8px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
 .cv-q-stem { font-weight: 700; font-size: 15px; margin-bottom: 12px; color: var(--text); }
+.cv-q-stem p { margin: 0; }
+.cv-q-stem strong { font-weight: 800; }
 .cv-q-options { display: flex; flex-direction: column; gap: 8px; }
 .cv-q-option { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text2); cursor: pointer; padding: 6px 10px; border-radius: 6px; transition: background .1s; }
+.cv-q-option span p { margin: 0; display: inline; }
 .cv-q-option:hover { background: var(--bg3); }
 .cv-q-option.cv-q-correct { background: rgba(52,211,153,.15); color: #34d399; }
 .cv-q-option.cv-q-wrong   { background: rgba(248,113,113,.15); color: #f87171; }
@@ -567,6 +577,9 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   border: 1px solid var(--border); padding: 6px 12px; color: var(--text);
 }
 .cv-table tr:first-child td { font-weight: 600; background: var(--bg3); }
+.cv-table td p { margin: 0; }
+.cv-table td strong { font-weight: 800; }
+.cv-table td em { font-style: italic; }
 
 /* ── NOTEBOOK ── */
 .nb-pane-body { overflow-y: auto; }
@@ -615,6 +628,38 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   resize: none; min-height: 56px; overflow: hidden;
 }
 
+.nb-tt-toolbar {
+  display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+  padding: 4px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.nb-tt-btn {
+  background: none; border: 1px solid transparent; border-radius: 5px;
+  color: var(--text2); font-size: 12px; padding: 2px 7px; cursor: pointer;
+  line-height: 1.6; transition: background .1s, color .1s;
+}
+.nb-tt-btn b { font-weight: 900; font-size: 13px; }
+.nb-tt-btn:hover { background: var(--bg3); color: var(--text); }
+.nb-tt-btn-active { background: rgba(108,142,247,.18); color: var(--accent); border-color: rgba(108,142,247,.3); }
+.nb-tt-sep { width: 1px; height: 16px; background: var(--border); margin: 0 3px; }
+.nb-tiptap { color: var(--text); font-size: 14px; line-height: 1.7; min-height: 120px; cursor: text; tab-size: 4; }
+.nb-tiptap .tiptap { outline: none; width: 100%; min-height: 120px; cursor: text; tab-size: 4 !important; }
+.nb-tiptap p { margin: 0 0 4px; }
+.nb-tiptap ul, .nb-tiptap ol { padding-left: 20px; margin: 0 0 4px; }
+.nb-tiptap strong { font-weight: 800; }
+.nb-tiptap em { font-style: italic; }
+.nb-tiptap code { background: var(--bg3); border-radius: 3px; padding: 1px 4px; font-size: 13px; }
+.nb-tiptap h1, .nb-tiptap h2, .nb-tiptap h3 { font-weight: 600; margin: 8px 0 2px; }
+.nb-tiptap-inline { color: var(--text); font-size: 14px; line-height: 1.5; cursor: text; min-height: 28px; border-bottom: 1px solid var(--border); margin-bottom: 6px; padding-bottom: 2px; }
+.nb-tiptap-inline .tiptap { outline: none; min-height: 24px; tab-size: 4 !important; }
+.nb-tiptap-inline p { margin: 0; }
+.nb-tiptap-inline strong { font-weight: 800; }
+.nb-tiptap-label { font-size: 10px; font-weight: 600; letter-spacing: .06em; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
+.nb-q-stem-wrap.nb-tiptap-inline { font-weight: 600; font-size: 15px; margin-bottom: 10px; }
+.nb-card-hdr-wrap.nb-tiptap-inline { font-weight: 600; font-size: 15px; }
+.cv-text { font-size: 14px; line-height: 1.7; color: var(--text); padding: 2px 18px 8px; }
+.cv-text p { margin: 0 0 4px; }
+.cv-text ul, .cv-text ol { padding-left: 20px; margin: 0 0 4px; }
+
 .nb-table-controls { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 .nb-ctrl-btn {
   padding: 3px 10px; font-size: 11px; color: var(--text2);
@@ -626,7 +671,8 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 
 .nb-table-wrap { overflow-x: auto; }
 .nb-table { border-collapse: collapse; }
-.nb-table td { border: 1px solid var(--border); padding: 0; }
+.nb-table td { border: 1px solid var(--border); padding: 0; min-width: 80px; }
+.nb-table td .nb-tiptap-inline { border-bottom: none; margin-bottom: 0; padding: 4px 8px; min-height: 32px; }
 .nb-cell-input {
   padding: 1px 10px; min-width: 90px; width: 100%;
   background: transparent; border: none; outline: none;
