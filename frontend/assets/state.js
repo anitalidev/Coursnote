@@ -16,4 +16,5 @@ const S = {
   privateNote: null,
   view: 'login',
   marketCourses: [],
+  marketFilter: { search: '', sorts: [], sizeMin: '', sizeMax: '', author: '' },
 };

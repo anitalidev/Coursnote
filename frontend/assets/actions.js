@@ -317,3 +317,270 @@ async function deleteTopic(id) {
   render();
   toast('Topic deleted', 'err');
 }
+
+// ── Reusable custom dropdown ──────────────────────────────────────────────────
+// opts: [{ val, label }], currentVal: string, onchangeFn: string (JS expression called with val)
+function buildCustomDropdown(id, opts, currentVal, onchangeFn) {
+  const label = opts.find(o => o.val === currentVal)?.label || opts[0]?.label || '';
+  const chevron = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const check   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const items = opts.map(o => {
+    const active = o.val === currentVal;
+    return `<div class="mkt-custom-opt${active ? ' mkt-custom-opt-active' : ''}"
+      onclick="event.stopPropagation();toggleCustomDropdown('${id}');(${onchangeFn})('${o.val}')">
+      ${o.label}${active ? check : ''}
+    </div>`;
+  }).join('');
+  return `<div id="${id}" class="mkt-custom-select" onclick="toggleCustomDropdown('${id}')">
+    <span>${label}</span>${chevron}
+    <div class="mkt-custom-opts" style="display:none">${items}</div>
+  </div>`;
+}
+
+function toggleCustomDropdown(id) {
+  const el   = document.getElementById(id);
+  const opts = el?.querySelector('.mkt-custom-opts');
+  if (!opts) return;
+  opts.style.display = opts.style.display === 'none' ? '' : 'none';
+}
+
+// ── Market filter/sort ────────────────────────────────────────────────────────
+
+function marketFilteredCards() {
+  const f = S.marketFilter;
+  const q = f.search.toLowerCase();
+
+  let list = (S.marketCourses || []).filter(c => {
+    if (q && !(
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.description || '').toLowerCase().includes(q) ||
+      (c.courseOwner || '').toLowerCase().includes(q)
+    )) return false;
+
+    if (f.author) {
+      const a = (c.courseOwner || '').toLowerCase();
+      if (!a.includes(f.author.toLowerCase())) return false;
+    }
+
+    const m = c.numModules || 0;
+    if (f.sizeMin !== '' && m < Number(f.sizeMin)) return false;
+    if (f.sizeMax !== '' && m > Number(f.sizeMax)) return false;
+
+    return true;
+  });
+
+  if ((f.sorts || []).length > 0) {
+    list = [...list].sort((a, b) => {
+      for (const { key, dir } of f.sorts) {
+        const d = dir === 'desc' ? -1 : 1;
+        let res = 0;
+        switch (key) {
+          case 'AtoZ':        res = (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()); break;
+          case 'modules':     res = (a.numModules || 0) - (b.numModules || 0); break;
+          case 'topics':      res = (a.numTopics  || 0) - (b.numTopics  || 0); break;
+          case 'owner':       res = (a.courseOwner || '').toLowerCase().localeCompare((b.courseOwner || '').toLowerCase()); break;
+          case 'publishDate': res = new Date(a.publishDate) - new Date(b.publishDate); break;
+        }
+        if (res !== 0) return d * res;
+      }
+      return 0;
+    });
+  }
+
+  return list;
+}
+
+function marketSetSearch(val) {
+  S.marketFilter.search = val;
+  marketRerender();
+}
+
+function marketClearFilters() {
+  const f = S.marketFilter;
+  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.author = '';
+  const panel = document.getElementById('mkt-filter-panel');
+  if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
+  marketUpdateFilterBadge();
+  marketRerender();
+}
+
+function marketRerender() {
+  const filtered = marketFilteredCards();
+  const total = (S.marketCourses || []).length;
+  const grid = document.getElementById('mkt-grid');
+  if (grid) grid.innerHTML = filtered.map(marketCardHTML).join('');
+  const countEl = document.querySelector('.mkt-count');
+  if (countEl) countEl.textContent = filtered.length === total
+    ? `${total} course${total !== 1 ? 's' : ''}`
+    : `${filtered.length} of ${total} courses`;
+}
+
+function marketSetSort(key) {
+  const f = S.marketFilter;
+  const sorts = f.sorts || [];
+  const idx = sorts.findIndex(s => s.key === key);
+  if (idx === -1) {
+    // add with default direction
+    const defaultDir = 'desc';
+    f.sorts = [...sorts, { key, dir: defaultDir }];
+  } else if (sorts[idx].dir === 'desc') {
+    // flip to asc
+    f.sorts = sorts.map((s, i) => i === idx ? { key, dir: 'asc' } : s);
+  } else if (sorts[idx].dir === 'asc') {
+    // remove
+    f.sorts = sorts.filter((_, i) => i !== idx);
+  }
+  const panel = document.getElementById('mkt-sort-panel');
+  if (panel) panel.innerHTML = marketBuildSortPanelHTML();
+  marketUpdateSortBtn();
+  marketRerender();
+}
+
+function marketUpdateSortBtn() {
+  const btn = document.getElementById('mkt-sort-btn');
+  if (!btn) return;
+  const sorts = S.marketFilter.sorts || [];
+  const sortIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>`;
+  if (sorts.length === 0) {
+    btn.innerHTML = `${sortIcon}<span>Sort</span>`;
+    btn.classList.remove('mkt-icon-btn-active');
+  } else {
+    const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author' };
+    const label = sorts.length === 1 ? labelMap[sorts[0].key] : `${sorts.length} sorts`;
+    btn.innerHTML = `${sortIcon}<span>${label}</span>`;
+    btn.classList.add('mkt-icon-btn-active');
+  }
+}
+
+function marketClosePanels() {
+  document.getElementById('mkt-sort-panel')?.remove();
+  document.getElementById('mkt-filter-panel')?.remove();
+}
+
+const MKT_SORT_OPTIONS = [
+  { key: 'publishDate', label: 'Newest'        },
+  { key: 'AtoZ',        label: 'Title'         },
+  { key: 'modules',     label: 'Modules'       },
+  { key: 'topics',      label: 'Topics'        },
+  { key: 'owner',       label: 'Author'        },
+];
+
+function marketBuildSortPanelHTML() {
+  const sorts = S.marketFilter.sorts || [];
+  const upArrow   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>`;
+  const downArrow = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  return MKT_SORT_OPTIONS.map(o => {
+    const idx    = sorts.findIndex(s => s.key === o.key);
+    const active = idx !== -1;
+    const entry  = active ? sorts[idx] : null;
+    const badge  = active ? `<span class="mkt-sort-badge">${idx + 1}</span>` : '';
+    const arrow  = active ? (entry.dir === 'asc' ? upArrow : downArrow) : '';
+    return `<div class="mkt-drop-item${active ? ' mkt-drop-item-active' : ''}" onclick="marketSetSort('${o.key}')">
+      <span>${o.label}</span>
+      <span class="mkt-sort-meta">${badge}<span class="mkt-sort-arrow">${arrow}</span></span>
+    </div>`;
+  }).join('');
+}
+
+function marketToggleSort(btn) {
+  if (document.getElementById('mkt-sort-panel')) { marketClosePanels(); return; }
+  marketClosePanels();
+
+  const panel = document.createElement('div');
+  panel.id = 'mkt-sort-panel';
+  panel.className = 'mkt-drop-panel';
+  panel.innerHTML = marketBuildSortPanelHTML();
+
+  document.body.appendChild(panel);
+  const rect = btn.getBoundingClientRect();
+  panel.style.top  = (rect.bottom + 6) + 'px';
+  panel.style.left = rect.left + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', function _(e) {
+      if (!e.target.closest('#mkt-sort-panel') && !btn.contains(e.target)) {
+        panel.remove(); document.removeEventListener('mousedown', _);
+      }
+    });
+  }, 0);
+}
+
+function marketBuildFilterPanelHTML() {
+  const f = S.marketFilter;
+  return `
+    <div class="mkt-fp-header">
+      <span>Filters</span>
+      <button class="mkt-fp-reset" onclick="marketClearFilters()">Reset</button>
+    </div>
+    <div class="mkt-fp-row">
+      <span class="mkt-fp-label">Modules</span>
+      <div class="mkt-range-wrap">
+        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Min"
+          value="${esc(String(f.sizeMin))}" oninput="marketSetFilter('sizeMin',this.value)" />
+        <span class="mkt-range-sep">–</span>
+        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Max"
+          value="${esc(String(f.sizeMax))}" oninput="marketSetFilter('sizeMax',this.value)" />
+      </div>
+    </div>
+    <div class="mkt-fp-row">
+      <span class="mkt-fp-label">Author</span>
+      <input class="mkt-fp-input" placeholder="Search author…" value="${esc(f.author)}" oninput="marketSetFilter('author',this.value)" />
+    </div>`;
+}
+
+function marketToggleFilter(btn) {
+  if (document.getElementById('mkt-filter-panel')) { marketClosePanels(); return; }
+  marketClosePanels();
+
+  const panel = document.createElement('div');
+  panel.id = 'mkt-filter-panel';
+  panel.className = 'mkt-drop-panel mkt-filter-panel';
+  panel.innerHTML = marketBuildFilterPanelHTML();
+
+  document.body.appendChild(panel);
+  const rect = btn.getBoundingClientRect();
+  panel.style.top  = (rect.bottom + 6) + 'px';
+  panel.style.left = rect.left + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', function _(e) {
+      if (!e.target.closest('#mkt-filter-panel') && !btn.contains(e.target)) {
+        panel.remove(); document.removeEventListener('mousedown', _);
+      }
+    });
+  }, 0);
+}
+
+
+
+function marketSetFilter(key, val) {
+  S.marketFilter[key] = val;
+  // text inputs: don't rebuild panel (would steal focus), just update results
+  marketUpdateFilterBadge();
+  marketRerender();
+}
+
+function marketUpdateFilterBadge() {
+  const f = S.marketFilter;
+  const filterCount = [f.sizeMin, f.sizeMax, f.author].filter(v => v !== '').length;
+  const filterBtn = document.getElementById('mkt-filter-btn');
+  if (!filterBtn) return;
+  filterBtn.classList.toggle('mkt-icon-btn-active', filterCount > 0);
+  const badge = filterBtn.querySelector('.mkt-filter-badge');
+  if (filterCount && !badge) {
+    const b = document.createElement('span'); b.className = 'mkt-filter-badge'; b.textContent = filterCount; filterBtn.appendChild(b);
+  } else if (filterCount && badge) {
+    badge.textContent = filterCount;
+  } else if (!filterCount && badge) {
+    badge.remove();
+  }
+}
+
+function marketClearFilters() {
+  const f = S.marketFilter;
+  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.author = '';
+  const panel = document.getElementById('mkt-filter-panel');
+  if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
+  marketUpdateFilterBadge();
+  marketRerender();
+}

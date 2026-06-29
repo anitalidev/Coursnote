@@ -171,13 +171,7 @@ function coursesHTML() {
             </div>
           </div>
         </div>
-        <div class="cc2-progress-section">
-          <div class="cc2-progress-label">
-            <span>PROGRESS</span>
-            <span class="cc2-progress-pct">${pct}%</span>
-          </div>
-          <div class="cc2-progress-bar"><div class="cc2-progress-fill" style="width:${pct}%"></div></div>
-        </div>
+
         <div class="cc2-actions">
           <button class="cc2-edit-btn" onclick="goModules(${jsonAttr(c)},true)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -251,51 +245,81 @@ function coursesHTML() {
 
 // ── Market page ───────────────────────────────────────────────────────────────
 
-function marketHTML() {
-  const cards = (S.marketCourses || []).map(c => {
-    const mods   = c.numModules || 0;
-    const topics = c.numTopics  || 0;
-    const owner  = c.courseOwner || 'Unknown';
-    const body = `
-        <div class="cc2-stats-row">
-          <div class="cc2-stat">
-            <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <div class="cc2-stat-lines">
-              <span class="cc2-stat-main">${mods} Module${mods !== 1 ? 's' : ''}</span>
-              <span class="cc2-stat-sub">${topics} Topic${topics !== 1 ? 's' : ''}</span>
-            </div>
-          </div>
-          <div class="cc2-stat-div"></div>
-          <div class="cc2-stat">
-            <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <div class="cc2-stat-lines">
-              <span class="cc2-stat-main">${ccFormatDate(c.publishDate)}</span>
-              <span class="cc2-stat-sub">By ${esc(owner)}</span>
-            </div>
+function marketCardHTML(c) {
+  const mods   = c.numModules || 0;
+  const topics = c.numTopics  || 0;
+  const owner  = c.courseOwner || 'Unknown';
+  const body = `
+      <div class="cc2-stats-row">
+        <div class="cc2-stat">
+          <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <div class="cc2-stat-lines">
+            <span class="cc2-stat-main">${mods} Module${mods !== 1 ? 's' : ''}</span>
+            <span class="cc2-stat-sub">${topics} Topic${topics !== 1 ? 's' : ''}</span>
           </div>
         </div>
-        <div class="cc2-actions">
-          <button class="cc2-continue-btn" onclick="window.location.href='http://localhost:8081/api/staticcontent?id=${c.contentId}'">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            View Course
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>`;
-    return ccCardShell(c, '', body);
-  }).join('');
+        <div class="cc2-stat-div"></div>
+        <div class="cc2-stat">
+          <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="cc2-stat-lines">
+            <span class="cc2-stat-main">${ccFormatDate(c.publishDate)}</span>
+            <span class="cc2-stat-sub">By ${esc(owner)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="cc2-actions">
+        <button class="cc2-continue-btn" onclick="window.location.href='http://localhost:8081/api/staticcontent?id=${c.contentId}'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          View Course
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>`;
+  return ccCardShell(c, '', body);
+}
 
-  const empty = S.marketCourses.length === 0
-    ? `<div style="color:var(--text3);padding:40px 0;text-align:center">No published courses yet.</div>`
+function marketHTML() {
+  const f = S.marketFilter;
+  const all = S.marketCourses || [];
+  const filtered = marketFilteredCards();
+  const total = all.length;
+  const shown = filtered.length;
+  const countLabel = shown === total
+    ? `${total} course${total !== 1 ? 's' : ''}`
+    : `${shown} of ${total} courses`;
+
+  const sorts = f.sorts || [];
+  const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author' };
+  const sortLabel = sorts.length === 0 ? 'Sort' : sorts.length === 1 ? labelMap[sorts[0].key] : `${sorts.length} sorts`;
+  const sortActive = sorts.length > 0;
+  const filterCount = [f.sizeMin, f.sizeMax, f.author].filter(v => v !== '').length;
+
+  const empty = shown === 0
+    ? `<div style="color:var(--text3);padding:40px 0;text-align:center">${total === 0 ? 'No published courses yet.' : 'No courses match your filters.'}</div>`
     : '';
 
   return `<div class="section">
-    <div class="section-header" style="margin-bottom:20px">
+    <div class="section-header" style="margin-bottom:16px">
       <div>
         <h1 style="margin-bottom:4px"><span>Market</span></h1>
         <p class="subtitle" style="margin-bottom:0">Browse published courses.</p>
       </div>
     </div>
-    <div class="course-grid2">${cards}</div>
+    <div class="mkt-bar">
+      <div class="cc2-search-wrap" style="flex:1;max-width:420px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="mkt-search" class="cc2-search" placeholder="Search courses…" value="${esc(f.search)}" oninput="marketSetSearch(this.value)" />
+      </div>
+      <button id="mkt-sort-btn" class="mkt-icon-btn${sortActive ? ' mkt-icon-btn-active' : ''}" onclick="marketToggleSort(this)" title="Sort">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        <span>${sortLabel}</span>
+      </button>
+      <button id="mkt-filter-btn" class="mkt-icon-btn${filterCount ? ' mkt-icon-btn-active' : ''}" onclick="marketToggleFilter(this)" title="Filter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        ${filterCount ? `<span class="mkt-filter-badge">${filterCount}</span>` : ''}
+      </button>
+      <span class="mkt-count">${countLabel}</span>
+    </div>
+    <div class="course-grid2" id="mkt-grid">${filtered.map(marketCardHTML).join('')}</div>
     ${empty}
   </div>`;
 }

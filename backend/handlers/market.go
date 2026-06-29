@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 )
@@ -53,6 +54,54 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 				dto.NumTopics = TopicCount(course)
 			}
 			dtos = append(dtos, dto)
+		}
+
+		sortByFields := make([]string, 0)
+		sortFlips := make([]bool, 0)
+		for _, s := range strings.Split(r.URL.Query().Get("sortBy"), ",") {
+			if s == "" {
+				continue
+			}
+			if strings.HasPrefix(s, "-") {
+				sortFlips = append(sortFlips, true)
+				s = s[1:]
+			} else {
+				sortFlips = append(sortFlips, false)
+			}
+			sortByFields = append(sortByFields, s)
+		}
+
+		comps := make([]func(*MarketCourseDTO, *MarketCourseDTO, bool) int, 0)
+		for _, s := range sortByFields {
+			switch s {
+			case "id":
+				comps = append(comps, courseCompID)
+			case "publishDate":
+				comps = append(comps, courseCompPublishDate)
+			case "AtoZ":
+				comps = append(comps, courseCompName)
+			case "owner":
+				comps = append(comps, courseCompOwner)
+			case "modules":
+				comps = append(comps, courseCompModules)
+			case "topics":
+				comps = append(comps, courseCompTopics)
+			}
+		}
+
+		if len(comps) > 0 {
+			sort.Slice(dtos, func(a, b int) bool {
+				for i, comp := range comps {
+					res := comp(&dtos[a], &dtos[b], sortFlips[i])
+					if res == Before {
+						return true
+					}
+					if res == After {
+						return false
+					}
+				}
+				return false
+			})
 		}
 
 		writeJSON(w, http.StatusOK, dtos)
