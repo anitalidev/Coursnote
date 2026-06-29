@@ -101,6 +101,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 h1 { font-size: 28px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
 h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+.sb-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 
 /* ── BREADCRUMB ── */

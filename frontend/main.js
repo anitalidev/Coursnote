@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { Editor, Extension, Mark, generateHTML } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle, Color } from '@tiptap/extension-text-style';
@@ -45,4 +46,5 @@ window.TipTapStarterKit = StarterKit;
 window.TipTapTabExtension = TabExtension;
 window.TipTapAllExtensions = allExtensions;
 window.TipTapGenerateHTML = (doc) => generateHTML(doc, allExtensions);
+window.JSZip = JSZip;
 window.dispatchEvent(new Event('tiptap-ready'));

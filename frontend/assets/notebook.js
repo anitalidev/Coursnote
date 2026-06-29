@@ -798,9 +798,9 @@ function buildNotebookHTML() {
   }, nbAddZoneHTML(0));
 }
 
-function buildCourseViewHTML() {
-  if (!S.notebookCells.length) return '<div class="nb-empty">No course content yet.</div>';
-  return S.notebookCells.map(c => {
+function buildCourseViewHTML(cells) {
+  if (!cells.length) return '<div class="nb-empty">No course content yet.</div>';
+  return cells.map(c => {
     if (c.type === 'codeEditor') {
       const lines = (c.code || '').split('\n').length;
       const h = Math.min(Math.max(lines * 19 + 20, 80), 600);
@@ -983,7 +983,7 @@ function renderNotebook() {
     nb.querySelectorAll('.nb-textarea, .nb-cell-input').forEach(ta => autoResize(ta));
     nbMountTipTapEditors();
   } else {
-    nb.innerHTML = buildCourseViewHTML();
+    nb.innerHTML = buildCourseViewHTML(S.notebookCells);
   }
   nbMountMonacoEditors();
 }

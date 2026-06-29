@@ -15,4 +15,5 @@ const S = {
   notebookCells: [],
   privateNote: null,
   view: 'login',
+  marketCourses: [],
 };

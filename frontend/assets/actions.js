@@ -109,7 +109,8 @@ function openCourseMenu(courseID, course, btn) {
   const menu = document.createElement('div');
   menu.className = 'cc2-dropdown';
   menu.innerHTML = `
-    <div class="cc2-dd-item" onclick="publishCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Publish Course</div>
+    <div class="cc2-dd-item" onclick="publishCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Publish</div>
+    <div class="cc2-dd-item" onclick="downloadCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Download</div>
     <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete Course</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
@@ -124,6 +125,106 @@ async function publishCourse(id) {
   render();
   toast('Course published!');
 }
+
+async function downloadCourse(id) {
+  const course = S.courses.find(c => c.courseID === id);
+  if (!course) return;
+
+  const modules = await loadAll('/module?id=', course.moduleIDs || []);
+  const allTopics = (await Promise.all(modules.map(m => loadAll('/topic?id=', m.topicIDs || [])))).flat();
+
+  // Keyed maps for COURSE_DATA
+  const topicMap = {};
+  const privateNotes = {};
+  await Promise.all(allTopics.map(async t => {
+    topicMap[t.topicID] = t;
+    if (t.privateNoteID) {
+      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
+      if (pn) privateNotes[t.privateNoteID] = pn;
+    }
+  }));
+
+  const courseData = { course, modules, topics: topicMap, privateNotes };
+
+  const assetFiles = [
+    'styles.css', 'toolbar.css',
+    'state.js', 'api.js', 'utils.js', 'data.js',
+    'notebook.js', 'views.js', 'render.js',
+    'navigation.js', 'static-init.js', 'static-main.js',
+  ];
+  // CSS is fetched from the Go backend (/static/assets/) which serves raw files,
+  // bypassing Vite's HMR transform that wraps CSS in a JS module.
+  const fetchURL = f => (f.endsWith('.css') ? `http://localhost:8081/static/assets/${f}` : `/assets/${f}`);
+  const fetched = await Promise.all(assetFiles.map(f => fetch(fetchURL(f)).then(r => r.text())));
+  const fileMap = Object.fromEntries(assetFiles.map((f, i) => [f, fetched[i]]));
+
+  const zip = new window.JSZip();
+  const folder = zip.folder(course.name.replace(/[^a-z0-9]/gi, '_'));
+  const assets = folder.folder('assets');
+  folder.file('index.html',     buildStaticIndex(course, courseData, fileMap));
+  assets.file('styles.css',     fileMap['styles.css']);
+  assets.file('toolbar.css',    fileMap['toolbar.css']);
+  assets.file('state.js',       fileMap['state.js']);
+  assets.file('api.js',         fileMap['api.js']);
+  assets.file('utils.js',       fileMap['utils.js']);
+  assets.file('data.js',        fileMap['data.js']);
+  assets.file('notebook.js',    fileMap['notebook.js']);
+  assets.file('views.js',       fileMap['views.js']);
+  assets.file('render.js',      fileMap['render.js']);
+  assets.file('navigation.js',  fileMap['navigation.js']);
+  assets.file('static-init.js', fileMap['static-init.js']);
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${course.name.replace(/[^a-z0-9]/gi, '_')}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+function buildStaticIndex(course, courseData, fileMap) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(course.name)}</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/toolbar.css">
+</head>
+<body>
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h2>Coursnote</h2>
+    <p>Your course notes</p>
+  </div>
+  <div id="sidebar-nav"></div>
+  <div id="sidebar-footer"></div>
+</nav>
+<main id="main"></main>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"><\/script>
+<script>
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+  require(['vs/editor/editor.main'], function() { window.dispatchEvent(new Event('monaco-ready')); });
+<\/script>
+<script type="module">${fileMap['static-main.js']}<\/script>
+<script>window.COURSE_DATA = ${JSON.stringify(courseData)};<\/script>
+<script src="assets/state.js"><\/script>
+<script src="assets/api.js"><\/script>
+<script src="assets/utils.js"><\/script>
+<script src="assets/data.js"><\/script>
+<script src="assets/notebook.js"><\/script>
+<script src="assets/views.js"><\/script>
+<script src="assets/render.js"><\/script>
+<script src="assets/navigation.js"><\/script>
+<script src="assets/static-init.js"><\/script>
+</body>
+</html>`;
+}
+
 
 async function deleteCourse(id) {
   if (!confirm('Delete this course and all its contents?')) return;

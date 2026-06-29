@@ -10,7 +10,28 @@ async function req(method, path, body) {
   return data;
 }
 
-const GET  = p      => req('GET',    p);
-const POST = (p, b) => req('POST',   p, b);
-const PUT  = (p, b) => req('PUT',    p, b);
-const DEL  = p      => req('DELETE', p);
+const staticRoutes = {
+  '/course':       (id, CD) => CD.courseMap[id] ?? null,
+  '/module':       (id, CD) => CD.moduleMap[id] ?? null,
+  '/topic':        (id, CD) => CD.topicMap[id]  ?? null,
+  '/privatenotes': (id, CD) => CD.privateNotes?.[id] ?? null,
+  '/user':         (_,  CD) => ({ id: 'static', username: 'Viewer', courseIDs: [CD.course.courseID] }),
+  '/market':       ()       => [],
+};
+
+function staticGet(path) {
+  const CD   = window.COURSE_DATA;
+  const base = path.split('?')[0];
+  const id   = new URLSearchParams(path.includes('?') ? path.split('?')[1] : '').get('id');
+  const handler = staticRoutes[base];
+  return Promise.resolve(handler ? handler(id, CD) : null);
+}
+
+function staticReadOnly() {
+  return Promise.reject(new Error('Static courses are read-only'));
+}
+
+function GET(path)         { return window.STATIC_MODE ? staticGet(path)    : req('GET',    path);      }
+const POST = (path, body) => window.STATIC_MODE ? staticReadOnly()          : req('POST',   path, body);
+const PUT  = (path, body) => window.STATIC_MODE ? staticReadOnly()          : req('PUT',    path, body);
+const DEL  = path         => window.STATIC_MODE ? staticReadOnly()          : req('DELETE', path);

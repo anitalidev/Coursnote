@@ -11,6 +11,14 @@ async function goLogin() {
   render();
 }
 
+async function goHome() {
+  destroyPNEditor();
+  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
+  S.view = 'home';
+  pushHash('#home');
+  render();
+}
+
 async function goCourses() {
   destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
@@ -70,6 +78,15 @@ async function goTopic(topic) {
   } catch (e) {
     toast(e.message || 'Failed to open topic', 'err');
   }
+}
+
+async function goMarket() {
+  destroyPNEditor();
+  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
+  S.marketCourses = await GET('/market');
+  S.view = 'market';
+  pushHash('#market');
+  render();
 }
 
 async function goSettings() {
