@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"path/filepath"
+	"runtime"
 
 	"github.com/anitalidev/Coursnote/backend/handlers"
 	"github.com/anitalidev/Coursnote/backend/persistence"
@@ -40,7 +42,10 @@ func main() {
 
 	handlers.InitStore(db)
 
+	_, file, _, _ := runtime.Caller(0)
+	frontendAssets := filepath.Join(filepath.Dir(file), "..", "frontend", "assets")
 	mux := http.NewServeMux()
+	mux.Handle("/static/assets/", http.StripPrefix("/static/assets/", http.FileServer(http.Dir(frontendAssets))))
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/course", handlers.CourseHandler)

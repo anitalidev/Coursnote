@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -58,4 +59,100 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func courseCompID(a, b *MarketCourseDTO, flip bool) int {
+	if a.ID < b.ID {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if a.ID > b.ID {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+func courseCompPublishDate(a, b *MarketCourseDTO, flip bool) int {
+	if a.PublishDate.Before(b.PublishDate) {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if a.PublishDate.After(b.PublishDate) {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+func courseCompName(a, b *MarketCourseDTO, flip bool) int {
+	an := strings.ToLower(a.Name)
+	bn := strings.ToLower(b.Name)
+
+	if an < bn {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if an > bn {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+func courseCompOwner(a, b *MarketCourseDTO, flip bool) int {
+	ao := strings.ToLower(a.CourseOwner)
+	bo := strings.ToLower(b.CourseOwner)
+
+	if ao < bo {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if ao > bo {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+func courseCompModules(a, b *MarketCourseDTO, flip bool) int {
+	if a.NumModules < b.NumModules {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if a.NumModules > b.NumModules {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+func courseCompTopics(a, b *MarketCourseDTO, flip bool) int {
+	if a.NumTopics < b.NumTopics {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if a.NumTopics > b.NumTopics {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
 }

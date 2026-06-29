@@ -13,3 +13,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
+
+const (
+	Before = -1
+	Equal  = 0
+	After  = 1
+)
