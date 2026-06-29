@@ -25,11 +25,20 @@ type UserInfo struct {
 }
 
 type StaticCourseInfo struct {
-	CourseID         string
-	PublishDate      time.Time `json:"publishDate"`
-	PublishedContent string
+	CourseID  string
+	ContentID string
+
+	Name        string
+	Description string
+	LeftColour  string
+	RightColour string
+
+	PublishDate time.Time
 }
 
+type StaticContentInfo struct {
+	PublishedContent string
+}
 type CourseInfo struct {
 	Name           string
 	Description    string
@@ -109,6 +118,13 @@ type StaticCourseRepository interface {
 	GetByID(id string) (*market.StaticCourse, error)
 	GetPublishDateByID(id string) (time.Time, error)
 	Create(info *StaticCourseInfo) (*market.StaticCourse, error)
+	DeleteByID(id string) error
+	GetAllStaticCourse(id string) ([]*market.StaticCourse, error)
+}
+
+type StaticContentRepository interface {
+	GetByID(id string) (*market.StaticCourseContent, error)
+	Create(info *StaticContentInfo) (*market.StaticCourseContent, error)
 	DeleteByID(id string) error
 }
 

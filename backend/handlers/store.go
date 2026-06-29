@@ -8,13 +8,14 @@ import (
 )
 
 type repositories struct {
-	Users         persistence.UserRepository
-	Courses       persistence.CourseRepository
-	Modules       persistence.ModuleRepository
-	Topics        persistence.TopicRepository
-	CoursePages   persistence.CoursePageRepository
-	PrivateNotes  persistence.PrivateNoteRepository
-	StaticCourses persistence.StaticCourseRepository
+	Users          persistence.UserRepository
+	Courses        persistence.CourseRepository
+	Modules        persistence.ModuleRepository
+	Topics         persistence.TopicRepository
+	CoursePages    persistence.CoursePageRepository
+	PrivateNotes   persistence.PrivateNoteRepository
+	StaticCourses  persistence.StaticCourseRepository
+	StaticContents persistence.StaticContentRepository
 }
 
 type Store struct {
@@ -25,13 +26,14 @@ type Store struct {
 func newStore(db *sql.DB) *Store {
 	return &Store{
 		repos: repositories{
-			Users:         persistence.NewSQLUserRepository(db),
-			Courses:       persistence.NewSQLCourseRepository(db),
-			Modules:       persistence.NewSQLModuleRepository(db),
-			Topics:        persistence.NewSQLTopicRepository(db),
-			CoursePages:   persistence.NewSQLCoursePageRepository(db),
-			PrivateNotes:  persistence.NewSQLPrivateNoteRepository(db),
-			StaticCourses: persistence.NewSQLStaticCourseRepository(db),
+			Users:          persistence.NewSQLUserRepository(db),
+			Courses:        persistence.NewSQLCourseRepository(db),
+			Modules:        persistence.NewSQLModuleRepository(db),
+			Topics:         persistence.NewSQLTopicRepository(db),
+			CoursePages:    persistence.NewSQLCoursePageRepository(db),
+			PrivateNotes:   persistence.NewSQLPrivateNoteRepository(db),
+			StaticCourses:  persistence.NewSQLStaticCourseRepository(db),
+			StaticContents: persistence.NewSQLStaticContentRepository(db),
 		},
 	}
 }
