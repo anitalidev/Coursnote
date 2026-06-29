@@ -85,7 +85,7 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 				writeError(w, http.StatusNotFound, "invalid course id")
 				return
 			}
-			
+
 			newStaticContent, err := store.repos.StaticContents.Create(&persistence.StaticContentInfo{
 				PublishedContent: "<!DOCTYPE html><html><body><p>Hello world</p></body></html>",
 			})
@@ -102,6 +102,12 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 				LeftColour:  course.LeftColour,
 				RightColour: course.RightColour,
 				PublishDate: time.Now(),
+				NumModules:  len(course.ModuleIDs),
+				NumTopics:   TopicCount(course),
+				CourseOwner: func() string {
+					username, _ := store.repos.Users.GetUsernameByID(course.UserID)
+					return username
+				}(),
 			})
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err.Error())

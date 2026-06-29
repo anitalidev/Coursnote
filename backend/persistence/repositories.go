@@ -32,6 +32,9 @@ type StaticCourseInfo struct {
 	Description string
 	LeftColour  string
 	RightColour string
+	NumModules  int
+	NumTopics   int
+	CourseOwner string
 
 	PublishDate time.Time
 }
@@ -77,6 +80,7 @@ type PrivateNoteInfo struct {
 
 type UserRepository interface {
 	GetUserByID(id string) (*models.User, error)
+	GetUsernameByID(id string) (string, error)
 	GetUserByUsername(username string) (*models.User, error)
 	CreateUser(user *UserInfo) (*models.User, error)
 	DeleteUserByID(id string) error
@@ -119,7 +123,7 @@ type StaticCourseRepository interface {
 	GetPublishDateByID(id string) (time.Time, error)
 	Create(info *StaticCourseInfo) (*market.StaticCourse, error)
 	DeleteByID(id string) error
-	GetAllStaticCourse(id string) ([]*market.StaticCourse, error)
+	GetAllStaticCourse() ([]*market.StaticCourse, error)
 }
 
 type StaticContentRepository interface {

@@ -29,6 +29,15 @@ func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
 	return user, err
 }
 
+func (r *SQLUserRepository) GetUsernameByID(id string) (string, error) {
+	var username string
+	err := r.db.QueryRow(`SELECT username FROM users WHERE user_id = ?`, id).Scan(&username)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", errors.New("id does not exist")
+	}
+	return username, err
+}
+
 func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{Username: username}
 	err := r.db.QueryRow(`SELECT user_id FROM users WHERE username = ?`, username).Scan(&user.UserID)

@@ -14,6 +14,9 @@ type StaticCourse struct {
 	Description string `json:"description"`
 	LeftColour  string `json:"leftColour"`
 	RightColour string `json:"rightColour"`
+	NumModules  int    `json:"numModules"`
+	NumTopics   int    `json:"numTopics"`
+	CourseOwner string `json:"courseOwner"`
 
 	PublishDate time.Time `json:"publishDate"`
 }

@@ -20,8 +20,8 @@ func NewSQLStaticCourseRepository(db *sql.DB) *SQLStaticCourseRepository {
 func (r *SQLStaticCourseRepository) GetByID(id string) (*market.StaticCourse, error) {
 	sc := &market.StaticCourse{ID: id}
 	err := r.db.QueryRow(
-		`SELECT course_id, content_id, name, description, left_colour, right_colour, publish_date FROM static_courses WHERE static_course_id = ?`, id,
-	).Scan(&sc.CourseID, &sc.ContentID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.PublishDate)
+		`SELECT course_id, content_id, name, description, left_colour, right_colour, num_modules, num_topics, course_owner, publish_date FROM static_courses WHERE static_course_id = ?`, id,
+	).Scan(&sc.CourseID, &sc.ContentID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.NumModules, &sc.NumTopics, &sc.CourseOwner, &sc.PublishDate)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -47,8 +47,8 @@ func (r *SQLStaticCourseRepository) GetPublishDateByID(id string) (time.Time, er
 
 func (r *SQLStaticCourseRepository) Create(info *StaticCourseInfo) (*market.StaticCourse, error) {
 	res, err := r.db.Exec(
-		`INSERT INTO static_courses (course_id, content_id, name, description, left_colour, right_colour, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		info.CourseID, info.ContentID, info.Name, info.Description, info.LeftColour, info.RightColour, info.PublishDate,
+		`INSERT INTO static_courses (course_id, content_id, name, description, left_colour, right_colour, num_modules, num_topics, course_owner, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		info.CourseID, info.ContentID, info.Name, info.Description, info.LeftColour, info.RightColour, info.NumModules, info.NumTopics, info.CourseOwner, info.PublishDate,
 	)
 	if err != nil {
 		return nil, err
@@ -62,6 +62,9 @@ func (r *SQLStaticCourseRepository) Create(info *StaticCourseInfo) (*market.Stat
 		Description: info.Description,
 		LeftColour:  info.LeftColour,
 		RightColour: info.RightColour,
+		NumModules:  info.NumModules,
+		NumTopics:   info.NumTopics,
+		CourseOwner: info.CourseOwner,
 		PublishDate: info.PublishDate,
 	}, nil
 }
@@ -78,9 +81,9 @@ func (r *SQLStaticCourseRepository) DeleteByID(id string) error {
 	return nil
 }
 
-func (r *SQLStaticCourseRepository) GetAllStaticCourse(courseID string) ([]*market.StaticCourse, error) {
+func (r *SQLStaticCourseRepository) GetAllStaticCourse() ([]*market.StaticCourse, error) {
 	rows, err := r.db.Query(
-		`SELECT static_course_id, content_id, name, description, left_colour, right_colour, publish_date FROM static_courses WHERE course_id = ?`, courseID,
+		`SELECT static_course_id, course_id, content_id, name, description, left_colour, right_colour, num_modules, num_topics, course_owner, publish_date FROM static_courses`,
 	)
 	if err != nil {
 		return nil, err
@@ -89,8 +92,8 @@ func (r *SQLStaticCourseRepository) GetAllStaticCourse(courseID string) ([]*mark
 
 	var results []*market.StaticCourse
 	for rows.Next() {
-		sc := &market.StaticCourse{CourseID: courseID}
-		if err := rows.Scan(&sc.ID, &sc.ContentID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.PublishDate); err != nil {
+		sc := &market.StaticCourse{}
+		if err := rows.Scan(&sc.ID, &sc.CourseID, &sc.ContentID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.NumModules, &sc.NumTopics, &sc.CourseOwner, &sc.PublishDate); err != nil {
 			return nil, err
 		}
 		results = append(results, sc)
