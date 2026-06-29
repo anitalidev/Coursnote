@@ -301,7 +301,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .cc2-course-title-block { display: flex; flex-direction: column; gap: 3px; }
 .cc2-title { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.2; }
 .cc2-desc { font-size: 13px; font-weight: 400; color: var(--text2); line-height: 1.4; }
-.cc2-actions { display: flex; gap: 8px; }
+.cc2-actions { display: flex; gap: 8px; flex-wrap: nowrap; align-items: stretch; }
 .cc2-continue-btn {
   flex: 1; display: flex; align-items: center; justify-content: flex-start; gap: 8px;
   padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
@@ -318,6 +318,16 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   cursor: pointer; transition: border-color .15s, color .15s, background .15s; flex-shrink: 0;
 }
 .cc2-edit-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,142,247,.08); }
+.cc2-publish-status {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg2); font-size: 13px; font-weight: 600; flex-shrink: 0;
+}
+.cc2-publish-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.cc2-unpublished { color: var(--text3); }
+.cc2-unpublished .cc2-publish-dot { background: var(--text3); }
+.cc2-published { color: #34d399; }
+.cc2-published .cc2-publish-dot { background: #34d399; }
 .cc2-add-card {
   background: var(--card); border: 2px dashed var(--border); border-radius: 14px;
   cursor: pointer; transition: all .15s; display: flex; flex-direction: column;

@@ -345,19 +345,20 @@ function nbTtToolbarHTML(key) {
         <button class="nb-tt-btn" data-cmd="alignRight" onclick="nbTipTapCmd('${key}','alignRight')" title="Align right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg></button>
         <button class="nb-tt-btn" data-cmd="alignJustify" onclick="nbTipTapCmd('${key}','alignJustify')" title="Justify"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       </div>
-      <div class="nb-tt-sep"></div>
-      <div class="nb-tt-group" style="flex-shrink:0">
-        <select class="nb-tt-select" id="fs-select-${key}" title="Font size" onchange="nbTipTapCmd('${key}','fontSize',this.value);this.blur()">
-          <option value="">Size</option>
-          ${[10,12,14,16,18,20,24,28,32,40,48].map(s=>`<option value="${s}">${s}</option>`).join('')}
-        </select>
-      </div>
-      <div class="nb-tt-sep"></div>
     </div>
     <div class="nb-tt-row nb-tt-row2">
       <div class="nb-tt-group">
         ${colorPanel('font','Text Color',NB_FONT_COLORS,'#e03131')}
         ${colorPanel('hl','Highlight',NB_HL_COLORS,'#ffe066')}
+      </div>
+      <div class="nb-tt-sep"></div>
+      <div class="nb-tt-size-group">
+        <button class="nb-tt-size-btn" onclick="nbTipTapCmd('${key}','fontSizeStep',-1)" title="Decrease font size">−</button>
+        <select class="nb-tt-select" id="fs-select-${key}" title="Font size" onchange="nbTipTapCmd('${key}','fontSize',this.value);this.blur()">
+          <option value="">Size</option>
+          ${[10,12,14,16,18,20,24,28,32,40,48].map(s=>`<option value="${s}">${s}</option>`).join('')}
+        </select>
+        <button class="nb-tt-size-btn" onclick="nbTipTapCmd('${key}','fontSizeStep',1)" title="Increase font size">+</button>
       </div>
       <div class="nb-tt-sep"></div>
       <div class="nb-tt-group">
@@ -433,6 +434,13 @@ function nbTipTapCmd(id, cmd, arg) {
   }
   else if (cmd === 'highlightClear') chain.unsetHighlight().run();
   else if (cmd === 'fontSize')       { if (arg) chain.setFontSize(arg).run(); else chain.unsetFontSize().run(); }
+  else if (cmd === 'fontSizeStep')   {
+    const sizes = [10,12,14,16,18,20,24,28,32,40,48];
+    const cur = parseInt(ed.getAttributes('fontSize')?.size) || 14;
+    const idx = sizes.indexOf(cur);
+    const next = idx === -1 ? (arg > 0 ? sizes[1] : sizes[0]) : sizes[Math.max(0, Math.min(sizes.length-1, idx + arg))];
+    if (next) chain.setFontSize(String(next)).run(); else chain.unsetFontSize().run();
+  }
   nbTipTapUpdateToolbar(id);
 }
 
@@ -474,6 +482,27 @@ function nbPickColor(kind, id, color) {
   }
 }
 
+function nbGetFontSizeAtSelection(ed) {
+  const { state } = ed;
+  const { selection, doc } = state;
+  const { from, to, empty } = selection;
+  if (empty) {
+    const marks = state.storedMarks ?? doc.resolve(from).marks();
+    const m = marks.find(m => m.type.name === 'fontSize');
+    return m?.attrs?.size ?? null;
+  }
+  let size;
+  let mixed = false;
+  doc.nodesBetween(from, to, node => {
+    if (!node.isText) return;
+    const m = node.marks.find(m => m.type.name === 'fontSize');
+    const s = m?.attrs?.size ?? null;
+    if (size === undefined) size = s;
+    else if (size !== s) { mixed = true; return false; }
+  });
+  return mixed ? null : (size ?? null);
+}
+
 function nbTipTapUpdateToolbar(id) {
   const ed = _nbEditors[id];
   const tb = document.getElementById('tttb-' + id);
@@ -501,10 +530,7 @@ function nbTipTapUpdateToolbar(id) {
     btn.classList.toggle('nb-tt-btn-active', check ? check() : false);
   });
   const fsSel = document.getElementById('fs-select-' + id);
-  if (fsSel) {
-    const attrs = ed.getAttributes('fontSize');
-    fsSel.value = attrs?.size ?? '';
-  }
+  if (fsSel) fsSel.value = nbGetFontSizeAtSelection(ed) ?? '';
 }
 
 function nbTableCellHTML(c) {

@@ -1,95 +1,100 @@
 /* ── TipTap toolbar ──────────────────────────────────────────── */
 .nb-tt-toolbar {
-  background: #171b29;
-  border: 1px solid #2a3150;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  display: flex; flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
 }
 .nb-tt-row {
-  display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
-  padding: 10px 14px; min-height: 58px; overflow-x: auto; scrollbar-width: none;
+  display: flex; align-items: center; gap: 2px; flex-wrap: nowrap;
+  padding: 3px 8px; overflow-x: auto; scrollbar-width: none;
 }
 .nb-tt-row::-webkit-scrollbar { display: none; }
-.nb-tt-row2 { border-top: 1px solid rgba(255,255,255,.06); }
-.nb-tt-group { display: inline-flex; align-items: center; gap: 4px; }
+.nb-tt-row2 { border-top: 1px solid var(--border); }
+.nb-tt-group { display: inline-flex; align-items: center; gap: 1px; }
 
 .nb-tt-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 3px;
-  width: 42px; height: 42px; min-width: 42px;
-  border: none; border-radius: 10px;
-  background: transparent; color: #d6d9ea;
-  font-size: 12px; cursor: pointer; line-height: 1;
-  transition: background .15s, color .15s, transform .15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+  background: none; border: none; border-radius: 6px;
+  color: var(--text2); font-size: 12px; padding: 4px 5px; cursor: pointer;
+  line-height: 1; transition: background .12s, color .12s; min-width: 26px; height: 28px;
 }
-.nb-tt-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-.nb-tt-btn b { font-size: 19px; font-weight: 900; }
-.nb-tt-btn i { font-size: 18px; font-style: italic; }
-.nb-tt-btn u { font-size: 18px; }
-.nb-tt-btn s { font-size: 18px; }
-.nb-tt-btn:hover:not(:disabled) { background: #242b43; color: #fff; }
-.nb-tt-btn-active { background: #5b62f3; color: #fff; }
-.nb-tt-btn-active:hover { background: #666df8; color: #fff; }
+.nb-tt-btn svg { flex-shrink: 0; }
+.nb-tt-btn b { font-weight: 900; font-size: 13px; }
+.nb-tt-btn i { font-style: italic; }
+.nb-tt-btn u, .nb-tt-btn s { font-size: 13px; }
+.nb-tt-btn:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
+.nb-tt-btn-active { background: rgba(108,142,247,.25); color: var(--accent); font-weight: 600; }
+.nb-tt-btn-active:hover { background: rgba(108,142,247,.38); }
 .nb-tt-disabled { opacity: 0.3; cursor: not-allowed !important; }
 .nb-tt-split { gap: 3px; }
 
-.nb-tt-sep { width: 1px; height: 34px; background: rgba(255,255,255,.08); margin: 0 10px; flex-shrink: 0; }
+.nb-tt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
 .nb-tt-chev { opacity: .55; flex-shrink: 0; }
 
-.nb-tt-select {
-  height: 42px; padding: 0 14px;
-  border: none; border-radius: 10px;
-  background: transparent; color: #ddd;
-  font-size: 15px; cursor: pointer;
-  transition: background .15s;
+/* Font size stepper */
+.nb-tt-size-group { display: inline-flex; align-items: center; gap: 1px; }
+.nb-tt-size-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 28px; border: none; border-radius: 5px;
+  background: none; color: var(--text2); font-size: 14px; font-weight: 600;
+  cursor: pointer; line-height: 1; transition: background .12s, color .12s;
 }
-.nb-tt-select:hover { background: #242b43; }
-.nb-tt-select option { background: #1a1f32; color: #ddd; }
+.nb-tt-size-btn:hover { background: var(--bg3); color: var(--text); }
+
+.nb-tt-select {
+  height: 28px; padding: 0 6px;
+  border: none; border-radius: 6px;
+  background: var(--bg3); color: var(--text2);
+  font-size: 12px; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.nb-tt-select:hover { background: var(--bg3); color: var(--text); }
+.nb-tt-select option { background: var(--bg3); color: var(--text); }
 
 /* ── Color picker ────────────────────────────────────────────── */
 .nb-cp-wrap { position: relative; display: inline-flex; }
 .nb-cp-trigger { display: inline-flex; align-items: center; gap: 2px; }
 .nb-cp-a-icon {
-  font-size: 15px; font-weight: 800;
-  color: var(--cp-c, #d6d9ea);
+  font-size: 13px; font-weight: 800;
+  color: var(--cp-c, var(--text));
   text-decoration: underline;
-  text-decoration-color: var(--cp-c, #d6d9ea);
+  text-decoration-color: var(--cp-c, var(--text));
   text-underline-offset: 2px;
 }
-.nb-cp-hl-bar { display: inline-block; width: 16px; height: 10px; border-radius: 2px; background: var(--cp-c, #ffe066); flex-shrink: 0; }
+.nb-cp-hl-bar { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: var(--cp-c, #ffe066); flex-shrink: 0; }
 .nb-cp-panel {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
-  background: #181d2d; border: 1px solid #2c3353; border-radius: 14px;
-  padding: 16px; min-width: 200px; box-shadow: 0 18px 45px rgba(0,0,0,.45);
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; min-width: 190px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
-.nb-cp-row-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; }
-.nb-cp-swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.nb-cp-row-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
+.nb-cp-swatches { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
 .nb-cp-swatch {
-  width: 28px; height: 28px; border-radius: 50%; border: none;
+  width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,.12);
   cursor: pointer; transition: transform .1s, box-shadow .1s;
 }
-.nb-cp-swatch:hover { transform: scale(1.15); box-shadow: 0 0 0 2px #5b62f3; }
-.nb-cp-divider { height: 1px; background: #2c3353; margin: 10px 0; }
+.nb-cp-swatch:hover { transform: scale(1.2); box-shadow: 0 0 0 2px var(--accent); }
+.nb-cp-divider { height: 1px; background: var(--border); margin: 8px 0; }
 .nb-cp-nocolor {
   display: flex; align-items: center; gap: 7px; width: 100%;
-  padding: 6px 8px; border-radius: 8px; border: none;
-  background: transparent; color: var(--text2); font-size: 13px; cursor: pointer;
+  padding: 5px 6px; border-radius: 6px; border: none;
+  background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
   transition: background .1s;
 }
-.nb-cp-nocolor:hover { background: #242b43; color: #fff; }
+.nb-cp-nocolor:hover { background: var(--bg3); color: var(--text); }
 .nb-cp-custom-row { display: flex; align-items: center; gap: 8px; }
-.nb-cp-custom-input { width: 26px; height: 26px; border-radius: 6px; border: 1px solid #2c3353; cursor: pointer; padding: 1px; background: #242b43; }
+.nb-cp-custom-input { width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; padding: 1px; background: var(--bg3); }
 .nb-cp-custom-label { font-size: 12px; color: var(--text2); cursor: pointer; }
-.nb-cp-custom-label:hover { color: #fff; }
+.nb-cp-custom-label:hover { color: var(--text); }
 
 /* ── TipTap editor areas ─────────────────────────────────────── */
-.nb-tiptap { color: var(--text); font-size: 16px; line-height: 1.8; min-height: 120px; cursor: text; tab-size: 4; }
+.nb-tiptap { color: var(--text); font-size: 14px; line-height: 1.7; min-height: 120px; cursor: text; tab-size: 4; }
 .nb-tiptap .tiptap { outline: none; width: 100%; min-height: 120px; cursor: text; tab-size: 4 !important; }
 .nb-tiptap p { margin: 0 0 4px; }
 .nb-tiptap ul, .nb-tiptap ol { padding-left: 20px; margin: 0 0 4px; }
 .nb-tiptap strong { font-weight: 800; }
 .nb-tiptap em { font-style: italic; }
-.nb-tiptap code { background: var(--bg3); border-radius: 3px; padding: 1px 4px; font-size: 14px; }
+.nb-tiptap code { background: var(--bg3); border-radius: 3px; padding: 1px 4px; font-size: 13px; }
 .nb-tiptap h1, .nb-tiptap h2, .nb-tiptap h3 { font-weight: 600; margin: 8px 0 2px; }
 .nb-tiptap-inline { color: var(--text); font-size: 14px; line-height: 1.5; cursor: text; min-height: 28px; border-bottom: 1px solid var(--border); margin-bottom: 6px; padding-bottom: 2px; }
 .nb-tiptap-inline .tiptap { outline: none; min-height: 24px; tab-size: 4 !important; }

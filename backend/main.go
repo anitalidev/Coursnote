@@ -43,6 +43,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
 	mux.HandleFunc("/api/course", handlers.CourseHandler)
+	mux.HandleFunc("/api/course/publish", handlers.CourseHandler)
 	mux.HandleFunc("/api/module", handlers.ModuleHandler)
 	mux.HandleFunc("/api/topic", handlers.TopicHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)

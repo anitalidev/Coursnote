@@ -2,9 +2,11 @@ package persistence
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/models/elements"
+	"github.com/anitalidev/Coursnote/backend/models/market"
 )
 
 // Calls to any non-repo-creation MUST hold lock when calling.
@@ -22,12 +24,19 @@ type UserInfo struct {
 	Username string
 }
 
+type StaticCourseInfo struct {
+	CourseID         string
+	PublishDate      time.Time `json:"publishDate"`
+	PublishedContent string
+}
+
 type CourseInfo struct {
-	Name        string
-	Description string
-	UserID      string
-	LeftColour  string
-	RightColour string
+	Name           string
+	Description    string
+	UserID         string
+	LeftColour     string
+	RightColour    string
+	StaticCourseID string
 }
 
 type ModuleInfo struct {
@@ -69,7 +78,8 @@ type CourseRepository interface {
 	GetCourseByID(id string) (*models.Course, error)
 	CreateCourse(course *CourseInfo) (*models.Course, error)
 	DeleteCourseByID(id string) error
-	UpdateCourse(id string, name string, description string, leftColour string, rightColour string) error
+	UpdateCourse(id string, name string, description string, leftColour string, rightColour string,
+		StaticCourseID string) error
 }
 
 type ModuleRepository interface {
@@ -93,6 +103,13 @@ type CoursePageRepository interface {
 	CreateCoursePage(page *CoursePageInfo) (*models.CoursePage, error)
 	DeleteCoursePageByID(id string) error
 	UpdateCoursePageDescription(id string, description string) error
+}
+
+type StaticCourseRepository interface {
+	GetByID(id string) (*market.StaticCourse, error)
+	GetPublishDateByID(id string) (time.Time, error)
+	Create(info *StaticCourseInfo) (*market.StaticCourse, error)
+	DeleteByID(id string) error
 }
 
 type PrivateNoteRepository interface {

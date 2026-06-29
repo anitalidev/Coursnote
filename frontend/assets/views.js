@@ -100,6 +100,12 @@ function coursesHTML() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
+        <div class="cc2-publish-status ${c.staticCourseID ? 'cc2-published' : 'cc2-unpublished'}">
+          <span class="cc2-publish-dot"></span>
+          ${c.staticCourseID
+            ? `Last Published (${c.publishDate ? new Date(c.publishDate).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'}) : 'Unknown'})`
+            : 'Not Published'}
+        </div>
       </div>
     </div>`;
   }).join('');

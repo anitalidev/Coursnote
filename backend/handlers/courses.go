@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
 type CourseDTO struct {
-	CourseID    string   `json:"courseID"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	ModuleIDs   []string `json:"moduleIDs"`
-	UserID      string   `json:"userID"`
-	PCompleted  float32  `json:"pcompleted"`
-	NTopics     int      `json:"ntopics"`
-	LeftColour  string   `json:"leftColour"`
-	RightColour string   `json:"rightColour"`
+	CourseID       string    `json:"courseID"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	ModuleIDs      []string  `json:"moduleIDs"`
+	StaticCourseID string    `json:"staticCourseID"`
+	PublishDate    time.Time `json:"publishDate,omitempty"`
+	UserID         string    `json:"userID"`
+	PCompleted     float32   `json:"pcompleted"`
+	NTopics        int       `json:"ntopics"`
+	LeftColour     string    `json:"leftColour"`
+	RightColour    string    `json:"rightColour"`
 }
 
 func randomHex() string {
@@ -43,67 +47,141 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, CourseDTO{
-			CourseID:    course.CourseID,
-			Name:        course.Name,
-			Description: course.Description,
-			ModuleIDs:   course.ModuleIDs,
-			UserID:      course.UserID,
-			PCompleted:  PercentageCompleted(course),
-			NTopics:     TopicCount(course),
-			LeftColour:  course.LeftColour,
-			RightColour: course.RightColour,
-		})
+		dto := CourseDTO{
+			CourseID:       course.CourseID,
+			Name:           course.Name,
+			Description:    course.Description,
+			ModuleIDs:      course.ModuleIDs,
+			StaticCourseID: course.StaticCourseID,
+			UserID:         course.UserID,
+			PCompleted:     PercentageCompleted(course),
+			NTopics:        TopicCount(course),
+			LeftColour:     course.LeftColour,
+			RightColour:    course.RightColour,
+		}
+
+		publishDate, err := store.repos.StaticCourses.GetPublishDateByID(course.StaticCourseID)
+		if err == nil {
+			dto.PublishDate = publishDate
+		}
+
+		writeJSON(w, http.StatusOK, dto)
 
 	case http.MethodPost:
-		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-			UserID      string `json:"userID"`
-			LeftColour  string `json:"leftColour"`
-			RightColour string `json:"rightColour"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.UserID == "" {
-			writeError(w, http.StatusBadRequest, "name and userID required")
-			return
-		}
-		if body.LeftColour == "" {
-			body.LeftColour = randomHex()
-		}
-		if body.RightColour == "" {
-			body.RightColour = randomHex()
-		}
-		store.mu.Lock()
-		defer store.mu.Unlock()
+		var course *models.Course
+		if strings.HasSuffix(r.URL.Path, "/publish") {
+			id := r.URL.Query().Get("id")
+			if id == "" {
+				writeError(w, http.StatusBadRequest, "id query param required")
+				return
+			}
 
-		course, err := store.repos.Courses.CreateCourse(&persistence.CourseInfo{
-			Name:        body.Name,
-			Description: body.Description,
-			UserID:      body.UserID,
-			LeftColour:  body.LeftColour,
-			RightColour: body.RightColour,
-		})
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
+			store.mu.Lock()
+			defer store.mu.Unlock()
+
+			var err error
+			course, err = store.repos.Courses.GetCourseByID(id)
+			if err != nil {
+				writeError(w, http.StatusNotFound, "invalid course id")
+				return
+			}
+
+			defaultHTML := fmt.Sprintf(`<html><body><h1>%s</h1><p>%s</p></body></html>`, course.Name, course.Description)
+			newStaticCourse, err := store.repos.StaticCourses.Create(&persistence.StaticCourseInfo{
+				CourseID:         course.CourseID,
+				PublishDate:      time.Now(),
+				PublishedContent: defaultHTML,
+			})
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			if course.StaticCourseID != "" {
+				// delete the current published version of this course (replace with new)
+				err := store.repos.StaticCourses.DeleteByID(course.StaticCourseID)
+				if err != nil {
+					writeError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			}
+
+			if err := store.repos.Courses.UpdateCourse(course.CourseID, course.Name, course.Description,
+				course.LeftColour, course.RightColour, newStaticCourse.ID); err != nil {
+
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			course, err = store.repos.Courses.GetCourseByID(id) // get updated version of the course
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+		} else {
+			var body struct {
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				UserID      string `json:"userID"`
+				LeftColour  string `json:"leftColour"`
+				RightColour string `json:"rightColour"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.UserID == "" {
+				writeError(w, http.StatusBadRequest, "name and userID required")
+				return
+			}
+			if body.LeftColour == "" {
+				body.LeftColour = randomHex()
+			}
+			if body.RightColour == "" {
+				body.RightColour = randomHex()
+			}
+			store.mu.Lock()
+			defer store.mu.Unlock()
+
+			var err error
+			course, err = store.repos.Courses.CreateCourse(&persistence.CourseInfo{
+				Name:        body.Name,
+				Description: body.Description,
+				UserID:      body.UserID,
+				LeftColour:  body.LeftColour,
+				RightColour: body.RightColour,
+			})
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
 		}
-		writeJSON(w, http.StatusCreated, CourseDTO{
-			CourseID:    course.CourseID,
-			Name:        course.Name,
-			Description: course.Description,
-			ModuleIDs:   course.ModuleIDs,
-			UserID:      course.UserID,
-			LeftColour:  course.LeftColour,
-			RightColour: course.RightColour,
-		})
+
+		dto := CourseDTO{
+			CourseID:       course.CourseID,
+			Name:           course.Name,
+			Description:    course.Description,
+			ModuleIDs:      course.ModuleIDs,
+			StaticCourseID: course.StaticCourseID,
+			UserID:         course.UserID,
+			PCompleted:     PercentageCompleted(course),
+			NTopics:        TopicCount(course),
+			LeftColour:     course.LeftColour,
+			RightColour:    course.RightColour,
+		}
+
+		publishDate, err := store.repos.StaticCourses.GetPublishDateByID(course.StaticCourseID)
+		if err == nil {
+			dto.PublishDate = publishDate
+		}
+
+		writeJSON(w, http.StatusOK, dto)
 
 	case http.MethodPut:
 		var body struct {
-			ID          string `json:"id"`
-			Name        string `json:"name"`
-			Description string `json:"description"`
-			LeftColour  string `json:"leftColour"`
-			RightColour string `json:"rightColour"`
+			ID             string `json:"id"`
+			Name           string `json:"name"`
+			Description    string `json:"description"`
+			StaticCourseID string `json:"staticCourseID"`
+			LeftColour     string `json:"leftColour"`
+			RightColour    string `json:"rightColour"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" || body.Name == "" {
 			writeError(w, http.StatusBadRequest, "id and name required")
@@ -112,20 +190,30 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
-		if err := store.repos.Courses.UpdateCourse(body.ID, body.Name, body.Description, body.LeftColour, body.RightColour); err != nil {
+		if err := store.repos.Courses.UpdateCourse(body.ID, body.Name, body.Description, body.LeftColour, body.RightColour, body.StaticCourseID); err != nil {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
 		course, _ := store.repos.Courses.GetCourseByID(body.ID)
-		writeJSON(w, http.StatusOK, CourseDTO{
-			CourseID:    course.CourseID,
-			Name:        course.Name,
-			Description: course.Description,
-			ModuleIDs:   course.ModuleIDs,
-			UserID:      course.UserID,
-			LeftColour:  course.LeftColour,
-			RightColour: course.RightColour,
-		})
+		dto := CourseDTO{
+			CourseID:       course.CourseID,
+			Name:           course.Name,
+			Description:    course.Description,
+			ModuleIDs:      course.ModuleIDs,
+			StaticCourseID: course.StaticCourseID,
+			UserID:         course.UserID,
+			PCompleted:     PercentageCompleted(course),
+			NTopics:        TopicCount(course),
+			LeftColour:     course.LeftColour,
+			RightColour:    course.RightColour,
+		}
+
+		publishDate, err := store.repos.StaticCourses.GetPublishDateByID(course.StaticCourseID)
+		if err == nil {
+			dto.PublishDate = publishDate
+		}
+
+		writeJSON(w, http.StatusOK, dto)
 
 	case http.MethodDelete:
 		id := r.URL.Query().Get("id")

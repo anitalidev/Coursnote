@@ -3,10 +3,11 @@ package models
 type Course struct {
 	CourseID string `json:"courseID"` // self
 
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	ModuleIDs   []string `json:"moduleIDs"` // owns
-	UserID      string   `json:"userID"`    // owner
+	Name           string   `json:"name"`
+	Description    string   `json:"description"`
+	ModuleIDs      []string `json:"moduleIDs"`      // owns
+	StaticCourseID string   `json:"staticCourseID"` // owns
+	UserID         string   `json:"userID"`         // owner
 
 	// UI details
 	LeftColour  string `json:"leftColour"`
@@ -27,4 +28,8 @@ func newCourse(courseID string, name string, desc string, userID string) *Course
 
 func (course *Course) addModule(moduleID string) {
 	course.ModuleIDs = append(course.ModuleIDs, moduleID)
+}
+
+func (course *Course) publishCourse() {
+
 }

@@ -109,12 +109,20 @@ function openCourseMenu(courseID, course, btn) {
   const menu = document.createElement('div');
   menu.className = 'cc2-dropdown';
   menu.innerHTML = `
+    <div class="cc2-dd-item" onclick="publishCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Publish Course</div>
     <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete Course</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
   const wrap = btn.closest('.course-card2') || btn;
   const removeOnLeave = () => { menu.remove(); wrap.removeEventListener('mouseleave', removeOnLeave); };
   wrap.addEventListener('mouseleave', removeOnLeave);
+}
+
+async function publishCourse(id) {
+  const updated = await POST('/course/publish?id=' + id, {});
+  S.courses = S.courses.map(c => c.courseID === id ? updated : c);
+  render();
+  toast('Course published!');
 }
 
 async function deleteCourse(id) {

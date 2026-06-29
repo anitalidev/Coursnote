@@ -18,8 +18,8 @@ func NewSQLCourseRepository(db *sql.DB) *SQLCourseRepository {
 
 func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 	c := &models.Course{CourseID: id}
-	err := r.db.QueryRow(`SELECT name, description, user_id, left_colour, right_colour FROM courses WHERE course_id = ?`, id).
-		Scan(&c.Name, &c.Description, &c.UserID, &c.LeftColour, &c.RightColour)
+	err := r.db.QueryRow(`SELECT name, description, user_id, left_colour, right_colour, static_course_id FROM courses WHERE course_id = ?`, id).
+		Scan(&c.Name, &c.Description, &c.UserID, &c.LeftColour, &c.RightColour, &c.StaticCourseID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -50,10 +50,11 @@ func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, er
 	}, nil
 }
 
-func (r *SQLCourseRepository) UpdateCourse(id string, name string, description string, leftColour string, rightColour string) error {
+func (r *SQLCourseRepository) UpdateCourse(id string, name string, description string, leftColour string,
+	rightColour string, StaticCourseID string) error {
 	res, err := r.db.Exec(
-		`UPDATE courses SET name = ?, description = ?, left_colour = ?, right_colour = ? WHERE course_id = ?`,
-		name, description, leftColour, rightColour, id,
+		`UPDATE courses SET name = ?, description = ?, left_colour = ?, right_colour = ?, static_course_id = ? WHERE course_id = ?`,
+		name, description, leftColour, rightColour, StaticCourseID, id,
 	)
 	if err != nil {
 		return err
