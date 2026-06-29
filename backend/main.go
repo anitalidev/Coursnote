@@ -46,6 +46,7 @@ func main() {
 	frontendAssets := filepath.Join(filepath.Dir(file), "..", "frontend", "assets")
 	mux := http.NewServeMux()
 	mux.Handle("/static/assets/", http.StripPrefix("/static/assets/", http.FileServer(http.Dir(frontendAssets))))
+	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/course", handlers.CourseHandler)

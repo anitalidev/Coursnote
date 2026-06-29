@@ -23,6 +23,7 @@ type MarketCourseDTO struct {
 func MarketHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		
 		store.mu.RLock()
 		defer store.mu.RUnlock()
 

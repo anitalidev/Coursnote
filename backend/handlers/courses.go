@@ -79,6 +79,11 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			store.mu.Lock()
 			defer store.mu.Unlock()
 
+			var body struct {
+				PublishedContent string `json:"publishedContent"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+
 			var err error
 			course, err = store.repos.Courses.GetCourseByID(id)
 			if err != nil {
@@ -87,7 +92,7 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			newStaticContent, err := store.repos.StaticContents.Create(&persistence.StaticContentInfo{
-				PublishedContent: "<!DOCTYPE html><html><body><p>Hello world</p></body></html>",
+				PublishedContent: body.PublishedContent,
 			})
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err.Error())

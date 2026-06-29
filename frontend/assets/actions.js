@@ -120,10 +120,69 @@ function openCourseMenu(courseID, course, btn) {
 }
 
 async function publishCourse(id) {
-  const updated = await POST('/course/publish?id=' + id, {});
+  const course = S.courses.find(c => c.courseID === id);
+  if (!course) return;
+
+  const modules = await loadAll('/module?id=', course.moduleIDs || []);
+  const allTopics = (await Promise.all(modules.map(m => loadAll('/topic?id=', m.topicIDs || [])))).flat();
+  const topicMap = {};
+  const privateNotes = {};
+  await Promise.all(allTopics.map(async t => {
+    topicMap[t.topicID] = t;
+    if (t.privateNoteID) {
+      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
+      if (pn) privateNotes[t.privateNoteID] = pn;
+    }
+  }));
+  const courseData = { course, modules, topics: topicMap, privateNotes };
+
+  const publishedContent = buildOnlineStaticIndex(course, courseData);
+  const updated = await POST('/course/publish?id=' + id, { publishedContent });
   S.courses = S.courses.map(c => c.courseID === id ? updated : c);
   render();
   toast('Course published!');
+}
+
+function buildOnlineStaticIndex(course, courseData) {
+  const base = 'http://localhost:8081/static/assets';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(course.name)}</title>
+<link rel="stylesheet" href="${base}/styles.css">
+<link rel="stylesheet" href="${base}/toolbar.css">
+</head>
+<body>
+<nav id="sidebar">
+  <div id="sidebar-header"><h2>Coursnote</h2><p>Your course notes</p></div>
+  <div id="sidebar-nav"></div>
+  <div id="sidebar-footer"></div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border)">
+    <button onclick="window.location.href='http://localhost:3334/#market'" style="width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500" onmouseover="this.style.background='var(--accent)';this.style.color='var(--bg)'" onmouseout="this.style.background='transparent';this.style.color='var(--accent)'">← Back to Market</button>
+  </div>
+</nav>
+<main id="main"></main>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"><\/script>
+<script>
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+  require(['vs/editor/editor.main'], function() { window.dispatchEvent(new Event('monaco-ready')); });
+<\/script>
+<script type="module" src="${base}/static-main.js"><\/script>
+<script>window.COURSE_DATA = ${JSON.stringify(courseData)};<\/script>
+<script src="${base}/state.js"><\/script>
+<script src="${base}/api.js"><\/script>
+<script src="${base}/utils.js"><\/script>
+<script src="${base}/data.js"><\/script>
+<script src="${base}/notebook.js"><\/script>
+<script src="${base}/views.js"><\/script>
+<script src="${base}/render.js"><\/script>
+<script src="${base}/navigation.js"><\/script>
+<script src="${base}/static-init.js"><\/script>
+</body>
+</html>`;
 }
 
 async function downloadCourse(id) {

@@ -275,7 +275,7 @@ function marketHTML() {
           </div>
         </div>
         <div class="cc2-actions">
-          <button class="cc2-continue-btn" onclick="">
+          <button class="cc2-continue-btn" onclick="window.location.href='http://localhost:8081/api/staticcontent?id=${c.contentId}'">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             View Course
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>

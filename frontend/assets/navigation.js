@@ -100,6 +100,7 @@ async function restoreFromHash(hash) {
   if (!S.user) return;
   const m = {
     settings: hash.match(/^#settings$/),
+    market:   hash.match(/^#market$/),
     courses: hash.match(/^#courses$/),
     modules: hash.match(/^#course\/([^/]+)(\/edit)?$/),
     topics:  hash.match(/^#course\/([^/]+)\/module\/([^/]+)(\/edit)?$/),
@@ -108,6 +109,8 @@ async function restoreFromHash(hash) {
   try {
     if (m.settings) {
       S.view = 'settings'; render(); return;
+    } else if (m.market) {
+      await goMarket(); return;
     } else if (m.topic) {
       const [courseID, moduleID, topicID] = [m.topic[1], m.topic[2], m.topic[3]];
       S.notesTab = m.topic[4] || 'cp';
