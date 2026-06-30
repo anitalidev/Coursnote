@@ -126,13 +126,28 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .btn-green { background: var(--accent3); color: #0f1117; }
 .btn-green:hover { opacity: .9; }
 
-/* ── INLINE FORM ── */
-.inline-form {
-  background: var(--card); border: 1px solid var(--accent); border-radius: 12px;
-  padding: 20px; margin-bottom: 24px; display: none;
-}
+/* ── INLINE FORM (kept for edit forms that stay inline) ── */
+.inline-form { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: none; }
 .inline-form.open { display: block; }
 .inline-form h3 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .06em; }
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+  padding: 36px; width: 560px; max-width: calc(100vw - 40px);
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  transform: translateY(8px); transition: transform .15s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+.modal-body { display: none; }
+.modal-body.active { display: block; }
 .form-row { display: flex; flex-direction: column; gap: 10px; }
 .form-row + .form-row { margin-top: 10px; }
 .field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }

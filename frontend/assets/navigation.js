@@ -14,6 +14,7 @@ async function goLogin() {
 async function goHome() {
   destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
+  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
   S.view = 'home';
   pushHash('#home');
   render();
@@ -83,7 +84,7 @@ async function goTopic(topic) {
 async function goMarket() {
   destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.marketCourses = await GET('/market');
+  S.marketCourses = await GET('/market?userID=' + S.user.id);
   S.view = 'market';
   pushHash('#market');
   render();
@@ -100,6 +101,7 @@ async function restoreFromHash(hash) {
   if (!S.user) return;
   const m = {
     settings: hash.match(/^#settings$/),
+    home:     hash.match(/^#home$/),
     market:   hash.match(/^#market$/),
     courses: hash.match(/^#courses$/),
     modules: hash.match(/^#course\/([^/]+)(\/edit)?$/),
@@ -109,6 +111,8 @@ async function restoreFromHash(hash) {
   try {
     if (m.settings) {
       S.view = 'settings'; render(); return;
+    } else if (m.home) {
+      await goHome(); return;
     } else if (m.market) {
       await goMarket(); return;
     } else if (m.topic) {

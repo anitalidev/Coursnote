@@ -26,6 +26,10 @@ func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
 		return nil, err
 	}
 	user.CourseIDs, err = r.courseIDsForUser(id)
+	if err != nil {
+		return nil, err
+	}
+	user.StaticCourseIDs, err = r.staticCourseIDsForUser(id)
 	return user, err
 }
 
@@ -48,6 +52,10 @@ func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, er
 		return nil, err
 	}
 	user.CourseIDs, err = r.courseIDsForUser(user.UserID)
+	if err != nil {
+		return nil, err
+	}
+	user.StaticCourseIDs, err = r.staticCourseIDsForUser(user.UserID)
 	return user, err
 }
 
@@ -58,9 +66,10 @@ func (r *SQLUserRepository) CreateUser(info *UserInfo) (*models.User, error) {
 	}
 	id, _ := res.LastInsertId()
 	return &models.User{
-		UserID:    fmt.Sprintf("%d", id),
-		Username:  info.Username,
-		CourseIDs: []string{},
+		UserID:          fmt.Sprintf("%d", id),
+		Username:        info.Username,
+		CourseIDs:       []string{},
+		StaticCourseIDs: []string{},
 	}, nil
 }
 
@@ -93,9 +102,35 @@ func (r *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
 		if err != nil {
 			return nil, err
 		}
+		u.StaticCourseIDs, err = r.staticCourseIDsForUser(u.UserID)
+		if err != nil {
+			return nil, err
+		}
 		users = append(users, u)
 	}
 	return users, rows.Err()
+}
+
+func (r *SQLUserRepository) EnrollUser(userID string, staticCourseID string) error {
+	_, err := r.db.Exec(`INSERT IGNORE INTO user_static_courses (user_id, static_course_id) VALUES (?, ?)`, userID, staticCourseID)
+	return err
+}
+
+func (r *SQLUserRepository) staticCourseIDsForUser(userID string) ([]string, error) {
+	rows, err := r.db.Query(`SELECT static_course_id FROM user_static_courses WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func (r *SQLUserRepository) courseIDsForUser(userID string) ([]string, error) {

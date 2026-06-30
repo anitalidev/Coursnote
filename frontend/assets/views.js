@@ -131,6 +131,52 @@ function ccFormatDate(iso) {
 // ── Home page ─────────────────────────────────────────────────────────────────
 
 function homeHTML() {
+  const enrolled = S.enrolledCourses || [];
+  const enrolledCards = enrolled.length === 0
+    ? `<p style="color:var(--text2);padding:8px 0">No enrolled courses yet. Visit the <a class="sb-link" onclick="goMarket()">Marketplace</a> to find one.</p>`
+    : enrolled.map(c => {
+        const mods   = c.numModules || 0;
+        const topics = c.numTopics  || 0;
+        const progress = (() => { try { return JSON.parse(localStorage.getItem('cn_progress_' + c.courseId) || '{}'); } catch { return {}; } })();
+        const done = Object.keys(progress).length;
+        const pct  = topics > 0 ? Math.round(done / topics * 100) : 0;
+        const body = `
+          <div class="cc2-stats-row">
+            <div class="cc2-stat">
+              <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <div class="cc2-stat-lines">
+                <span class="cc2-stat-main">${mods} Module${mods !== 1 ? 's' : ''}</span>
+                <span class="cc2-stat-sub">${topics} Topic${topics !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div class="cc2-stat-div"></div>
+            <div class="cc2-stat">
+              <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <div class="cc2-stat-lines">
+                <span class="cc2-stat-main">By ${esc(c.courseOwner || 'Unknown')}</span>
+                <span class="cc2-stat-sub">${ccFormatDate(c.publishDate)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="cc2-progress-section" style="margin:10px 0 4px">
+            <div class="cc2-progress-label">
+              <span>PROGRESS</span>
+              <span class="cc2-progress-pct">${pct}%</span>
+            </div>
+            <div class="cc2-progress-bar">
+              <div class="cc2-progress-fill" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="cc2-actions">
+            <button class="cc2-continue-btn" onclick="openCourseViewer('${c.contentId}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              View Course
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>`;
+        return ccCardShell(c, '', body);
+      }).join('');
+
   return `<div class="section">
     <div class="section-header" style="margin-bottom:20px">
       <div>
@@ -138,6 +184,8 @@ function homeHTML() {
         <p class="subtitle" style="margin-bottom:0">Pick up where you left off — head to <a class="sb-link" onclick="goCourses()">Courses</a> to work on your own, or visit the <a class="sb-link" onclick="goMarket()">Marketplace</a> to see what's available.</p>
       </div>
     </div>
+    <h2 style="margin-bottom:16px">Enrolled Courses</h2>
+    <div class="course-grid2">${enrolledCards}</div>
   </div>`;
 }
 
@@ -192,7 +240,7 @@ function coursesHTML() {
   }).join('');
 
   const addCourseCard = `
-    <div class="cc2-add-card" onclick="toggleForm('course-form')">
+    <div class="cc2-add-card" onclick="openModal('modal-course','New Course')">
       <div class="cc2-add-circle">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </div>
@@ -208,18 +256,7 @@ function coursesHTML() {
         <h1 style="margin-bottom:4px"><span>My Courses</span></h1>
         <p class="subtitle" style="margin-bottom:0">Work on the courses owned by you!</p>
       </div>
-      <button class="btn btn-primary" onclick="toggleForm('course-form')">+ New Course</button>
-    </div>
-    <div class="inline-form" id="course-form">
-      <h3>New Course</h3>
-      <div class="form-row">
-        <div class="field"><label>Name</label><input id="cf-name" placeholder="e.g. Data Structures" /></div>
-        <div class="field"><label>Description</label><input id="cf-desc" placeholder="What's this course about?" /></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" id="cf-submit">Create</button>
-        <button class="btn btn-ghost" onclick="toggleForm('course-form')">Cancel</button>
-      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-course','New Course')">+ New Course</button>
     </div>
     <div class="inline-form" id="course-edit-card-form">
       <h3>Edit Course</h3>
@@ -268,11 +305,14 @@ function marketCardHTML(c) {
         </div>
       </div>
       <div class="cc2-actions">
-        <button class="cc2-continue-btn" onclick="window.location.href='http://localhost:8081/api/staticcontent?id=${c.contentId}'">
+        <button class="cc2-continue-btn" onclick="openCourseViewer('${c.contentId}')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           View Course
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
+        ${c.isEnrolled
+          ? `<button class="cc2-edit-btn" disabled style="opacity:.4;cursor:not-allowed;pointer-events:none;filter:grayscale(1)">✓ Enrolled</button>`
+          : `<button class="cc2-edit-btn" onclick="enrollInCourse('${c.id}')">+ Enroll</button>`}
       </div>`;
   return ccCardShell(c, '', body);
 }
@@ -332,7 +372,7 @@ function modulesHTML() {
   const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
 
   const addModCard = S.editMode ? `
-    <div class="mod2-add-card" onclick="toggleForm('module-form')">
+    <div class="mod2-add-card" onclick="openModal('modal-module','New Module')">
       <div class="mod2-add-circle">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </div>
@@ -404,17 +444,7 @@ function modulesHTML() {
         </div>
       </div>
     </div>
-    <div class="inline-form" id="module-form">
-      <h3>New Module</h3>
-      <div class="form-row">
-        <div class="field"><label>Name</label><input id="mf-name" placeholder="e.g. Week 3 — Sorting" /></div>
-        <div class="field"><label>Description</label><input id="mf-desc" placeholder="Brief overview…" /></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" id="mf-submit">Create</button>
-        <button class="btn btn-ghost" onclick="toggleForm('module-form')">Cancel</button>
-      </div>
-    </div>` : ''}
+` : ''}
 
     <div class="mod2-grid">${addModCard}${modCards}</div>
   </div>`;
@@ -449,19 +479,9 @@ function topicsHTML() {
     <div class="page-hero">
       <div class="section-header" style="align-items:flex-start;margin-bottom:0">
         <h1><span>${esc(m.name)}</span></h1>
-        ${S.editMode ? `<button class="btn btn-primary" onclick="toggleForm('topic-form')">+ New Topic</button>` : ''}
+        ${S.editMode ? `<button class="btn btn-primary" onclick="openModal('modal-topic','New Topic')">+ New Topic</button>` : ''}
       </div>
       ${m.description ? `<p class="subtitle">${esc(m.description)}</p>` : '<div style="margin-bottom:24px"></div>'}
-    </div>
-    <div class="inline-form" id="topic-form">
-      <h3>New Topic</h3>
-      <div class="form-row">
-        <div class="field"><label>Name</label><input id="tf-name" placeholder="e.g. Binary Search Trees" /></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" id="tf-submit">Create</button>
-        <button class="btn btn-ghost" onclick="toggleForm('topic-form')">Cancel</button>
-      </div>
     </div>
     <div class="item-list">${items}</div>
   </div>`;

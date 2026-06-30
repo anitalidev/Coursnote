@@ -37,6 +37,7 @@ type StaticCourseInfo struct {
 	CourseOwner string
 
 	PublishDate time.Time
+	IsActive    bool
 }
 
 type StaticContentInfo struct {
@@ -85,6 +86,7 @@ type UserRepository interface {
 	CreateUser(user *UserInfo) (*models.User, error)
 	DeleteUserByID(id string) error
 	GetAllUsers() ([]*models.User, error)
+	EnrollUser(userID string, staticCourseID string) error
 }
 
 type CourseRepository interface {
@@ -123,7 +125,9 @@ type StaticCourseRepository interface {
 	GetPublishDateByID(id string) (time.Time, error)
 	Create(info *StaticCourseInfo) (*market.StaticCourse, error)
 	DeleteByID(id string) error
-	GetAllStaticCourse() ([]*market.StaticCourse, error)
+	GetAllActiveStaticCourses() ([]*market.StaticCourse, error)
+	GetVersionsByCourseID(courseID string) ([]*market.StaticCourse, error)
+	SetActive(id string, active bool) error
 }
 
 type StaticContentRepository interface {

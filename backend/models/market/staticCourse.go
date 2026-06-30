@@ -19,6 +19,7 @@ type StaticCourse struct {
 	CourseOwner string `json:"courseOwner"`
 
 	PublishDate time.Time `json:"publishDate"`
+	IsActive    bool      `json:"isActive"`
 }
 
 type StaticCourseContent struct {

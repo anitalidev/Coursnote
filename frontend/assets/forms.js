@@ -18,12 +18,14 @@ function syncColourHex(pickerId, hexId) {
 }
 
 function bindCoursesForm() {
-  document.getElementById('cf-submit')?.addEventListener('click', () => {
+  // inputs live in the persistent modal — bind once via onclick on the button
+  document.getElementById('cf-submit').onclick = () => {
     const name = document.getElementById('cf-name').value.trim();
     const desc = document.getElementById('cf-desc').value.trim();
     if (!name) return;
+    closeModal();
     createCourse(name, desc);
-  });
+  };
   enterSubmit('cf-name', 'cf-submit');
 
   document.getElementById('cef-save')?.addEventListener('click', async () => {
@@ -53,12 +55,13 @@ function openCourseCardEdit(course) {
 }
 
 function bindModulesForm() {
-  document.getElementById('mf-submit')?.addEventListener('click', () => {
+  document.getElementById('mf-submit').onclick = () => {
     const name = document.getElementById('mf-name').value.trim();
     const desc = document.getElementById('mf-desc').value.trim();
     if (!name) return;
+    closeModal();
     createModule(name, desc);
-  });
+  };
   enterSubmit('mf-name', 'mf-submit');
 
   document.getElementById('ce-save')?.addEventListener('click', saveCourseEdit);
@@ -102,11 +105,12 @@ async function saveCourseEdit() {
 }
 
 function bindTopicsForm() {
-  document.getElementById('tf-submit')?.addEventListener('click', () => {
+  document.getElementById('tf-submit').onclick = () => {
     const name = document.getElementById('tf-name').value.trim();
     if (!name) return;
+    closeModal();
     createTopic(name, '');
-  });
+  };
   enterSubmit('tf-name', 'tf-submit');
 }
 

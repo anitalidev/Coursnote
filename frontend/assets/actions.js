@@ -1,5 +1,20 @@
 'use strict';
 
+const backLabels = { home: 'Back to Home', market: 'Back to Market', courses: 'Back to Courses' };
+
+function openCourseViewer(contentId) {
+  const from = S.view;
+  const label = backLabels[from] || 'Back';
+  document.getElementById('course-viewer-back-label').textContent = label;
+  document.getElementById('course-viewer-frame').src = 'http://localhost:8081/api/staticcontent?id=' + contentId;
+  document.getElementById('course-viewer').style.display = 'block';
+}
+
+function closeCourseViewer() {
+  document.getElementById('course-viewer').style.display = 'none';
+  document.getElementById('course-viewer-frame').src = '';
+}
+
 function toggleUserMenu(e) {
   e.stopPropagation();
   const menu = document.getElementById('icon-user-menu');
@@ -111,6 +126,7 @@ function openCourseMenu(courseID, course, btn) {
   menu.innerHTML = `
     <div class="cc2-dd-item" onclick="publishCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Publish</div>
     <div class="cc2-dd-item" onclick="downloadCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Download</div>
+    <div class="cc2-dd-item" onclick="viewPublishedVersions('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Published Versions</div>
     <div class="cc2-dd-item cc2-dd-danger" onclick="deleteCourse('${courseID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete Course</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
@@ -284,6 +300,34 @@ function buildStaticIndex(course, courseData, fileMap) {
 </html>`;
 }
 
+
+async function enrollInCourse(staticCourseID) {
+  await POST('/course/enroll', { userID: S.user.id, staticCourseID });
+  S.marketCourses = await GET('/market?userID=' + S.user.id) || [];
+  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
+  render();
+}
+
+async function viewPublishedVersions(courseID) {
+  const versions = await GET('/course/versions?id=' + courseID);
+  const list = document.getElementById('modal-versions-list');
+  if (!versions || versions.length === 0) {
+    list.innerHTML = '<p style="color:var(--text2);padding:8px 0">No published versions yet.</p>';
+  } else {
+    list.innerHTML = versions.map(v => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:500">${esc(v.name)}</div>
+          <div style="font-size:12px;color:var(--text2)">${ccFormatDate(v.publishDate)} · ${v.numModules} module${v.numModules !== 1 ? 's' : ''} · ${v.numTopics} topic${v.numTopics !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${v.isActive ? '#d1fae5' : '#fee2e2'};color:${v.isActive ? '#065f46' : '#991b1b'}">${v.isActive ? 'Active' : 'Inactive'}</span>
+          <a href="http://localhost:8081/api/staticcontent?id=${v.contentId}" target="_blank" style="font-size:13px;color:var(--accent)">View</a>
+        </div>
+      </div>`).join('');
+  }
+  openModal('modal-versions', 'Published Versions');
+}
 
 async function deleteCourse(id) {
   if (!confirm('Delete this course and all its contents?')) return;

@@ -113,6 +113,7 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 					username, _ := store.repos.Users.GetUsernameByID(course.UserID)
 					return username
 				}(),
+				IsActive: true,
 			})
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err.Error())
@@ -120,9 +121,7 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if course.StaticCourseID != "" {
-				// delete the current published version of this course (replace with new)
-				err := store.repos.StaticCourses.DeleteByID(course.StaticCourseID)
-				if err != nil {
+				if err := store.repos.StaticCourses.SetActive(course.StaticCourseID, false); err != nil {
 					writeError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
@@ -256,6 +255,93 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "userID query param required")
+		return
+	}
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	user, err := store.repos.Users.GetUserByID(userID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	dtos := make([]MarketCourseDTO, 0, len(user.StaticCourseIDs))
+	for _, scID := range user.StaticCourseIDs {
+		sc, err := store.repos.StaticCourses.GetByID(scID)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, MarketCourseDTO{
+			ID:          sc.ID,
+			CourseID:    sc.CourseID,
+			ContentID:   sc.ContentID,
+			Name:        sc.Name,
+			Description: sc.Description,
+			LeftColour:  sc.LeftColour,
+			RightColour: sc.RightColour,
+			PublishDate: sc.PublishDate,
+			NumModules:  sc.NumModules,
+			NumTopics:   sc.NumTopics,
+			CourseOwner: sc.CourseOwner,
+			IsActive:    sc.IsActive,
+		})
+	}
+	writeJSON(w, http.StatusOK, dtos)
+}
+
+func EnrollHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body struct {
+		UserID         string `json:"userID"`
+		StaticCourseID string `json:"staticCourseID"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
+		writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
+		return
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if err := store.repos.Users.EnrollUser(body.UserID, body.StaticCourseID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func CourseVersionsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "id query param required")
+		return
+	}
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	versions, err := store.repos.StaticCourses.GetVersionsByCourseID(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, versions)
 }
 
 // Helpers

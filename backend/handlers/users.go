@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/anitalidev/Coursnote/backend/models"
+	"github.com/anitalidev/Coursnote/backend/models/market"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
 type userDTO struct {
-	ID        string   `json:"id"`
-	Username  string   `json:"username"`
-	CourseIDs []string `json:"courseIDs"`
+	ID              string   `json:"id"`
+	Username        string   `json:"username"`
+	CourseIDs       []string `json:"courseIDs"`
+	StaticCourseIDs []string `json:"staticCourseIDs"`
 }
 
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +31,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 				writeError(w, http.StatusNotFound, err.Error())
 				return
 			}
-			writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+			writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs, StaticCourseIDs: user.StaticCourseIDs})
 		} else {
 			// No user id is specified for the search
 			username := r.URL.Query().Get("username") // try username instead
@@ -39,7 +42,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 				defer store.mu.RUnlock()
 				user, err := store.repos.Users.GetUserByUsername(username)
 				if err == nil {
-					writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+					writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs, StaticCourseIDs: user.StaticCourseIDs})
 				} else {
 					writeError(w, http.StatusNotFound, err.Error())
 					return
@@ -57,9 +60,10 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 				result := make([]userDTO, 0, len(users))
 				for _, u := range users {
 					result = append(result, userDTO{
-						ID:        u.UserID,
-						Username:  u.Username,
-						CourseIDs: u.CourseIDs,
+						ID:              u.UserID,
+						Username:        u.Username,
+						CourseIDs:       u.CourseIDs,
+						StaticCourseIDs: u.StaticCourseIDs,
 					})
 				}
 
@@ -86,7 +90,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 		user, _ := store.repos.Users.CreateUser(&persistence.UserInfo{
 			Username: body.Username,
 		})
-		writeJSON(w, http.StatusCreated, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+		writeJSON(w, http.StatusCreated, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs, StaticCourseIDs: user.StaticCourseIDs})
 
 	case http.MethodDelete:
 		id := r.URL.Query().Get("id")
@@ -111,4 +115,17 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func GetStaticCourses(u *models.User) ([]*market.StaticCourse, error) {
+	var staticCourses []*market.StaticCourse
+	for _, staticCourseID := range u.StaticCourseIDs {
+		staticCourse, err := store.repos.StaticCourses.GetByID(staticCourseID)
+		if err != nil {
+			return nil, err
+		}
+
+		staticCourses = append(staticCourses, staticCourse)
+	}
+	return staticCourses, nil
 }

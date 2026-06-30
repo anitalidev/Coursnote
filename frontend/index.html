@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coursnote</title>
-<link rel="stylesheet" href="assets/styles.css?v=58">
+<link rel="stylesheet" href="assets/styles.css?v=60">
 <link rel="stylesheet" href="assets/toolbar.css">
 </head>
 <body>
@@ -21,6 +21,60 @@
 <main id="main"></main>
 
 <div id="toast"></div>
+
+<div id="course-viewer" style="display:none;position:fixed;inset:0;z-index:8000;background:#000">
+  <button id="course-viewer-back" onclick="closeCourseViewer()" style="position:fixed;top:16px;left:16px;z-index:8001;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:500;border-radius:8px;border:1px solid rgba(255,255,255,.15);cursor:pointer">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <span id="course-viewer-back-label"></span>
+  </button>
+  <iframe id="course-viewer-frame" style="width:100%;height:100%;border:none"></iframe>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onmousedown="modalOverlayClick(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+
+    <div class="modal-body" id="modal-course">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="cf-name" placeholder="e.g. Data Structures" /></div>
+        <div class="field"><label>Description</label><input id="cf-desc" placeholder="What's this course about?" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="cf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-module">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="mf-name" placeholder="e.g. Week 3 — Sorting" /></div>
+        <div class="field"><label>Description</label><input id="mf-desc" placeholder="Brief overview…" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="mf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-topic">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="tf-name" placeholder="e.g. Binary Search Trees" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="tf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-versions">
+      <div id="modal-versions-list"></div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 <script>
