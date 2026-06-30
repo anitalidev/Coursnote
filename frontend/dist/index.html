@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coursnote</title>
-  <script type="module" crossorigin src="/assets/index-JRTc_aQR.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-D3YYlK-x.css">
+  <script type="module" crossorigin src="/assets/index-D90jmUqm.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-D0eAxwP9.css">
 </head>
 <body>
 
@@ -21,6 +21,54 @@
 <main id="main"></main>
 
 <div id="toast"></div>
+<input type="file" id="nb-image-input" accept="image/*" style="display:none">
+
+
+<div class="modal-overlay" id="modal-overlay" onmousedown="modalOverlayClick(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+
+    <div class="modal-body" id="modal-course">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="cf-name" placeholder="e.g. Data Structures" /></div>
+        <div class="field"><label>Description</label><input id="cf-desc" placeholder="What's this course about?" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="cf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-module">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="mf-name" placeholder="e.g. Week 3 — Sorting" /></div>
+        <div class="field"><label>Description</label><input id="mf-desc" placeholder="Brief overview…" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="mf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-topic">
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="tf-name" placeholder="e.g. Binary Search Trees" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="tf-submit">Create</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="modal-versions">
+      <div id="modal-versions-list"></div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 <script>

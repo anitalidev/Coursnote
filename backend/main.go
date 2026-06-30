@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -44,9 +45,14 @@ func main() {
 
 	_, file, _, _ := runtime.Caller(0)
 	frontendAssets := filepath.Join(filepath.Dir(file), "..", "frontend", "assets")
+	frontendDist := filepath.Join(filepath.Dir(file), "..", "frontend", "dist")
+	distFS := http.FileServer(http.Dir(frontendDist))
+
 	mux := http.NewServeMux()
 	mux.Handle("/static/assets/", http.StripPrefix("/static/assets/", http.FileServer(http.Dir(frontendAssets))))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
+	// Serve built frontend assets (JS/CSS bundles from vite build)
+	mux.Handle("/assets/", distFS)
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
 	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
@@ -61,6 +67,15 @@ func main() {
 	mux.HandleFunc("/api/topic", handlers.TopicHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
 	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
+	// SPA fallback: serve index.html for any non-API, non-asset route
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		indexPath := filepath.Join(frontendDist, "index.html")
+		if _, err := os.Stat(indexPath); err == nil {
+			http.ServeFile(w, r, indexPath)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
 
 	log.Println("Starting Go backend on :8081")
 	log.Fatal(http.ListenAndServe(":8081", withCORS(mux)))

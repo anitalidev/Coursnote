@@ -6,7 +6,7 @@
     const parsed = JSON.parse(saved);
     try {
       const fresh = await GET('/user?id=' + parsed.id);
-      S.user = { id: fresh.id, username: fresh.username, courseIDs: fresh.courseIDs || [], staticCourseIDs: fresh.staticCourseIDs || [] };
+      S.user = { id: fresh.id, username: fresh.username, courseIDs: fresh.courseIDs || [] };
       localStorage.setItem('coursnote_user', JSON.stringify(S.user));
       if (location.hash && location.hash !== '#courses') {
         await restoreFromHash(location.hash);

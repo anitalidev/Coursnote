@@ -7,6 +7,59 @@ import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@3.27.1';
 import TextAlign from 'https://esm.sh/@tiptap/extension-text-align@3.27.1';
 import Image from 'https://esm.sh/@tiptap/extension-image@3.27.1';
 
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: el => el.getAttribute('width') || null,
+        renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}` } : {},
+      },
+    };
+  },
+  addNodeView() {
+    return ({ node, updateAttributes }) => {
+      const wrapper = document.createElement('span');
+      wrapper.style.cssText = 'display:inline-block;position:relative;max-width:100%';
+
+      const img = document.createElement('img');
+      img.src = node.attrs.src;
+      img.alt = node.attrs.alt || '';
+      if (node.attrs.width) img.style.width = node.attrs.width;
+      img.style.cssText += ';max-width:100%;display:block';
+
+      const handle = document.createElement('span');
+      handle.style.cssText = 'position:absolute;bottom:3px;right:3px;width:10px;height:10px;background:#4f8ef7;border-radius:2px;cursor:se-resize;opacity:0.85';
+      handle.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startW = img.offsetWidth;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;cursor:se-resize';
+        document.body.appendChild(overlay);
+        const onMove = e => { img.style.width = Math.max(40, startW + e.clientX - startX) + 'px'; };
+        const onUp = () => {
+          updateAttributes({ width: img.style.width });
+          overlay.remove();
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      });
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(handle);
+      return {
+        dom: wrapper,
+        stopEvent: (e) => handle.contains(e.target),
+      };
+    };
+  },
+});
+
 const TabExtension = Extension.create({
   name: 'tab',
   addKeyboardShortcuts() {
@@ -40,7 +93,7 @@ const allExtensions = [
   FontSize,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   Placeholder.configure({ placeholder: ({ editor }) => editor.options.element.getAttribute('data-placeholder') || '' }),
-  Image.configure({ inline: false, allowBase64: true }),
+  ResizableImage.configure({ inline: false, allowBase64: true }),
 ];
 
 window.TipTapEditor = Editor;

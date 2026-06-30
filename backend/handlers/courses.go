@@ -280,25 +280,22 @@ func UpdateEnrollHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := store.repos.Users.GetUserByID(body.UserID)
+	existing, err := store.repos.Enrollments.GetByUserAndCourseID(body.UserID, newSC.CourseID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "user not found")
-		return
-	}
-
-	for _, scID := range user.StaticCourseIDs {
-		sc, err := store.repos.StaticCourses.GetByID(scID)
-		if err != nil {
-			continue
-		}
-		if sc.CourseID == newSC.CourseID {
-			store.repos.Users.UnenrollUser(body.UserID, scID)
-		}
-	}
-
-	if err := store.repos.Users.EnrollUser(body.UserID, body.StaticCourseID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	if existing != nil {
+		if err := store.repos.Enrollments.UpdateStaticCourse(existing.ID, body.StaticCourseID); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	} else {
+		if _, err := store.repos.Enrollments.Create(body.UserID, body.StaticCourseID); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -316,15 +313,15 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
-	user, err := store.repos.Users.GetUserByID(userID)
+	enrollments, err := store.repos.Enrollments.GetByUserID(userID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err.Error())
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	dtos := make([]MarketCourseDTO, 0, len(user.StaticCourseIDs))
-	for _, scID := range user.StaticCourseIDs {
-		sc, err := store.repos.StaticCourses.GetByID(scID)
+	dtos := make([]MarketCourseDTO, 0, len(enrollments))
+	for _, e := range enrollments {
+		sc, err := store.repos.StaticCourses.GetByID(e.StaticCourseID)
 		if err != nil {
 			continue
 		}
@@ -362,7 +359,7 @@ func EnrollHandler(w http.ResponseWriter, r *http.Request) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	if err := store.repos.Users.EnrollUser(body.UserID, body.StaticCourseID); err != nil {
+	if _, err := store.repos.Enrollments.Create(body.UserID, body.StaticCourseID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

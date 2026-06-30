@@ -40,13 +40,11 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 		enrolledCourse := map[string]bool{} // CourseID -> owns some version
 
 		if userID := r.URL.Query().Get("userID"); userID != "" {
-			if u, err := store.repos.Users.GetUserByID(userID); err == nil {
-				for _, staticCourseID := range u.StaticCourseIDs {
-					enrolledStatic[staticCourseID] = true
-
-					staticCourse, err := store.repos.StaticCourses.GetByID(staticCourseID)
-					if err == nil {
-						enrolledCourse[staticCourse.CourseID] = true
+			if enrollments, err := store.repos.Enrollments.GetByUserID(userID); err == nil {
+				for _, e := range enrollments {
+					enrolledStatic[e.StaticCourseID] = true
+					if sc, err := store.repos.StaticCourses.GetByID(e.StaticCourseID); err == nil {
+						enrolledCourse[sc.CourseID] = true
 					}
 				}
 			}

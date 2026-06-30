@@ -9,6 +9,7 @@ import (
 
 type repositories struct {
 	Users          persistence.UserRepository
+	Enrollments    persistence.EnrollmentRepository
 	Courses        persistence.CourseRepository
 	Modules        persistence.ModuleRepository
 	Topics         persistence.TopicRepository
@@ -27,6 +28,7 @@ func newStore(db *sql.DB) *Store {
 	return &Store{
 		repos: repositories{
 			Users:          persistence.NewSQLUserRepository(db),
+			Enrollments:    persistence.NewSQLEnrollmentRepository(db),
 			Courses:        persistence.NewSQLCourseRepository(db),
 			Modules:        persistence.NewSQLModuleRepository(db),
 			Topics:         persistence.NewSQLTopicRepository(db),

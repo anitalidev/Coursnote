@@ -86,8 +86,14 @@ type UserRepository interface {
 	CreateUser(user *UserInfo) (*models.User, error)
 	DeleteUserByID(id string) error
 	GetAllUsers() ([]*models.User, error)
-	EnrollUser(userID string, staticCourseID string) error
-	UnenrollUser(userID string, staticCourseID string) error
+}
+
+type EnrollmentRepository interface {
+	Create(userID string, staticCourseID string) (*models.CourseEnrollment, error)
+	GetByUserID(userID string) ([]*models.CourseEnrollment, error)
+	GetByUserAndCourseID(userID string, courseID string) (*models.CourseEnrollment, error)
+	UpdateStaticCourse(enrollmentID string, staticCourseID string) error
+	Delete(enrollmentID string) error
 }
 
 type CourseRepository interface {
