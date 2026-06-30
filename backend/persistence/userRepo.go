@@ -111,6 +111,11 @@ func (r *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
 	return users, rows.Err()
 }
 
+func (r *SQLUserRepository) UnenrollUser(userID string, staticCourseID string) error {
+	_, err := r.db.Exec(`DELETE FROM user_static_courses WHERE user_id = ? AND static_course_id = ?`, userID, staticCourseID)
+	return err
+}
+
 func (r *SQLUserRepository) EnrollUser(userID string, staticCourseID string) error {
 	_, err := r.db.Exec(`INSERT IGNORE INTO user_static_courses (user_id, static_course_id) VALUES (?, ?)`, userID, staticCourseID)
 	return err

@@ -257,6 +257,52 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func UpdateEnrollHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body struct {
+		UserID         string `json:"userID"`
+		StaticCourseID string `json:"staticCourseID"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
+		writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
+		return
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	newSC, err := store.repos.StaticCourses.GetByID(body.StaticCourseID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "staticCourseID not found")
+		return
+	}
+
+	user, err := store.repos.Users.GetUserByID(body.UserID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	for _, scID := range user.StaticCourseIDs {
+		sc, err := store.repos.StaticCourses.GetByID(scID)
+		if err != nil {
+			continue
+		}
+		if sc.CourseID == newSC.CourseID {
+			store.repos.Users.UnenrollUser(body.UserID, scID)
+		}
+	}
+
+	if err := store.repos.Users.EnrollUser(body.UserID, body.StaticCourseID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

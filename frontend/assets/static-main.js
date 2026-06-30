@@ -5,6 +5,7 @@ import { TextStyle, Color } from 'https://esm.sh/@tiptap/extension-text-style@3.
 import Highlight from 'https://esm.sh/@tiptap/extension-highlight@3.27.1';
 import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@3.27.1';
 import TextAlign from 'https://esm.sh/@tiptap/extension-text-align@3.27.1';
+import Image from 'https://esm.sh/@tiptap/extension-image@3.27.1';
 
 const TabExtension = Extension.create({
   name: 'tab',
@@ -39,6 +40,7 @@ const allExtensions = [
   FontSize,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   Placeholder.configure({ placeholder: ({ editor }) => editor.options.element.getAttribute('data-placeholder') || '' }),
+  Image.configure({ inline: false, allowBase64: true }),
 ];
 
 window.TipTapEditor = Editor;

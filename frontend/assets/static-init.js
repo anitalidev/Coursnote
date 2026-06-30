@@ -66,6 +66,20 @@ function toggleTopicCompleted() {
   _CD.course.pcompleted = all.length ? done / all.length : 0;
 })();
 
+(function() {
+  var labels = { home: 'Back to Home', market: 'Back to Market', courses: 'Back to Courses' };
+  var from = new URLSearchParams(location.search).get('from');
+  var label = labels[from];
+  if (!label) return;
+  var btn = document.createElement('div');
+  btn.style.cssText = 'position:fixed;top:16px;left:16px;z-index:9999';
+  btn.innerHTML = '<a href="javascript:history.back()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:500;border-radius:8px;text-decoration:none;border:1px solid rgba(255,255,255,.15)">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>'
+    + label + '</a>';
+  document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(btn); });
+  if (document.readyState !== 'loading') document.body.appendChild(btn);
+})();
+
 (async function() {
   if (location.hash && location.hash !== '#' && location.hash !== '#courses') {
     await restoreFromHash(location.hash);

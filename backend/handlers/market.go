@@ -20,7 +20,7 @@ type MarketCourseDTO struct {
 	NumTopics   int       `json:"numTopics"`
 	CourseOwner string    `json:"courseOwner"`
 	IsActive    bool      `json:"isActive"`
-	IsEnrolled  bool      `json:"isEnrolled"`
+	Status      string    `json:"status"` // Status is either "enrolled", "", or "update"
 }
 
 func MarketHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,11 +36,18 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		enrolledSet := map[string]bool{}
+		enrolledStatic := map[string]bool{} // StaticCourseID -> owns
+		enrolledCourse := map[string]bool{} // CourseID -> owns some version
+
 		if userID := r.URL.Query().Get("userID"); userID != "" {
 			if u, err := store.repos.Users.GetUserByID(userID); err == nil {
-				for _, id := range u.StaticCourseIDs {
-					enrolledSet[id] = true
+				for _, staticCourseID := range u.StaticCourseIDs {
+					enrolledStatic[staticCourseID] = true
+
+					staticCourse, err := store.repos.StaticCourses.GetByID(staticCourseID)
+					if err == nil {
+						enrolledCourse[staticCourse.CourseID] = true
+					}
 				}
 			}
 		}
@@ -60,12 +67,18 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 				NumTopics:   sc.NumTopics,
 				CourseOwner: sc.CourseOwner,
 				IsActive:    sc.IsActive,
-				IsEnrolled:  enrolledSet[sc.ID],
+				Status:      "",
 			}
 			if course, err := store.repos.Courses.GetCourseByID(sc.CourseID); err == nil {
 				dto.NumModules = len(course.ModuleIDs)
 				dto.NumTopics = TopicCount(course)
 			}
+			if enrolledStatic[sc.ID] {
+				dto.Status = "enrolled"
+			} else if enrolledCourse[sc.CourseID] {
+				dto.Status = "update"
+			}
+
 			dtos = append(dtos, dto)
 		}
 

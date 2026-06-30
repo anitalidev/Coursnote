@@ -87,6 +87,7 @@ type UserRepository interface {
 	DeleteUserByID(id string) error
 	GetAllUsers() ([]*models.User, error)
 	EnrollUser(userID string, staticCourseID string) error
+	UnenrollUser(userID string, staticCourseID string) error
 }
 
 type CourseRepository interface {

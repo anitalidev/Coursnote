@@ -1,18 +1,7 @@
 'use strict';
 
-const backLabels = { home: 'Back to Home', market: 'Back to Market', courses: 'Back to Courses' };
-
 function openCourseViewer(contentId) {
-  const from = S.view;
-  const label = backLabels[from] || 'Back';
-  document.getElementById('course-viewer-back-label').textContent = label;
-  document.getElementById('course-viewer-frame').src = 'http://localhost:8081/api/staticcontent?id=' + contentId;
-  document.getElementById('course-viewer').style.display = 'block';
-}
-
-function closeCourseViewer() {
-  document.getElementById('course-viewer').style.display = 'none';
-  document.getElementById('course-viewer-frame').src = '';
+  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.view;
 }
 
 function toggleUserMenu(e) {
@@ -303,6 +292,13 @@ function buildStaticIndex(course, courseData, fileMap) {
 
 async function enrollInCourse(staticCourseID) {
   await POST('/course/enroll', { userID: S.user.id, staticCourseID });
+  S.marketCourses = await GET('/market?userID=' + S.user.id) || [];
+  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
+  render();
+}
+
+async function updateEnrollment(staticCourseID) {
+  await POST('/course/update-enroll', { userID: S.user.id, staticCourseID });
   S.marketCourses = await GET('/market?userID=' + S.user.id) || [];
   S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
   render();

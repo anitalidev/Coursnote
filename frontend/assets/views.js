@@ -310,8 +310,10 @@ function marketCardHTML(c) {
           View Course
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        ${c.isEnrolled
+        ${c.status === 'enrolled'
           ? `<button class="cc2-edit-btn" disabled style="opacity:.4;cursor:not-allowed;pointer-events:none;filter:grayscale(1)">✓ Enrolled</button>`
+          : c.status === 'update'
+          ? `<button class="cc2-edit-btn" onclick="updateEnrollment('${c.id}')">↑ Update</button>`
           : `<button class="cc2-edit-btn" onclick="enrollInCourse('${c.id}')">+ Enroll</button>`}
       </div>`;
   return ccCardShell(c, '', body);

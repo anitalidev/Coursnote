@@ -5,6 +5,7 @@ import { TextStyle, Color } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
+import Image from '@tiptap/extension-image';
 
 const TabExtension = Extension.create({
   name: 'tab',
@@ -39,6 +40,7 @@ const allExtensions = [
   FontSize,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   Placeholder.configure({ placeholder: ({ editor }) => editor.options.element.getAttribute('data-placeholder') || '' }),
+  Image.configure({ inline: false, allowBase64: true }),
 ];
 
 window.TipTapEditor = Editor;
