@@ -123,51 +123,10 @@ async function publishCourse(id) {
   }));
   const courseData = { course, modules, topics: topicMap, privateNotes };
 
-  const publishedContent = buildOnlineStaticIndex(course, courseData);
-  const updated = await POST('/course/publish?id=' + id, { publishedContent });
+  const updated = await POST('/course/publish?id=' + id, { courseData });
   S.courses = S.courses.map(c => c.courseID === id ? updated : c);
   render();
   toast('Course published!');
-}
-
-function buildOnlineStaticIndex(course, courseData) {
-  const base = 'http://localhost:8081/static/assets';
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${esc(course.name)}</title>
-<link rel="stylesheet" href="${base}/styles.css">
-<link rel="stylesheet" href="${base}/toolbar.css">
-</head>
-<body>
-<nav id="sidebar">
-  <div id="sidebar-header"><h2>Coursnote</h2><p>Your course notes</p></div>
-  <div id="sidebar-nav"></div>
-  <div id="sidebar-footer"></div>
-  <div id="sidebar-back"></div>
-</nav>
-<main id="main"></main>
-<div id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"><\/script>
-<script>
-  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
-  require(['vs/editor/editor.main'], function() { window.dispatchEvent(new Event('monaco-ready')); });
-<\/script>
-<script type="module" src="${base}/static-main.js"><\/script>
-<script>window.COURSE_DATA = ${JSON.stringify(courseData)};<\/script>
-<script src="${base}/state.js"><\/script>
-<script src="${base}/api.js"><\/script>
-<script src="${base}/utils.js"><\/script>
-<script src="${base}/data.js"><\/script>
-<script src="${base}/notebook.js"><\/script>
-<script src="${base}/views.js"><\/script>
-<script src="${base}/render.js"><\/script>
-<script src="${base}/navigation.js"><\/script>
-<script src="${base}/static-init.js"><\/script>
-</body>
-</html>`;
 }
 
 async function downloadCourse(id) {
