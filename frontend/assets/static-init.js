@@ -23,7 +23,12 @@ S.editMode = false;
 function bindCoursesForm()    {}
 function bindModulesForm()    {}
 function bindTopicsForm()     {}
-function bindTopicListeners() {}
+function bindTopicListeners() { renderNotebook(); }
+
+// Re-render the notebook once TipTap loads so text/card/table content isn't blank.
+window.addEventListener('tiptap-ready', function() {
+  if (S.view === 'topic') renderNotebook();
+}, { once: true });
 function scheduleElementsSave() {}
 function schedulePNSave()     {}
 function setStatus()          {}
@@ -57,6 +62,29 @@ function toggleTopicCompleted() {
   render();
 }
 
+(function() {
+  var from = new URLSearchParams(location.search).get('from');
+  var destinations = {
+    home:    ['#home',    'Back to Home'],
+    market:  ['#market',  'Back to Market'],
+  };
+  var dest = destinations[from] || ['#courses', 'Back to Courses'];
+  function insertBackBtn() {
+    var container = document.getElementById('sidebar-back');
+    if (!container) return;
+    container.style.cssText = 'padding:12px 16px;border-top:1px solid var(--border)';
+    var btn = document.createElement('button');
+    btn.textContent = '← ' + dest[1];
+    btn.style.cssText = 'width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500';
+    btn.onmouseover = function() { this.style.background = 'var(--accent)'; this.style.color = 'var(--bg)'; };
+    btn.onmouseout  = function() { this.style.background = 'transparent'; this.style.color = 'var(--accent)'; };
+    btn.onclick = function() { window.location.href = 'http://localhost:3334/' + dest[0]; };
+    container.appendChild(btn);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertBackBtn);
+  else insertBackBtn();
+})();
+
 // Restore saved progress on load
 (function() {
   var progress = _getProgress();
@@ -66,19 +94,6 @@ function toggleTopicCompleted() {
   _CD.course.pcompleted = all.length ? done / all.length : 0;
 })();
 
-(function() {
-  var labels = { home: 'Back to Home', market: 'Back to Market', courses: 'Back to Courses' };
-  var from = new URLSearchParams(location.search).get('from');
-  var label = labels[from];
-  if (!label) return;
-  var btn = document.createElement('div');
-  btn.style.cssText = 'position:fixed;top:16px;left:16px;z-index:9999';
-  btn.innerHTML = '<a href="javascript:history.back()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:500;border-radius:8px;text-decoration:none;border:1px solid rgba(255,255,255,.15)">'
-    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>'
-    + label + '</a>';
-  document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(btn); });
-  if (document.readyState !== 'loading') document.body.appendChild(btn);
-})();
 
 (async function() {
   if (location.hash && location.hash !== '#' && location.hash !== '#courses') {

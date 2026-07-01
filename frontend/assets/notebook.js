@@ -36,8 +36,8 @@ function nbMountMonacoEditors() {
       automaticLayout: true,
       fontSize: 13,
       lineNumbers: 'on',
-      readOnly: !S.editMode,
-      domReadOnly: !S.editMode,
+      readOnly: false,
+      domReadOnly: false,
       padding: { top: 10, bottom: 10 },
       tabSize: 2,
     });
@@ -822,7 +822,7 @@ function buildNotebookHTML() {
 
 function buildCourseViewHTML(cells) {
   if (!cells.length) return '<div class="nb-empty">No course content yet.</div>';
-  return cells.map(c => {
+  return cells.map((c, cellIdx) => {
     if (c.type === 'codeEditor') {
       const lines = (c.code || '').split('\n').length;
       const h = Math.min(Math.max(lines * 19 + 20, 80), 600);
@@ -849,6 +849,7 @@ function buildCourseViewHTML(cells) {
       const cards = c.cards;
       const cardsHTML = cards.map((card, i) => {
         const hdr = ttHtml(card.header);
+        const initial = ttText(card.header).trim().charAt(0).toUpperCase() || String(i + 1);
         return `<div class="cv-slide-card${i === 0 ? ' active' : ''}" data-slide-i="${i}">
           ${hdr ? `<div class="cv-card-header">${hdr}</div>` : ''}
           <div class="cv-card-content">${ttHtml(card.content)}</div>
@@ -869,36 +870,46 @@ function buildCourseViewHTML(cells) {
       </div>`;
     }
     if (c.type === 'question') {
-      const optsHTML = c.options.map((opt, i) =>
-        `<label class="cv-q-option" data-opt="${i}">
-          <input type="radio" name="cv-q-${c.id}" value="${i}" onchange="cvAnswerQuestion('${c.id}',${i},${c.answer})">
+      const saved = (!window.STATIC_MODE && c.lastChosen != null) ? c.lastChosen : cvQLoad(cellIdx, null);
+      const isCorrect = saved === c.answer;
+      const optsHTML = c.options.map((opt, i) => {
+        let cls = 'cv-q-option';
+        if (saved != null && i === saved && isCorrect)  cls += ' cv-q-correct';
+        if (saved != null && i === saved && !isCorrect) cls += ' cv-q-wrong';
+        return `<label class="${cls}" data-opt="${i}">
+          <input type="radio" name="cv-q-${c.id}" value="${i}"${saved === i ? ' checked' : ''} onchange="cvAnswerQuestion(${cellIdx},${i},${c.answer})">
           <span>${ttHtml(opt)}</span>
-        </label>`
-      ).join('');
+        </label>`;
+      }).join('');
       return `<div class="cv-question" id="cvq-${c.id}">
         <div class="cv-q-stem">${ttHtml(c.question)}</div>
         <div class="cv-q-options">${optsHTML}</div>
-        <div class="cv-q-feedback" id="cvqf-${c.id}"></div>
+        <div class="cv-q-feedback${saved != null ? (isCorrect ? ' cv-q-fb-correct' : ' cv-q-fb-wrong') : ''}" id="cvqf-${c.id}">${saved != null ? (isCorrect ? '✓ Correct!' : '✗ Incorrect — try again.') : ''}</div>
       </div>`;
     }
     if (c.type === 'questionSlide') {
       const id = c.id;
+      let correctCount = 0;
       const questionsHTML = c.questions.map((q, qi) => {
+        const saved = (!window.STATIC_MODE && q.lastChosen != null) ? q.lastChosen : cvQLoad(cellIdx, qi);
+        const isCorrect = saved === q.answer;
+        if (saved != null && isCorrect) correctCount++;
         const optsHTML = q.options.map((opt, i) =>
-          `<label class="cv-q-option" data-opt="${i}">
-            <input type="radio" name="cv-qs-${id}-${qi}" value="${i}" onchange="cvAnswerQSlide('${id}',${qi},${i},${q.answer})">
+          `<label class="cv-q-option${saved != null && i === saved ? (isCorrect ? ' cv-q-correct' : ' cv-q-wrong') : ''}" data-opt="${i}">
+            <input type="radio" name="cv-qs-${id}-${qi}" value="${i}"${saved === i ? ' checked' : ''} onchange="cvAnswerQSlide(${cellIdx},${qi},${i},${q.answer})">
             <span>${ttHtml(opt)}</span>
           </label>`
         ).join('');
         return `<div class="cv-slide-card${qi === 0 ? ' active' : ''}" data-slide-i="${qi}" id="cvq-${id}-${qi}">
           <div class="cv-q-stem">${ttHtml(q.question)}</div>
           <div class="cv-q-options">${optsHTML}</div>
-          <div class="cv-q-feedback" id="cvqf-${id}-${qi}"></div>
+          <div class="cv-q-feedback${saved != null ? (isCorrect ? ' cv-q-fb-correct' : ' cv-q-fb-wrong') : ''}" id="cvqf-${id}-${qi}">${saved != null ? (isCorrect ? '✓ Correct!' : '✗ Incorrect — try again.') : ''}</div>
         </div>`;
       }).join('');
       return `<div class="cv-slide" id="slide-${id}">
         <div class="cv-slide-track">${questionsHTML}</div>
         <div class="cv-slide-nav">
+          <div class="cv-qs-score" id="qs-score-${id}">${cvQsScoreHTML(correctCount, c.questions.length, cvQsBestLoad(cellIdx))}</div>
           <button class="cv-slide-btn" id="slide-prev-${id}" onclick="cvSlideNav('${id}',-1)" ${c.questions.length <= 1 ? 'disabled' : ''}>‹</button>
           <span class="cv-slide-counter" id="slide-counter-${id}">1 / ${c.questions.length}</span>
           <button class="cv-slide-btn" id="slide-next-${id}" onclick="cvSlideNav('${id}',1)" ${c.questions.length <= 1 ? 'disabled' : ''}>›</button>
@@ -910,18 +921,57 @@ function buildCourseViewHTML(cells) {
   }).join('');
 }
 
-function cvAnswerQSlide(slideId, qi, chosen, correct) {
-  const container = document.getElementById(`cvq-${slideId}-${qi}`);
-  const fb = document.getElementById(`cvqf-${slideId}-${qi}`);
-  if (!container || !fb) return;
-  const isCorrect = chosen === correct;
+function cvQKey(cellId, qi)          { return `coursnote_q_${S.currentTopic?.topicID}_${cellId}${qi != null ? '_' + qi : ''}`; }
+function cvQSave(cellId, qi, chosen) { try { localStorage.setItem(cvQKey(cellId, qi), chosen); } catch {} }
+function cvQLoad(cellId, qi)         { const v = localStorage.getItem(cvQKey(cellId, qi)); return v == null ? null : Number(v); }
+
+function cvQsBestKey(cellIdx)        { return `coursnote_qs_best_${S.currentTopic?.topicID}_${cellIdx}`; }
+function cvQsBestLoad(cellIdx)       { const v = localStorage.getItem(cvQsBestKey(cellIdx)); return v == null ? null : Number(v); }
+function cvQsBestSave(cellIdx, score){ try { localStorage.setItem(cvQsBestKey(cellIdx), score); } catch {} }
+
+function cvQsScoreHTML(correct, total, best) {
+  if (total === 0) return '';
+  const isPerfect = correct === total;
+  let html = `<span class="cv-qs-score-label${isPerfect ? ' cv-qs-score-perfect' : ''}">${correct} / ${total} correct</span>`;
+  if (best != null && best > 0) {
+    const bestPerfect = best === total;
+    html += `<span class="cv-qs-best-label${bestPerfect ? ' cv-qs-score-perfect' : ''}"> · Best: ${best} / ${total}</span>`;
+  }
+  return html;
+}
+
+function cvApplyAnswer(container, fb, chosen, correct) {
   container.querySelectorAll('.cv-q-option').forEach((el, i) => {
     el.classList.remove('cv-q-correct', 'cv-q-wrong');
-    if (isCorrect && i === correct) el.classList.add('cv-q-correct');
-    else if (!isCorrect && i === chosen) el.classList.add('cv-q-wrong');
+    if (chosen === correct && i === correct) el.classList.add('cv-q-correct');
+    else if (chosen !== correct && i === chosen) el.classList.add('cv-q-wrong');
   });
+  const radio = container.querySelector(`input[value="${chosen}"]`);
+  if (radio) radio.checked = true;
+  const isCorrect = chosen === correct;
   fb.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect — try again.';
   fb.className = 'cv-q-feedback ' + (isCorrect ? 'cv-q-fb-correct' : 'cv-q-fb-wrong');
+}
+
+function cvAnswerQSlide(cellIdx, qi, chosen, correct) {
+  const cell = S.notebookCells[cellIdx];
+  if (!cell) return;
+  const container = document.getElementById(`cvq-${cell.id}-${qi}`);
+  const fb = document.getElementById(`cvqf-${cell.id}-${qi}`);
+  if (!container || !fb) return;
+  cvQSave(cellIdx, qi, chosen);
+  cell.questions[qi].lastChosen = chosen;
+  cvSaveAnswerToBackend(cellIdx, qi, chosen);
+  cvApplyAnswer(container, fb, chosen, correct);
+  // Recount and refresh score
+  const correctCount = cell.questions.reduce((n, q, i) => {
+    const s = cvQLoad(cellIdx, i);
+    return n + (s === q.answer ? 1 : 0);
+  }, 0);
+  const best = cvQsBestLoad(cellIdx);
+  if (best == null || correctCount > best) cvQsBestSave(cellIdx, correctCount);
+  const scoreEl = document.getElementById(`qs-score-${cell.id}`);
+  if (scoreEl) scoreEl.innerHTML = cvQsScoreHTML(correctCount, cell.questions.length, Math.max(correctCount, best ?? 0));
 }
 
 function cvSlideNav(id, dir) {
@@ -956,18 +1006,23 @@ function cvSlideActivate(id, el, cards, idx) {
   if (next) next.disabled = idx === cards.length - 1;
 }
 
-function cvAnswerQuestion(id, chosen, correct) {
-  const fb = document.getElementById('cvqf-' + id);
-  const container = document.getElementById('cvq-' + id);
+function cvAnswerQuestion(cellIdx, chosen, correct) {
+  const cell = S.notebookCells[cellIdx];
+  if (!cell) return;
+  const fb = document.getElementById('cvqf-' + cell.id);
+  const container = document.getElementById('cvq-' + cell.id);
   if (!fb || !container) return;
-  const isCorrect = chosen === correct;
-  container.querySelectorAll('.cv-q-option').forEach((el, i) => {
-    el.classList.remove('cv-q-correct', 'cv-q-wrong');
-    if (isCorrect && i === correct) el.classList.add('cv-q-correct');
-    else if (!isCorrect && i === chosen) el.classList.add('cv-q-wrong');
-  });
-  fb.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect — try again.';
-  fb.className = 'cv-q-feedback ' + (isCorrect ? 'cv-q-fb-correct' : 'cv-q-fb-wrong');
+  cvQSave(cellIdx, null, chosen);
+  cell.lastChosen = chosen;
+  cvSaveAnswerToBackend(cellIdx, -1, chosen);
+  cvApplyAnswer(container, fb, chosen, correct);
+}
+
+function cvSaveAnswerToBackend(cellIdx, qi, chosen) {
+  if (window.STATIC_MODE) return;
+  const topicID = S.currentTopic?.topicID;
+  if (!topicID) return;
+  PUT('/topic/answer', { topicID, cellIdx, qi, chosen }).catch(() => {});
 }
 
 const _pnKey = 'pn';

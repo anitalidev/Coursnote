@@ -105,6 +105,44 @@ func (r *SQLTopicRepository) SaveTopicElements(id string, elems []elements.Eleme
 	return nil
 }
 
+// SaveTopicAnswer updates LastChosen on a single question inside raw_elements.
+// cellIdx is the index into the elements array. qi is the question index within
+// a questionSlide (-1 means the element itself is a plain question).
+func (r *SQLTopicRepository) SaveTopicAnswer(id string, cellIdx int, qi int, chosen int) error {
+	var rawStr sql.NullString
+	err := r.db.QueryRow(`SELECT raw_elements FROM topics WHERE topic_id = ?`, id).Scan(&rawStr)
+	if err != nil || !rawStr.Valid {
+		return fmt.Errorf("topic %s not found", id)
+	}
+
+	elems, err := elements.UnmarshalElements(json.RawMessage(rawStr.String))
+	if err != nil {
+		return fmt.Errorf("deserializing elements: %w", err)
+	}
+	if cellIdx < 0 || cellIdx >= len(elems) {
+		return fmt.Errorf("cellIdx %d out of range", cellIdx)
+	}
+
+	switch el := elems[cellIdx].(type) {
+	case *elements.Question:
+		el.LastChosen = &chosen
+	case *elements.QuestionSlide:
+		if qi < 0 || qi >= len(el.Questions) {
+			return fmt.Errorf("qi %d out of range", qi)
+		}
+		el.Questions[qi].LastChosen = &chosen
+	default:
+		return fmt.Errorf("element at index %d is not a question type", cellIdx)
+	}
+
+	raw, err := elements.MarshalElements(elems)
+	if err != nil {
+		return fmt.Errorf("serializing elements: %w", err)
+	}
+	_, err = r.db.Exec(`UPDATE topics SET raw_elements = ? WHERE topic_id = ?`, string(raw), id)
+	return err
+}
+
 func (r *SQLTopicRepository) SetTopicCompleted(id string, completed bool) error {
 	res, err := r.db.Exec(`UPDATE topics SET completed = ? WHERE topic_id = ?`, completed, id)
 	if err != nil {

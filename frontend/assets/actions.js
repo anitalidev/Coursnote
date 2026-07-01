@@ -164,9 +164,7 @@ function buildOnlineStaticIndex(course, courseData) {
   <div id="sidebar-header"><h2>Coursnote</h2><p>Your course notes</p></div>
   <div id="sidebar-nav"></div>
   <div id="sidebar-footer"></div>
-  <div style="padding:12px 16px;border-top:1px solid var(--border)">
-    <button onclick="window.location.href='http://localhost:3334/#market'" style="width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500" onmouseover="this.style.background='var(--accent)';this.style.color='var(--bg)'" onmouseout="this.style.background='transparent';this.style.color='var(--accent)'">← Back to Market</button>
-  </div>
+  <div id="sidebar-back"></div>
 </nav>
 <main id="main"></main>
 <div id="toast"></div>

@@ -38,7 +38,7 @@ function renderSidebar() {
   }
 
   header.innerHTML = `<h2>Coursnote</h2><p>${esc(S.user.username)}</p>`;
-  footer.innerHTML = `<button class="logout-btn" onclick="goLogin()">Sign out</button>`;
+  footer.innerHTML = '';
 
   if (S.view === 'courses' || !S.currentCourse) {
     document.getElementById('sidebar').classList.add('icon-mode');
@@ -116,10 +116,7 @@ function renderSidebar() {
     </div>${topicItems}`;
   }).join('');
 
-  footer.innerHTML = window.STATIC_MODE ? '' : `<button class="logout-btn" onclick="goLogin()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Sign out
-  </button>`;
+  footer.innerHTML = '';
 
   nav.innerHTML = `
     ${!window.STATIC_MODE ? `<div class="nav-item" onclick="goCourses()" style="margin-bottom:4px">

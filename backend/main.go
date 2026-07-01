@@ -65,6 +65,7 @@ func main() {
 	mux.HandleFunc("/api/course/enrolled", handlers.EnrolledCoursesHandler)
 	mux.HandleFunc("/api/module", handlers.ModuleHandler)
 	mux.HandleFunc("/api/topic", handlers.TopicHandler)
+	mux.HandleFunc("/api/topic/answer", handlers.TopicAnswerHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
 	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
 	// SPA fallback: serve index.html for any non-API, non-asset route
