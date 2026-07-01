@@ -28,7 +28,7 @@ async function handleLogin(username) {
     user = await POST('/user', { username });
   }
   const full = await GET('/user?id=' + user.id);
-  S.user = { id: user.id, username: user.username, courseIDs: full.courseIDs || [] };
+  S.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [] };
   localStorage.setItem('coursnote_user', JSON.stringify(S.user));
   await goCourses();
 }
@@ -621,4 +621,37 @@ function marketClearFilters() {
   if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
   marketUpdateFilterBadge();
   marketRerender();
+}
+
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const getStatus = () => document.getElementById('avatar-status');
+  const setStatus = msg => { const el = getStatus(); if (el) el.textContent = msg; };
+  setStatus('Uploading…');
+  const form = new FormData();
+  form.append('avatar', file);
+  try {
+    const res = await fetch(`http://localhost:8081/api/user/avatar?userID=${S.user.id}`, { method: 'POST', body: form });
+    if (!res.ok) {
+      let msg = 'Upload failed';
+      try { const d = await res.json(); msg = d.error || msg; } catch {}
+      throw new Error(msg);
+    }
+    const { avatarURL } = await res.json();
+    S.user.avatarURL = avatarURL;
+    localStorage.setItem('coursnote_user', JSON.stringify(S.user));
+    render();
+  } catch (e) {
+    setStatus(e.message || 'Upload failed.');
+    toast(e.message || 'Avatar upload failed', 'err');
+    console.error('Avatar upload error:', e);
+  }
+}
+
+function removeAvatar() {
+  S.user.avatarURL = '';
+  localStorage.setItem('coursnote_user', JSON.stringify(S.user));
+  fetch(`http://localhost:8081/api/user/avatar?userID=${S.user.id}`, { method: 'DELETE' }).catch(() => {});
+  render();
 }

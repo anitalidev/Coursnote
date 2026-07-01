@@ -48,7 +48,8 @@ function nbMountMonacoEditors() {
         scheduleElementsSave();
       });
       editor.onDidContentSizeChange(e => {
-        const h = Math.min(Math.max(e.contentHeight, 80), 600);
+        const maxH = c.maxLines > 0 ? c.maxLines * 19 + 20 : 600;
+        const h = c.maxLines > 0 ? maxH : Math.min(Math.max(e.contentHeight, 80), maxH);
         el.style.height = h + 'px';
         editor.layout();
       });
@@ -72,6 +73,14 @@ function nbChangeCodeLanguage(id, lang) {
   scheduleElementsSave();
 }
 
+function nbChangeCodeMaxLines(id, val) {
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c) return;
+  c.maxLines = parseInt(val) || 0;
+  renderNotebook();
+  scheduleElementsSave();
+}
+
 function nbCodeCellHTML(c) {
   const langOpts = NB_CODE_LANGS.map(l =>
     `<option value="${l}"${c.language === l ? ' selected' : ''}>${l}</option>`
@@ -81,8 +90,13 @@ function nbCodeCellHTML(c) {
     <div class="nb-cell-body">
       <div class="nb-code-header">
         <select class="nb-code-lang" onchange="nbChangeCodeLanguage('${c.id}',this.value)">${langOpts}</select>
+        <label class="nb-code-maxlines-label">Max lines
+          <input type="number" class="nb-code-maxlines" min="1" max="200" placeholder="auto"
+            value="${c.maxLines > 0 ? c.maxLines : ''}"
+            onchange="nbChangeCodeMaxLines('${c.id}',this.value)">
+        </label>
       </div>
-      <div id="monaco-${c.id}" class="nb-monaco-wrap" style="height:200px"></div>
+      <div id="monaco-${c.id}" class="nb-monaco-wrap" style="height:${c.maxLines > 0 ? c.maxLines * 19 + 20 : 200}px"></div>
     </div>
     <div class="nb-cell-right">
       <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
@@ -130,6 +144,7 @@ function parseRawElements(raw) {
     })) : [{ question: null, options: [null, null], answer: 0 }],
     code: e.code || '',
     language: e.language || 'javascript',
+    maxLines: e.maxLines || 0,
   }));
 }
 
@@ -141,13 +156,13 @@ function nbCellsToElements() {
     if (c.type === 'cardSlide') return { type: 'cardSlide', cards: c.cards.map(card => ({ header: wrap(card.header), content: wrap(card.content) })) };
     if (c.type === 'question')  return { type: 'question', question: wrap(c.question), options: c.options.map(wrap), answer: c.answer };
     if (c.type === 'questionSlide') return { type: 'questionSlide', questions: c.questions.map(q => ({ question: wrap(q.question), options: q.options.map(wrap), answer: q.answer })) };
-    if (c.type === 'codeEditor') return { type: 'codeEditor', language: c.language || 'javascript', code: c.code || '' };
+    if (c.type === 'codeEditor') return { type: 'codeEditor', language: c.language || 'javascript', code: c.code || '', maxLines: c.maxLines || 0 };
     return { type: 'text', content: c.content };
   });
 }
 
 function nbAddCell(type, insertIdx) {
-  const base = { id: nbGenId(), type, content: null, cells: [], header: null, cards: [{ header: null, content: null }], question: null, options: [null, null], answer: 0, questions: [{ question: null, options: [null, null], answer: 0 }], code: '', language: 'javascript' };
+  const base = { id: nbGenId(), type, content: null, cells: [], header: null, cards: [{ header: null, content: null }], question: null, options: [null, null], answer: 0, questions: [{ question: null, options: [null, null], answer: 0 }], code: '', language: 'javascript', maxLines: 0 };
   if (type === 'table') base.cells = [[null, null], [null, null]];
   S.notebookCells.splice(insertIdx, 0, base);
   renderNotebook();
@@ -159,6 +174,13 @@ function nbAddCell(type, insertIdx) {
 }
 
 function nbDeleteCell(id) {
+  document.getElementById('modal-confirm-msg').textContent = 'Delete this element? This cannot be undone.';
+  const ok = document.getElementById('modal-confirm-ok');
+  ok.onclick = () => { closeModal(); _doDeleteCell(id); };
+  openModal('modal-confirm', 'Delete element');
+}
+
+function _doDeleteCell(id) {
   S.notebookCells = S.notebookCells.filter(c => c.id !== id);
   renderNotebook();
   scheduleElementsSave();
@@ -618,9 +640,9 @@ function nbCardSlideCellHTML(c) {
     <div class="nb-cell-body">
       <div class="slide-tabs-row">${tabs}</div>
       <div class="nb-slide-edit-nav">
-        <button class="cv-slide-btn" onclick="nbSlideNav('${c.id}','cards',-1)">‹</button>
+        <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','cards',-1)">‹</button>
         <span class="cv-slide-counter">${idx + 1} / ${total}</span>
-        <button class="cv-slide-btn" onclick="nbSlideNav('${c.id}','cards',1)">›</button>
+        <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','cards',1)">›</button>
         <button class="nb-ctrl-btn nb-slide-del" style="margin-left:auto" onclick="nbDelSlideCard('${c.id}',${idx})" ${total <= 1 ? 'disabled' : ''}>− Remove</button>
         <button class="nb-ctrl-btn" onclick="nbAddSlideCard('${c.id}')">＋ Add</button>
       </div>
@@ -672,9 +694,9 @@ function nbQSlideCellHTML(c) {
     <div class="nb-cell-left"><span class="nb-type-pill qslide-pill">Q Slide</span></div>
     <div class="nb-cell-body">
       <div class="nb-slide-edit-nav">
-        <button class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',-1)">‹</button>
+        <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',-1)">‹</button>
         <span class="cv-slide-counter">${idx + 1} / ${total}</span>
-        <button class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',1)">›</button>
+        <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',1)">›</button>
         <button class="nb-ctrl-btn nb-slide-del" style="margin-left:auto" onclick="nbDelQSlideQuestion('${c.id}',${idx})" ${total <= 1 ? 'disabled' : ''}>− Remove</button>
         <button class="nb-ctrl-btn" onclick="nbAddQSlideQuestion('${c.id}')">＋ Add</button>
       </div>
@@ -742,14 +764,18 @@ function nbSlideNav(id, listKey, dir) {
   if (!c) return;
   const len = c[listKey].length;
   c._slideIdx = ((c._slideIdx ?? 0) + dir + len) % len;
+  const scrollY = window.scrollY;
   renderNotebook();
+  window.scrollTo({ top: scrollY, behavior: 'instant' });
 }
 
 function nbSlideGoTo(id, listKey, i) {
   const c = S.notebookCells.find(c => c.id === id);
   if (!c) return;
   c._slideIdx = i;
+  const scrollY = window.scrollY;
   renderNotebook();
+  window.scrollTo({ top: scrollY, behavior: 'instant' });
 }
 
 function nbUpdateField(id, field, val) {
@@ -825,7 +851,9 @@ function buildCourseViewHTML(cells) {
   return cells.map((c, cellIdx) => {
     if (c.type === 'codeEditor') {
       const lines = (c.code || '').split('\n').length;
-      const h = Math.min(Math.max(lines * 19 + 20, 80), 600);
+      const h = c.maxLines > 0
+        ? c.maxLines * 19 + 20
+        : Math.min(Math.max(lines * 19 + 20, 80), 600);
       return `<div class="cv-code-wrap">
         <div class="cv-code-lang">${esc(c.language || 'javascript')}</div>
         <div id="monaco-${c.id}" class="nb-monaco-wrap nb-monaco-view" style="height:${h}px"></div>
@@ -863,9 +891,9 @@ function buildCourseViewHTML(cells) {
         <div class="slide-tabs-row" id="slide-tabs-${id}">${tabsHTML}</div>
         <div class="cv-slide-track">${cardsHTML}</div>
         <div class="cv-slide-nav">
-          <button class="cv-slide-btn" id="slide-prev-${id}" onclick="cvSlideNav('${id}',-1)" ${cards.length <= 1 ? 'disabled' : ''}>‹</button>
+          <button type="button" class="cv-slide-btn" id="slide-prev-${id}" onclick="cvSlideNav('${id}',-1)" ${cards.length <= 1 ? 'disabled' : ''}>‹</button>
           <span class="cv-slide-counter" id="slide-counter-${id}">1 / ${cards.length}</span>
-          <button class="cv-slide-btn" id="slide-next-${id}" onclick="cvSlideNav('${id}',1)" ${cards.length <= 1 ? 'disabled' : ''}>›</button>
+          <button type="button" class="cv-slide-btn" id="slide-next-${id}" onclick="cvSlideNav('${id}',1)" ${cards.length <= 1 ? 'disabled' : ''}>›</button>
         </div>
       </div>`;
     }
@@ -910,9 +938,9 @@ function buildCourseViewHTML(cells) {
         <div class="cv-slide-track">${questionsHTML}</div>
         <div class="cv-slide-nav">
           <div class="cv-qs-score" id="qs-score-${id}">${cvQsScoreHTML(correctCount, c.questions.length, cvQsBestLoad(cellIdx))}</div>
-          <button class="cv-slide-btn" id="slide-prev-${id}" onclick="cvSlideNav('${id}',-1)" ${c.questions.length <= 1 ? 'disabled' : ''}>‹</button>
+          <button type="button" class="cv-slide-btn" id="slide-prev-${id}" onclick="cvSlideNav('${id}',-1)" ${c.questions.length <= 1 ? 'disabled' : ''}>‹</button>
           <span class="cv-slide-counter" id="slide-counter-${id}">1 / ${c.questions.length}</span>
-          <button class="cv-slide-btn" id="slide-next-${id}" onclick="cvSlideNav('${id}',1)" ${c.questions.length <= 1 ? 'disabled' : ''}>›</button>
+          <button type="button" class="cv-slide-btn" id="slide-next-${id}" onclick="cvSlideNav('${id}',1)" ${c.questions.length <= 1 ? 'disabled' : ''}>›</button>
         </div>
       </div>`;
     }
@@ -963,6 +991,18 @@ function cvAnswerQSlide(cellIdx, qi, chosen, correct) {
   cell.questions[qi].lastChosen = chosen;
   cvSaveAnswerToBackend(cellIdx, qi, chosen);
   cvApplyAnswer(container, fb, chosen, correct);
+  const track = container.closest('.cv-slide-track');
+  if (track) {
+    const cards = track.querySelectorAll('.cv-slide-card');
+    let maxH = 0;
+    cards.forEach(card => {
+      const wasActive = card.classList.contains('active');
+      if (!wasActive) { card.style.display = 'block'; card.style.visibility = 'hidden'; }
+      maxH = Math.max(maxH, card.scrollHeight);
+      if (!wasActive) { card.style.display = ''; card.style.visibility = ''; }
+    });
+    track.style.minHeight = maxH + 'px';
+  }
   // Recount and refresh score
   const correctCount = cell.questions.reduce((n, q, i) => {
     const s = cvQLoad(cellIdx, i);
@@ -992,8 +1032,10 @@ function cvSlideGoTo(id, idx) {
 }
 
 function cvSlideActivate(id, el, cards, idx) {
+  const scrollY = window.scrollY;
   cards.forEach(c => c.classList.remove('active'));
   cards[idx].classList.add('active');
+  window.scrollTo({ top: scrollY, behavior: 'instant' });
   const counter = document.getElementById('slide-counter-' + id);
   if (counter) counter.textContent = `${idx + 1} / ${cards.length}`;
   const tabsEl = document.getElementById('slide-tabs-' + id);
@@ -1050,6 +1092,21 @@ function destroyPNEditor() {
   }
 }
 
+function cvSlideSyncHeights() {
+  document.querySelectorAll('.cv-slide-track').forEach(track => {
+    const cards = track.querySelectorAll('.cv-slide-card');
+    if (cards.length < 2) return;
+    let maxH = 0;
+    cards.forEach(card => {
+      const wasActive = card.classList.contains('active');
+      if (!wasActive) { card.style.display = 'block'; card.style.visibility = 'hidden'; }
+      maxH = Math.max(maxH, card.scrollHeight);
+      if (!wasActive) { card.style.display = ''; card.style.visibility = ''; }
+    });
+    track.style.minHeight = maxH + 'px';
+  });
+}
+
 function renderNotebook() {
   const nb = document.getElementById('notebook');
   if (!nb) return;
@@ -1061,6 +1118,7 @@ function renderNotebook() {
     nbMountTipTapEditors();
   } else {
     nb.innerHTML = buildCourseViewHTML(S.notebookCells);
+    cvSlideSyncHeights();
   }
   nbMountMonacoEditors();
 }

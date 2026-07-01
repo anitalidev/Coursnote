@@ -18,15 +18,24 @@ func NewSQLUserRepository(db *sql.DB) *SQLUserRepository {
 
 func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
 	user := &models.User{UserID: id}
-	err := r.db.QueryRow(`SELECT username FROM users WHERE user_id = ?`, id).Scan(&user.Username)
+	var avatarURL sql.NullString
+	err := r.db.QueryRow(`SELECT username, avatar_url FROM users WHERE user_id = ?`, id).Scan(&user.Username, &avatarURL)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
 	if err != nil {
 		return nil, err
 	}
+	if avatarURL.Valid {
+		user.AvatarURL = avatarURL.String
+	}
 	user.CourseIDs, err = r.courseIDsForUser(id)
 	return user, err
+}
+
+func (r *SQLUserRepository) SetAvatarURL(id string, url string) error {
+	_, err := r.db.Exec(`UPDATE users SET avatar_url = ? WHERE user_id = ?`, url, id)
+	return err
 }
 
 func (r *SQLUserRepository) GetUsernameByID(id string) (string, error) {
@@ -40,12 +49,16 @@ func (r *SQLUserRepository) GetUsernameByID(id string) (string, error) {
 
 func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{Username: username}
-	err := r.db.QueryRow(`SELECT user_id FROM users WHERE username = ?`, username).Scan(&user.UserID)
+	var avatarURL sql.NullString
+	err := r.db.QueryRow(`SELECT user_id, avatar_url FROM users WHERE username = ?`, username).Scan(&user.UserID, &avatarURL)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("username does not exist")
 	}
 	if err != nil {
 		return nil, err
+	}
+	if avatarURL.Valid {
+		user.AvatarURL = avatarURL.String
 	}
 	user.CourseIDs, err = r.courseIDsForUser(user.UserID)
 	return user, err
@@ -77,7 +90,7 @@ func (r *SQLUserRepository) DeleteUserByID(id string) error {
 }
 
 func (r *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
-	rows, err := r.db.Query(`SELECT user_id, username FROM users`)
+	rows, err := r.db.Query(`SELECT user_id, username, avatar_url FROM users`)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +99,12 @@ func (r *SQLUserRepository) GetAllUsers() ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		u := &models.User{}
-		if err := rows.Scan(&u.UserID, &u.Username); err != nil {
+		var avatarURL sql.NullString
+		if err := rows.Scan(&u.UserID, &u.Username, &avatarURL); err != nil {
 			return nil, err
+		}
+		if avatarURL.Valid {
+			u.AvatarURL = avatarURL.String
 		}
 		u.CourseIDs, err = r.courseIDsForUser(u.UserID)
 		if err != nil {

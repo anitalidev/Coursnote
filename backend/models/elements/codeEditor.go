@@ -7,7 +7,9 @@ func init() {
 }
 
 type CodeEditor struct {
-	Code json.RawMessage `json:"code"`
+	Code     json.RawMessage `json:"code"`
+	Language string          `json:"language,omitempty"`
+	MaxLines int             `json:"maxLines,omitempty"`
 }
 
 func (ce *CodeEditor) ElementType() string {

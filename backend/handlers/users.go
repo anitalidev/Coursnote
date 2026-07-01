@@ -10,6 +10,7 @@ import (
 type userDTO struct {
 	ID        string   `json:"id"`
 	Username  string   `json:"username"`
+	AvatarURL string   `json:"avatarURL,omitempty"`
 	CourseIDs []string `json:"courseIDs"`
 }
 
@@ -28,7 +29,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 				writeError(w, http.StatusNotFound, err.Error())
 				return
 			}
-			writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+			writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, AvatarURL: user.AvatarURL, CourseIDs: user.CourseIDs})
 		} else {
 			// No user id is specified for the search
 			username := r.URL.Query().Get("username") // try username instead
@@ -39,7 +40,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 				defer store.mu.RUnlock()
 				user, err := store.repos.Users.GetUserByUsername(username)
 				if err == nil {
-					writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+					writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, AvatarURL: user.AvatarURL, CourseIDs: user.CourseIDs})
 				} else {
 					writeError(w, http.StatusNotFound, err.Error())
 					return
@@ -59,6 +60,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 					result = append(result, userDTO{
 						ID:        u.UserID,
 						Username:  u.Username,
+						AvatarURL: u.AvatarURL,
 						CourseIDs: u.CourseIDs,
 					})
 				}
@@ -86,7 +88,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 		user, _ := store.repos.Users.CreateUser(&persistence.UserInfo{
 			Username: body.Username,
 		})
-		writeJSON(w, http.StatusCreated, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs})
+		writeJSON(w, http.StatusCreated, userDTO{ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs, AvatarURL: user.AvatarURL})
 
 	case http.MethodDelete:
 		id := r.URL.Query().Get("id")

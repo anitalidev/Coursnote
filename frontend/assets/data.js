@@ -20,5 +20,5 @@ async function loadAllTopics(modules) {
 
 async function refreshUser() {
   const u = await GET('/user?id=' + S.user.id);
-  S.user = { id: u.id || S.user.id, username: u.username, courseIDs: u.courseIDs };
+  S.user = { id: u.id || S.user.id, username: u.username, avatarURL: u.avatarURL || '', courseIDs: u.courseIDs };
 }

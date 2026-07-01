@@ -54,6 +54,7 @@ func main() {
 	// Serve built frontend assets (JS/CSS bundles from vite build)
 	mux.Handle("/assets/", distFS)
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
+	mux.HandleFunc("/api/user/avatar", handlers.AvatarHandler)
 	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
 	mux.HandleFunc("/api/market", handlers.MarketHandler)

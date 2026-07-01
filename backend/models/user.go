@@ -4,6 +4,7 @@ type User struct {
 	UserID string `json:"userID"` // self
 
 	Username  string   `json:"username"`
+	AvatarURL string   `json:"avatarURL,omitempty"`
 	CourseIDs []string `json:"courseIDs"` // owns
 }
 

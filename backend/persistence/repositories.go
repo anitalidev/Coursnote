@@ -86,6 +86,7 @@ type UserRepository interface {
 	CreateUser(user *UserInfo) (*models.User, error)
 	DeleteUserByID(id string) error
 	GetAllUsers() ([]*models.User, error)
+	SetAvatarURL(id string, url string) error
 }
 
 type EnrollmentRepository interface {

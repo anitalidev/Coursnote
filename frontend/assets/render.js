@@ -43,6 +43,7 @@ function renderSidebar() {
   if (S.view === 'courses' || !S.currentCourse) {
     document.getElementById('sidebar').classList.add('icon-mode');
     const initial = (S.user.username || '?')[0].toUpperCase();
+    const avatarImg = S.user.avatarURL ? `<img src="${esc(S.user.avatarURL)}" class="icon-nav-avatar-img">` : initial;
     nav.innerHTML = `
       <div class="icon-nav-logo">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -68,7 +69,7 @@ function renderSidebar() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Settings</span>
       </div>
-      <div class="icon-nav-avatar" onclick="toggleUserMenu(event)">${initial}</div>
+      <div class="icon-nav-avatar" onclick="toggleUserMenu(event)">${avatarImg}</div>
       <div class="icon-nav-avatar-label" onclick="toggleUserMenu(event)">${esc(S.user.username)} ▾</div>`;
     let menu = document.getElementById('icon-user-menu');
     if (!menu) {
@@ -88,11 +89,12 @@ function renderSidebar() {
   const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
   const pct   = Math.round((S.currentCourse?.pcompleted || 0) * 100);
   const initial = (S.user.username || '?')[0].toUpperCase();
+  const sbAvatarInner = S.user.avatarURL ? `<img src="${esc(S.user.avatarURL)}" class="sb-avatar-img">` : initial;
 
   header.innerHTML = `
     <h2>${window.STATIC_MODE ? esc(S.currentCourse?.name || 'Course') : 'Coursnote'}</h2>
     ${!window.STATIC_MODE ? `<div class="sb-user-row">
-      <div class="sb-avatar">${initial}</div>
+      <div class="sb-avatar">${sbAvatarInner}</div>
       <span class="sb-username">${esc(S.user.username)}</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text3)"><path d="M6 9l6 6 6-6"/></svg>
     </div>` : ''}

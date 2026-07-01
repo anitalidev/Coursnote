@@ -1,7 +1,27 @@
 'use strict';
 
 function settingsHTML() {
-  return `<div style="padding:40px"><h1>Settings</h1></div>`;
+  const avatarSrc = S.user.avatarURL;
+  return `<div class="section">
+    <h1 style="margin-bottom:24px">Settings</h1>
+    <div class="settings-card">
+      <h2 class="settings-section-title">Profile</h2>
+      <div class="settings-avatar-row">
+        <div class="settings-avatar-preview" id="avatar-preview">
+          ${avatarSrc ? `<img src="${esc(avatarSrc)}" class="settings-avatar-img">` : `<span class="settings-avatar-initial">${esc((S.user.username || '?')[0].toUpperCase())}</span>`}
+        </div>
+        <div class="settings-avatar-actions">
+          <p class="settings-label">${esc(S.user.username)}</p>
+          <label class="btn btn-secondary settings-upload-btn">
+            Upload Photo
+            <input type="file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+          </label>
+          ${avatarSrc ? `<button class="btn btn-danger" style="margin-top:6px" onclick="removeAvatar()">Remove Photo</button>` : ''}
+          <p class="settings-hint" id="avatar-status"></p>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 function loginHTML() {
