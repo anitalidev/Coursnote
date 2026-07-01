@@ -286,7 +286,7 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		cascadeDeleteCourse(id)
+		if err := store.repos.Courses.DeleteCourseByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
 		w.WriteHeader(http.StatusNoContent)
 
 	default:
@@ -426,24 +426,8 @@ func CourseVersionsHandler(w http.ResponseWriter, r *http.Request) {
 
 // Helpers
 
-// PercentageCompleted returns the fraction of topics completed across all modules in a course (0.0–1.0).
-// Returns 0 if the course has no topics.
 func PercentageCompleted(course *models.Course) float32 {
-	completed := 0
-	total := 0
-	for _, moduleID := range course.ModuleIDs {
-		module, err := store.repos.Modules.GetModuleByID(moduleID)
-		if err != nil {
-			continue
-		}
-		c, t := completedCountForModule(module)
-		completed += c
-		total += t
-	}
-	if total == 0 {
-		return 0
-	}
-	return float32(completed) / float32(total)
+	return 0
 }
 
 func TopicCount(course *models.Course) int {
@@ -458,16 +442,3 @@ func TopicCount(course *models.Course) int {
 	return total
 }
 
-func completedCountForModule(module *models.Module) (completed, total int) {
-	for _, topicID := range module.TopicIDs {
-		topic, err := store.repos.Topics.GetTopicByID(topicID)
-		if err != nil {
-			continue
-		}
-		total++
-		if topic.Completed {
-			completed++
-		}
-	}
-	return
-}

@@ -523,9 +523,7 @@ function topicHTML() {
         <h1><span>${esc(t.name)}</span></h1>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">
-          ${t.completed ? '✓ Completed' : 'Mark Complete'}
-        </button>
+        <button id="mark-completed-btn" class="mark-completed-btn">Mark Complete</button>
       <div class="notes-tab-group">
         ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
         <button class="notes-tab ${window.STATIC_MODE || S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>

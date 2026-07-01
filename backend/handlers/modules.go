@@ -108,7 +108,7 @@ func ModuleHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		cascadeDeleteModule(id)
+		if err := store.repos.Modules.DeleteModuleByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
 		w.WriteHeader(http.StatusNoContent)
 
 	default:

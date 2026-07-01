@@ -30,7 +30,7 @@ func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 	return c, err
 }
 
-func (r *SQLCourseRepositowry) CreateCourse(info *CourseInfo) (*models.Course, error) {
+func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {
 	res, err := r.db.Exec(
 		`INSERT INTO courses (name, description, user_id, left_colour, right_colour) VALUES (?, ?, ?, ?, ?)`,
 		info.Name, info.Description, info.UserID, info.LeftColour, info.RightColour,

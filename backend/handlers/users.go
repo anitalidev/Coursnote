@@ -106,7 +106,7 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cascadeDeleteUser(id)
+		if err := store.repos.Users.DeleteUserByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
 
 		w.WriteHeader(http.StatusNoContent)
 

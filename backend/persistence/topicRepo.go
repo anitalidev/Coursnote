@@ -21,8 +21,8 @@ func NewSQLTopicRepository(db *sql.DB) *SQLTopicRepository {
 func (r *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
 	t := &models.Topic{TopicID: id}
 	var rawElements sql.NullString
-	err := r.db.QueryRow(`SELECT name, description, module_id, completed, raw_elements FROM topics WHERE topic_id = ?`, id).
-		Scan(&t.Name, &t.Description, &t.ModuleID, &t.Completed, &rawElements)
+	err := r.db.QueryRow(`SELECT name, description, module_id, raw_elements FROM topics WHERE topic_id = ?`, id).
+		Scan(&t.Name, &t.Description, &t.ModuleID, &rawElements)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -143,17 +143,6 @@ func (r *SQLTopicRepository) SaveTopicAnswer(id string, cellIdx int, qi int, cho
 	return err
 }
 
-func (r *SQLTopicRepository) SetTopicCompleted(id string, completed bool) error {
-	res, err := r.db.Exec(`UPDATE topics SET completed = ? WHERE topic_id = ?`, completed, id)
-	if err != nil {
-		return err
-	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return errors.New("id does not exist")
-	}
-	return nil
-}
 
 func (r *SQLTopicRepository) DeleteTopicByID(id string) error {
 	res, err := r.db.Exec(`DELETE FROM topics WHERE topic_id = ?`, id)

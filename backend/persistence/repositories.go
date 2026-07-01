@@ -118,7 +118,6 @@ type TopicRepository interface {
 	CreateTopic(topic *TopicInfo) (*models.Topic, error)
 	DeleteTopicByID(id string) error
 	UpdateTopic(id string, name string, description string) error
-	SetTopicCompleted(id string, completed bool) error
 	SaveTopicElements(id string, elems []elements.Element) error
 	SaveTopicAnswer(id string, cellIdx int, qi int, chosen int) error
 }

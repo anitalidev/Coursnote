@@ -41,7 +41,6 @@ type TopicDTO struct {
 	ModuleID      string          `json:"moduleID"`
 	PrivateNoteID string          `json:"privateNoteID"`
 	CoursePageID  string          `json:"coursePageID"`
-	Completed     bool            `json:"completed"`
 	RawElements   json.RawMessage `json:"rawElements"`
 }
 
@@ -68,7 +67,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
@@ -122,7 +120,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
@@ -131,7 +128,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ID          string          `json:"id"`
 			Name        string          `json:"name"`
 			Description string          `json:"description"`
-			Completed   *bool           `json:"completed"`
 			RawElements json.RawMessage `json:"elements"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" || body.Name == "" {
@@ -144,12 +140,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description); err != nil {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
-		}
-		if body.Completed != nil {
-			if err := store.repos.Topics.SetTopicCompleted(body.ID, *body.Completed); err != nil {
-				writeError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
 		}
 		if len(body.RawElements) > 0 {
 			elems, err := elements.UnmarshalElements(body.RawElements)
@@ -170,7 +160,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			Completed:     topic.Completed,
 			RawElements:   topic.RawElements,
 		})
 
@@ -187,7 +176,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		cascadeDeleteTopic(id)
+		if err := store.repos.Topics.DeleteTopicByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
 		w.WriteHeader(http.StatusNoContent)
 
 	default:
