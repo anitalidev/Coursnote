@@ -37,7 +37,7 @@ async function createCourse(name, desc) {
   await POST('/course', { name, description: desc, userID: S.user.id });
   const full = await GET('/user?id=' + S.user.id);
   S.user.courseIDs = full.courseIDs || [];
-  S.courses = await loadCourses(S.user.courseIDs);
+  S.courses = await loadCourses();
   render();
   toast('Course created');
 }
@@ -310,7 +310,7 @@ async function deleteCourse(id) {
   await DEL('/course?id=' + id);
   const full = await GET('/user?id=' + S.user.id);
   S.user.courseIDs = full.courseIDs || [];
-  S.courses = await loadCourses(S.user.courseIDs);
+  S.courses = await loadCourses();
   render();
   toast('Course deleted', 'err');
 }

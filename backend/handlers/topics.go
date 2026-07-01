@@ -8,31 +8,6 @@ import (
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
-// TopicAnswerHandler saves lastChosen for a single question element.
-// PUT /api/topic/answer
-func TopicAnswerHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-	var body struct {
-		TopicID  string `json:"topicID"`
-		CellIdx  int    `json:"cellIdx"`
-		Qi       int    `json:"qi"`       // -1 for a plain question element
-		Chosen   int    `json:"chosen"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.TopicID == "" {
-		writeError(w, http.StatusBadRequest, "topicID, cellIdx, qi, and chosen required")
-		return
-	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	if err := store.repos.Topics.SaveTopicAnswer(body.TopicID, body.CellIdx, body.Qi, body.Chosen); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
 
 type TopicDTO struct {
 	TopicID       string          `json:"topicID"`

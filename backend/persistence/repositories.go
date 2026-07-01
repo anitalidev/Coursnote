@@ -119,7 +119,6 @@ type TopicRepository interface {
 	DeleteTopicByID(id string) error
 	UpdateTopic(id string, name string, description string) error
 	SaveTopicElements(id string, elems []elements.Element) error
-	SaveTopicAnswer(id string, cellIdx int, qi int, chosen int) error
 }
 
 type CoursePageRepository interface {

@@ -898,7 +898,7 @@ function buildCourseViewHTML(cells) {
       </div>`;
     }
     if (c.type === 'question') {
-      const saved = (!window.STATIC_MODE && c.lastChosen != null) ? c.lastChosen : cvQLoad(cellIdx, null);
+      const saved = cvQLoad(cellIdx, null);
       const isCorrect = saved === c.answer;
       const optsHTML = c.options.map((opt, i) => {
         let cls = 'cv-q-option';
@@ -919,7 +919,7 @@ function buildCourseViewHTML(cells) {
       const id = c.id;
       let correctCount = 0;
       const questionsHTML = c.questions.map((q, qi) => {
-        const saved = (!window.STATIC_MODE && q.lastChosen != null) ? q.lastChosen : cvQLoad(cellIdx, qi);
+        const saved = cvQLoad(cellIdx, qi);
         const isCorrect = saved === q.answer;
         if (saved != null && isCorrect) correctCount++;
         const optsHTML = q.options.map((opt, i) =>
@@ -988,8 +988,6 @@ function cvAnswerQSlide(cellIdx, qi, chosen, correct) {
   const fb = document.getElementById(`cvqf-${cell.id}-${qi}`);
   if (!container || !fb) return;
   cvQSave(cellIdx, qi, chosen);
-  cell.questions[qi].lastChosen = chosen;
-  cvSaveAnswerToBackend(cellIdx, qi, chosen);
   cvApplyAnswer(container, fb, chosen, correct);
   const track = container.closest('.cv-slide-track');
   if (track) {
@@ -1055,16 +1053,7 @@ function cvAnswerQuestion(cellIdx, chosen, correct) {
   const container = document.getElementById('cvq-' + cell.id);
   if (!fb || !container) return;
   cvQSave(cellIdx, null, chosen);
-  cell.lastChosen = chosen;
-  cvSaveAnswerToBackend(cellIdx, -1, chosen);
   cvApplyAnswer(container, fb, chosen, correct);
-}
-
-function cvSaveAnswerToBackend(cellIdx, qi, chosen) {
-  if (window.STATIC_MODE) return;
-  const topicID = S.currentTopic?.topicID;
-  if (!topicID) return;
-  PUT('/topic/answer', { topicID, cellIdx, qi, chosen }).catch(() => {});
 }
 
 const _pnKey = 'pn';
