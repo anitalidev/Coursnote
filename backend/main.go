@@ -58,6 +58,7 @@ func main() {
 	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 	mux.HandleFunc("/api/user", handlers.UsersHandler)
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
+	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
 	mux.HandleFunc("/api/course", handlers.CourseHandler)
 	mux.HandleFunc("/api/course/publish", handlers.CourseHandler)
 	mux.HandleFunc("/api/course/versions", handlers.CourseVersionsHandler)

@@ -23,7 +23,7 @@ async function goHome() {
 async function goCourses() {
   destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.courses = await loadCourses(S.user.courseIDs || []);
+  S.courses = await loadCourses();
   const progMap = {};
   await Promise.all(S.courses.map(async c => {
     if (!c.moduleIDs?.length) { progMap[c.courseID] = 0; return; }
@@ -122,7 +122,7 @@ async function restoreFromHash(hash) {
       S.editMode = !!m.topic[5];
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
       S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
-      S.courses = await loadCourses(S.user.courseIDs || []);
+      S.courses = await loadCourses();
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
       S.currentTopic = topic; S.notebookCells = parseRawElements(topic.rawElements);
@@ -133,7 +133,7 @@ async function restoreFromHash(hash) {
       const [courseID, moduleID] = [m.topics[1], m.topics[2]];
       S.editMode = !!m.topics[3];
       const [course, module] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID)]);
-      S.courses = await loadCourses(S.user.courseIDs || []);
+      S.courses = await loadCourses();
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
       S.moduleTopics = await loadAllTopics(S.modules);
@@ -142,7 +142,7 @@ async function restoreFromHash(hash) {
     } else if (m.modules) {
       const courseID = m.modules[1];
       const course = await GET('/course?id=' + courseID);
-      S.courses = await loadCourses(S.user.courseIDs || []);
+      S.courses = await loadCourses();
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.moduleTopics = await loadAllTopics(S.modules);
       S.editMode = !!m.modules[2];

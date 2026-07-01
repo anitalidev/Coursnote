@@ -30,7 +30,7 @@ func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 	return c, err
 }
 
-func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {
+func (r *SQLCourseRepositowry) CreateCourse(info *CourseInfo) (*models.Course, error) {
 	res, err := r.db.Exec(
 		`INSERT INTO courses (name, description, user_id, left_colour, right_colour) VALUES (?, ?, ?, ?, ?)`,
 		info.Name, info.Description, info.UserID, info.LeftColour, info.RightColour,
@@ -76,6 +76,30 @@ func (r *SQLCourseRepository) DeleteCourseByID(id string) error {
 		return errors.New("id does not exist")
 	}
 	return nil
+}
+
+func (r *SQLCourseRepository) GetCoursesByUserID(userID string) ([]*models.Course, error) {
+	rows, err := r.db.Query(`SELECT course_id FROM courses WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var courses []*models.Course
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		c, err := r.GetCourseByID(id)
+		if err != nil {
+			return nil, err
+		}
+		courses = append(courses, c)
+	}
+	if courses == nil {
+		courses = []*models.Course{}
+	}
+	return courses, rows.Err()
 }
 
 func (r *SQLCourseRepository) moduleIDsForCourse(courseID string) ([]string, error) {

@@ -99,6 +99,7 @@ type EnrollmentRepository interface {
 
 type CourseRepository interface {
 	GetCourseByID(id string) (*models.Course, error)
+	GetCoursesByUserID(userID string) ([]*models.Course, error)
 	CreateCourse(course *CourseInfo) (*models.Course, error)
 	DeleteCourseByID(id string) error
 	UpdateCourse(id string, name string, description string, leftColour string, rightColour string,

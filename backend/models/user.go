@@ -1,4 +1,4 @@
-package models
+gpackage models
 
 type User struct {
 	UserID string `json:"userID"` // self

@@ -1,8 +1,8 @@
 'use strict';
 
-async function loadCourses(ids) {
-  if (!ids || !ids.length) return [];
-  return Promise.all(ids.map(id => GET('/course?id=' + id)));
+async function loadCourses() {
+  if (!S.user?.id) return [];
+  return await GET('/courses?userID=' + S.user.id) || [];
 }
 
 async function loadAll(path, ids) {

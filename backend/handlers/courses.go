@@ -30,6 +30,43 @@ func randomHex() string {
 	return fmt.Sprintf("#%06x", rand.Intn(0xffffff+1))
 }
 
+func CoursesByUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "userID query param required")
+		return
+	}
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	courses, err := store.repos.Courses.GetCoursesByUserID(userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	dtos := make([]CourseDTO, 0, len(courses))
+	for _, course := range courses {
+		dtos = append(dtos, CourseDTO{
+			CourseID:       course.CourseID,
+			Name:           course.Name,
+			Description:    course.Description,
+			ModuleIDs:      course.ModuleIDs,
+			StaticCourseID: course.StaticCourseID,
+			UserID:         course.UserID,
+			PCompleted:     PercentageCompleted(course),
+			NTopics:        TopicCount(course),
+			LeftColour:     course.LeftColour,
+			RightColour:    course.RightColour,
+		})
+	}
+	writeJSON(w, http.StatusOK, dtos)
+}
+
 func CourseHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
