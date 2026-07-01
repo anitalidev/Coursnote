@@ -6,7 +6,7 @@ function esc(s) {
 }
 
 function jsonAttr(obj) {
-  return "JSON.parse(decodeURIComponent('" + encodeURIComponent(JSON.stringify(obj)) + "'))";
+  return "JSON.parse(decodeURIComponent('" + encodeURIComponent(JSON.stringify(obj)).replace(/'/g, '%27') + "'))";
 }
 
 function toggleForm(id) {

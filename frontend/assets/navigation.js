@@ -72,11 +72,12 @@ async function goTopic(topic) {
     }
     S.currentTopic = topic;
     S.notebookCells = parseRawElements(topic.rawElements);
-    S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
+    S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
     S.view = 'topic';
     pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.notesTab + (S.editMode ? '/edit' : ''));
     render();
   } catch (e) {
+    console.error('goTopic failed:', e);
     toast(e.message || 'Failed to open topic', 'err');
   }
 }
@@ -120,7 +121,7 @@ async function restoreFromHash(hash) {
       S.notesTab = m.topic[4] || 'cp';
       S.editMode = !!m.topic[5];
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
-      S.privateNote = await GET('/privatenotes?id=' + topic.privateNoteID);
+      S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
       S.courses = await loadCourses(S.user.courseIDs || []);
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);

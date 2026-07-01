@@ -769,7 +769,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   color: var(--text2); cursor: pointer; outline: none;
 }
 .nb-monaco-wrap { height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-.nb-monaco-view { pointer-events: none; }
+.nb-monaco-view { pointer-events: auto; }
 
 .cv-code-wrap { margin: 8px 18px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
 .cv-code-lang {
