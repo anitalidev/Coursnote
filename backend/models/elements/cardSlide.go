@@ -5,6 +5,7 @@ func init() {
 }
 
 type CardSlide struct {
+	ID    string `json:"id,omitempty"`
 	Cards []Card `json:"cards"`
 }
 

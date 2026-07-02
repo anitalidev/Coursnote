@@ -10,7 +10,7 @@ The download produces a self-contained `.zip` file named after the course (non-a
 
 ```
 CourseName/
-├── index.html          ← the entire app, self-contained
+├── index.html
 └── assets/
     ├── styles.css
     ├── toolbar.css
@@ -29,13 +29,16 @@ CourseName/
 
 1. **Fetch course data** — loads all modules and topics for the course via the API. For each topic, also fetches its private note if one exists.
 
-2. **Build `COURSE_DATA`** — assembles a single JSON object:
+2. **Build `COURSE_DATA`** — uses fetched course data to assemble a single JSON object:
    ```js
    { course, modules, topics: { [topicID]: topic }, privateNotes: { [id]: note } }
    ```
    This becomes `window.COURSE_DATA` embedded in the HTML.
 
 3. **Fetch asset files** — fetches every JS/CSS file listed in `assetFiles` from the running dev server. CSS files are fetched from the Go backend (`localhost:8081/static/assets/`) instead of Vite, because Vite wraps CSS in a JS HMR module rather than serving raw text.
+- Drops save.js and some other editing-related JS that would not be relevant
+- Replace boostrap.js with static.js
+  - bootstrap.js uses Go backend API, static.js uses the COURSE_DATA that will be stored in the .html
 
 4. **Build `index.html`** via `buildStaticIndex()` — produces a standalone HTML page that:
    - Links to the bundled CSS files
@@ -67,3 +70,9 @@ If you add a new JS/CSS file that the app needs:
 2. Add a corresponding `assets.file(...)` call in the zip-building block.
 3. Add a `<script src="assets/...">` tag in `buildStaticIndex` at the correct load order position.
 4. If the file uses any live-app-only features (API calls, edit forms, etc.), add stubs for them in `static-init.js`.
+
+
+
+When publishing courses, the COURSE_DATA will be stored in a StaticContent object attached to each StaticCourse object (one-to-one relationship). 
+Then, when enrolled, there will be an Enrollment object created pointing to a StaticCourse object, and this object may contain more user-specific data regarding an enrollment.
+When viewing an enrolled course, the COURSE_DATA will be inserted into the constant html template used across ALL users, and the enrollment object will be used to provide more user-specific data (eg. question answer history)

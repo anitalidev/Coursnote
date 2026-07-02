@@ -50,4 +50,13 @@
 | description     | TEXT                  |                                                   |
 | topic_id        | INT                   | NOT NULL, UNIQUE, FK → topics(topic_id) ON DELETE CASCADE |
 
+## course_enrollments
+| Column           | Type                  | Constraints                                       |
+|------------------|-----------------------|---------------------------------------------------|
+| enrollment_id    | INT AUTO_INCREMENT    | PRIMARY KEY                                       |
+| user_id          | INT                   | NOT NULL, FK → users(user_id)                     |
+| static_course_id | INT                   | NOT NULL, FK → static_courses(static_course_id)   |
+| enrolled_at      | DATETIME              | NOT NULL                                          |
+| progress         | JSON                  | NULL — `{"completed": {topicID: true}, "lastAnswered": {elementID: optionIndex}}`; NULL means no progress yet |
+
 ---

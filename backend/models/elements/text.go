@@ -7,6 +7,9 @@ func init() {
 }
 
 type Text struct {
+	// ID is set when Text is used as a top-level element; it stays empty
+	// when Text is nested inside other elements (options, headers, cells).
+	ID      string          `json:"id,omitempty"`
 	Content json.RawMessage `json:"content"`
 }
 
@@ -19,6 +22,7 @@ func (t *Text) UnmarshalJSON(data []byte) error {
 	type plain Text
 	var obj plain
 	if err := json.Unmarshal(data, &obj); err == nil {
+		t.ID = obj.ID
 		t.Content = obj.Content
 		return nil
 	}

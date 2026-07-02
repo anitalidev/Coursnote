@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ func CoursesByUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	dtos := make([]CourseDTO, 0, len(courses))
 	for _, course := range courses {
-		dtos = append(dtos, CourseDTO{
+		dto := CourseDTO{
 			CourseID:       course.CourseID,
 			Name:           course.Name,
 			Description:    course.Description,
@@ -62,7 +63,14 @@ func CoursesByUserHandler(w http.ResponseWriter, r *http.Request) {
 			NTopics:        TopicCount(course),
 			LeftColour:     course.LeftColour,
 			RightColour:    course.RightColour,
-		})
+		}
+
+		publishDate, err := store.repos.StaticCourses.GetPublishDateByID(course.StaticCourseID)
+		if err == nil {
+			dto.PublishDate = publishDate
+		}
+
+		dtos = append(dtos, dto)
 	}
 	writeJSON(w, http.StatusOK, dtos)
 }
@@ -401,6 +409,82 @@ func EnrollHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Progress map keys are topic ids or persistent element ids; anything else is
+// a malformed or malicious client.
+var progressKeyRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
+func validProgressKeys(p models.EnrollmentProgress) bool {
+	for k := range p.Completed {
+		if !progressKeyRe.MatchString(k) {
+			return false
+		}
+	}
+	for k := range p.LastAnswered {
+		if !progressKeyRe.MatchString(k) {
+			return false
+		}
+	}
+	return true
+}
+
+// EnrollmentProgressHandler reads (GET) or replaces (PUT) the per-user
+// progress stored on an enrollment, keyed by userID + staticCourseID.
+func EnrollmentProgressHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		userID := r.URL.Query().Get("userID")
+		staticCourseID := r.URL.Query().Get("staticCourseID")
+		if userID == "" || staticCourseID == "" {
+			writeError(w, http.StatusBadRequest, "userID and staticCourseID query params required")
+			return
+		}
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		e, err := store.repos.Enrollments.GetByUserAndStaticCourseID(userID, staticCourseID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if e == nil {
+			writeError(w, http.StatusNotFound, "enrollment not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, e.Progress)
+
+	case http.MethodPut:
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var body struct {
+			UserID         string                    `json:"userID"`
+			StaticCourseID string                    `json:"staticCourseID"`
+			Progress       models.EnrollmentProgress `json:"progress"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
+			writeError(w, http.StatusBadRequest, "userID, staticCourseID and progress required")
+			return
+		}
+		if !validProgressKeys(body.Progress) {
+			writeError(w, http.StatusBadRequest, "invalid progress keys")
+			return
+		}
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		if err := store.repos.Enrollments.UpdateProgress(body.UserID, body.StaticCourseID, body.Progress); err != nil {
+			if err.Error() == "enrollment not found" {
+				writeError(w, http.StatusNotFound, err.Error())
+				return
+			}
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
 }
 
 func CourseVersionsHandler(w http.ResponseWriter, r *http.Request) {

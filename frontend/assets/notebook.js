@@ -1,7 +1,8 @@
 'use strict';
 
-let nbIdCounter = 0;
-function nbGenId() { return 'nb' + (++nbIdCounter); }
+// Persistent element id: generated once when a cell/question is created,
+// stored in raw_elements, and reused on every load thereafter.
+function nbGenId() { return 'el_' + crypto.randomUUID().replace(/-/g, '').slice(0, 10); }
 
 const _nbEditors = {};
 const _monacoEditors = {};
@@ -128,7 +129,7 @@ function ttText(doc) {
 function parseRawElements(raw) {
   if (!Array.isArray(raw) || !raw.length) return [];
   return raw.map(e => ({
-    id: nbGenId(),
+    id: e.id || nbGenId(),
     type: e.type === 'code' ? 'codeEditor' : (e.type || 'text'),
     content: ttUnwrap(e.content),
     cells: e.cells ? e.cells.map(row => row.map(ttUnwrap)) : [[null, null], [null, null]],
@@ -138,10 +139,11 @@ function parseRawElements(raw) {
     options: e.options ? e.options.map(ttUnwrap) : [null, null],
     answer: e.answer ?? 0,
     questions: e.questions ? e.questions.map(q => ({
+      id: q.id || nbGenId(),
       question: ttUnwrap(q.question),
       options: q.options ? q.options.map(ttUnwrap) : [null, null],
       answer: q.answer ?? 0,
-    })) : [{ question: null, options: [null, null], answer: 0 }],
+    })) : [{ id: nbGenId(), question: null, options: [null, null], answer: 0 }],
     code: e.code || '',
     language: e.language || 'javascript',
     maxLines: e.maxLines || 0,
@@ -151,18 +153,18 @@ function parseRawElements(raw) {
 function nbCellsToElements() {
   const wrap = v => ({ content: v });
   return S.notebookCells.map(c => {
-    if (c.type === 'table')     return { type: 'table', cells: c.cells.map(row => row.map(wrap)) };
-    if (c.type === 'card')      return { type: 'card', header: wrap(c.header), content: wrap(c.content) };
-    if (c.type === 'cardSlide') return { type: 'cardSlide', cards: c.cards.map(card => ({ header: wrap(card.header), content: wrap(card.content) })) };
-    if (c.type === 'question')  return { type: 'question', question: wrap(c.question), options: c.options.map(wrap), answer: c.answer };
-    if (c.type === 'questionSlide') return { type: 'questionSlide', questions: c.questions.map(q => ({ question: wrap(q.question), options: q.options.map(wrap), answer: q.answer })) };
-    if (c.type === 'codeEditor') return { type: 'codeEditor', language: c.language || 'javascript', code: c.code || '', maxLines: c.maxLines || 0 };
-    return { type: 'text', content: c.content };
+    if (c.type === 'table')     return { id: c.id, type: 'table', cells: c.cells.map(row => row.map(wrap)) };
+    if (c.type === 'card')      return { id: c.id, type: 'card', header: wrap(c.header), content: wrap(c.content) };
+    if (c.type === 'cardSlide') return { id: c.id, type: 'cardSlide', cards: c.cards.map(card => ({ header: wrap(card.header), content: wrap(card.content) })) };
+    if (c.type === 'question')  return { id: c.id, type: 'question', question: wrap(c.question), options: c.options.map(wrap), answer: c.answer };
+    if (c.type === 'questionSlide') return { id: c.id, type: 'questionSlide', questions: c.questions.map(q => ({ id: q.id, question: wrap(q.question), options: q.options.map(wrap), answer: q.answer })) };
+    if (c.type === 'codeEditor') return { id: c.id, type: 'codeEditor', language: c.language || 'javascript', code: c.code || '', maxLines: c.maxLines || 0 };
+    return { id: c.id, type: 'text', content: c.content };
   });
 }
 
 function nbAddCell(type, insertIdx) {
-  const base = { id: nbGenId(), type, content: null, cells: [], header: null, cards: [{ header: null, content: null }], question: null, options: [null, null], answer: 0, questions: [{ question: null, options: [null, null], answer: 0 }], code: '', language: 'javascript', maxLines: 0 };
+  const base = { id: nbGenId(), type, content: null, cells: [], header: null, cards: [{ header: null, content: null }], question: null, options: [null, null], answer: 0, questions: [{ id: nbGenId(), question: null, options: [null, null], answer: 0 }], code: '', language: 'javascript', maxLines: 0 };
   if (type === 'table') base.cells = [[null, null], [null, null]];
   S.notebookCells.splice(insertIdx, 0, base);
   renderNotebook();
@@ -744,7 +746,7 @@ function nbDelQSlideOption(id, qi, i) {
 function nbAddQSlideQuestion(id) {
   const c = S.notebookCells.find(c => c.id === id);
   if (!c) return;
-  c.questions.push({ question: null, options: [null, null], answer: 0 });
+  c.questions.push({ id: nbGenId(), question: null, options: [null, null], answer: 0 });
   c._slideIdx = c.questions.length - 1;
   renderNotebook();
   scheduleElementsSave();

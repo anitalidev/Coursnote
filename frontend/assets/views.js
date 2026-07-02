@@ -145,7 +145,11 @@ function ccCardShell(item, menuHTML, bodyHTML) {
 }
 
 function ccFormatDate(iso) {
-  return iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown';
+  if (!iso) return 'Unknown';
+  const d = new Date(iso);
+  // Go serializes an unset time.Time as "0001-01-01T00:00:00Z"
+  if (isNaN(d) || d.getFullYear() < 1970) return 'Unknown';
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 // ── Home page ─────────────────────────────────────────────────────────────────

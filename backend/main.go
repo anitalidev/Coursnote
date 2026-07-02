@@ -65,6 +65,7 @@ func main() {
 	mux.HandleFunc("/api/course/enroll", handlers.EnrollHandler)
 	mux.HandleFunc("/api/course/update-enroll", handlers.UpdateEnrollHandler)
 	mux.HandleFunc("/api/course/enrolled", handlers.EnrolledCoursesHandler)
+	mux.HandleFunc("/api/course/progress", handlers.EnrollmentProgressHandler)
 	mux.HandleFunc("/api/module", handlers.ModuleHandler)
 	mux.HandleFunc("/api/topic", handlers.TopicHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)

@@ -5,6 +5,7 @@ func init() {
 }
 
 type Table struct {
+	ID    string   `json:"id,omitempty"`
 	Cells [][]Text `json:"cells"`
 }
 

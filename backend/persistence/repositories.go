@@ -93,7 +93,9 @@ type EnrollmentRepository interface {
 	Create(userID string, staticCourseID string) (*models.CourseEnrollment, error)
 	GetByUserID(userID string) ([]*models.CourseEnrollment, error)
 	GetByUserAndCourseID(userID string, courseID string) (*models.CourseEnrollment, error)
+	GetByUserAndStaticCourseID(userID string, staticCourseID string) (*models.CourseEnrollment, error)
 	UpdateStaticCourse(enrollmentID string, staticCourseID string) error
+	UpdateProgress(userID string, staticCourseID string, progress models.EnrollmentProgress) error
 	Delete(enrollmentID string) error
 }
 
