@@ -383,6 +383,7 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 			NumTopics:   sc.NumTopics,
 			CourseOwner: sc.CourseOwner,
 			IsActive:    sc.IsActive,
+			Progress:    &e.Progress,
 		})
 	}
 	writeJSON(w, http.StatusOK, dtos)

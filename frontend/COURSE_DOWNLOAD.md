@@ -58,7 +58,9 @@ When the downloaded `index.html` is opened, `static-init.js` runs before the res
 - **Synthetic user** — a fake user object is created so the app skips the login screen and goes straight to the course overview.
 - **Navigation stubs** — `goCourses`, `goHome`, `goMarket`, `goSettings` all redirect to the course overview since there is only one course available.
 - **Edit mode disabled** — `S.editMode = false` and all form-binding functions are stubbed out (no-ops).
-- **Progress tracking** — topic completion is tracked in `localStorage` keyed by `cn_progress_<courseID>`, so progress persists across page reloads without a backend.
+- **Progress tracking** — depends on how the page is being viewed:
+  - **Downloaded zip** (no `window.ENROLLMENT_DATA`): topic completion is tracked in `localStorage` keyed by `cn_progress_<courseID>`, so progress persists across page reloads without a backend.
+  - **Enrolled viewing** (served by `/api/staticcontent?id=<contentID>&userID=<userID>`): the backend injects `window.ENROLLMENT_DATA = {userID, staticCourseID, progress}` for enrolled users, and `static-init.js` keeps progress (topic completion + last answer per question) on the enrollment via debounced `PUT /api/course/progress` calls. Answers are keyed by the persistent element/question `id` stored in the snapshot; snapshots published before element ids existed fall back to positional keys until republished.
 
 ---
 

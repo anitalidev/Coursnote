@@ -41,25 +41,87 @@ function goMarket()   { goModules(_CD.course); }
 function goSettings() { goModules(_CD.course); }
 function goLogin()    {}
 
-// ── Progress tracking via localStorage ───────────────────────────────────────
+// ── Progress tracking ─────────────────────────────────────────────────────────
+// Enrolled viewing: the backend injects window.ENROLLMENT_DATA (userID,
+// staticCourseID, progress) and progress is saved to the enrollment via the
+// API. Downloaded static courses have no ENROLLMENT_DATA and keep using
+// localStorage exactly as before.
+var _ED = window.ENROLLMENT_DATA || null;
 var _progressKey = 'cn_progress_' + _CD.course.courseID;
 
-function _getProgress() {
+function _getLocalCompleted() {
   try { return JSON.parse(localStorage.getItem(_progressKey) || '{}'); } catch { return {}; }
 }
+
+var _progress = _ED
+  ? { completed: (_ED.progress && _ED.progress.completed) || {}, lastAnswered: (_ED.progress && _ED.progress.lastAnswered) || {} }
+  : { completed: _getLocalCompleted(), lastAnswered: {} };
+
+var _saveTimer = null;
+function _sendProgress() {
+  _saveTimer = null;
+  fetch('/api/course/progress', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: _progress }),
+  }).catch(function() {});
+}
+
+function _persistProgress() {
+  if (!_ED) {
+    localStorage.setItem(_progressKey, JSON.stringify(_progress.completed));
+    return;
+  }
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_sendProgress, 800);
+}
+
+// Flush a pending save if the tab closes before the debounce fires.
+window.addEventListener('pagehide', function() {
+  if (_ED && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
+});
 
 function toggleTopicCompleted() {
   var t = S.currentTopic;
   if (!t) return;
-  var progress = _getProgress();
-  t.completed = !progress[t.topicID];
-  if (t.completed) progress[t.topicID] = true;
-  else delete progress[t.topicID];
-  localStorage.setItem(_progressKey, JSON.stringify(progress));
+  t.completed = !_progress.completed[t.topicID];
+  if (t.completed) _progress.completed[t.topicID] = true;
+  else delete _progress.completed[t.topicID];
+  _persistProgress();
   var all  = Object.values(_CD.topics || {});
-  var done = all.filter(function(tp) { return progress[tp.topicID]; }).length;
+  var done = all.filter(function(tp) { return _progress.completed[tp.topicID]; }).length;
   S.currentCourse.pcompleted = all.length ? done / all.length : 0;
   render();
+}
+
+if (_ED) {
+  // Answers persist on the enrollment, keyed by the persistent element id when
+  // the snapshot has one. Snapshots published before element ids existed fall
+  // back to a positional key so answers at least stay stable until republish.
+  var _answerKey = function(cellIdx, qi) {
+    var t = S.currentTopic;
+    if (!t) return null;
+    var topic = _CD.topicMap[t.topicID];
+    var raw = topic && topic.rawElements;
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = null; } }
+    var re = Array.isArray(raw) ? raw[cellIdx] : null;
+    var id = qi != null
+      ? (re && re.questions && re.questions[qi] && re.questions[qi].id)
+      : (re && re.id);
+    return id || 'pos_' + t.topicID + '_' + cellIdx + (qi != null ? '_' + qi : '');
+  };
+  cvQSave = function(cellIdx, qi, chosen) {
+    var k = _answerKey(cellIdx, qi);
+    if (k == null) return;
+    _progress.lastAnswered[k] = Number(chosen);
+    _persistProgress();
+  };
+  cvQLoad = function(cellIdx, qi) {
+    var k = _answerKey(cellIdx, qi);
+    var v = k == null ? null : _progress.lastAnswered[k];
+    return v == null ? null : Number(v);
+  };
 }
 
 (function() {
@@ -87,8 +149,7 @@ function toggleTopicCompleted() {
 
 // Restore saved progress on load
 (function() {
-  var progress = _getProgress();
-  Object.values(_CD.topics || {}).forEach(function(t) { t.completed = !!progress[t.topicID]; });
+  Object.values(_CD.topics || {}).forEach(function(t) { t.completed = !!_progress.completed[t.topicID]; });
   var all  = Object.values(_CD.topics || {});
   var done = all.filter(function(t) { return t.completed; }).length;
   _CD.course.pcompleted = all.length ? done / all.length : 0;

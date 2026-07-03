@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/anitalidev/Coursnote/backend/models"
 )
 
 const staticShell = `<!DOCTYPE html>
@@ -30,6 +33,7 @@ const staticShell = `<!DOCTYPE html>
 </script>
 <script type="module" src="/static/assets/static-main.js"></script>
 <script>window.COURSE_DATA = %s;</script>
+<script>window.ENROLLMENT_DATA = %s;</script>
 <script src="/static/assets/state.js"></script>
 <script src="/static/assets/api.js"></script>
 <script src="/static/assets/utils.js"></script>
@@ -63,6 +67,24 @@ func StaticContentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// When the viewer is enrolled, embed their enrollment so static-init.js
+	// persists progress to the enrollment instead of localStorage.
+	enrollmentJSON := "null"
+	if userID := r.URL.Query().Get("userID"); userID != "" {
+		if sc, err := store.repos.StaticCourses.GetByContentID(id); err == nil && sc != nil {
+			if e, err := store.repos.Enrollments.GetByUserAndStaticCourseID(userID, sc.ID); err == nil && e != nil {
+				payload := struct {
+					UserID         string                    `json:"userID"`
+					StaticCourseID string                    `json:"staticCourseID"`
+					Progress       models.EnrollmentProgress `json:"progress"`
+				}{e.UserID, e.StaticCourseID, e.Progress}
+				if b, err := json.Marshal(payload); err == nil {
+					enrollmentJSON = string(b)
+				}
+			}
+		}
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, staticShell, string(content.Content))
+	fmt.Fprintf(w, staticShell, string(content.Content), enrollmentJSON)
 }

@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/anitalidev/Coursnote/backend/models"
 )
 
 type MarketCourseDTO struct {
@@ -21,6 +23,9 @@ type MarketCourseDTO struct {
 	CourseOwner string    `json:"courseOwner"`
 	IsActive    bool      `json:"isActive"`
 	Status      string    `json:"status"` // Status is either "enrolled", "", or "update"
+
+	// Progress is only set on enrolled-course listings.
+	Progress *models.EnrollmentProgress `json:"progress,omitempty"`
 }
 
 func MarketHandler(w http.ResponseWriter, r *http.Request) {

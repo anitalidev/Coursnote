@@ -1,7 +1,8 @@
 'use strict';
 
 function openCourseViewer(contentId) {
-  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.view;
+  const uid = S.user?.id ? '&userID=' + encodeURIComponent(S.user.id) : '';
+  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.view + uid;
 }
 
 function toggleUserMenu(e) {

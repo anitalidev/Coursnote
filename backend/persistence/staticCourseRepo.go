@@ -31,6 +31,22 @@ func (r *SQLStaticCourseRepository) GetByID(id string) (*market.StaticCourse, er
 	return sc, nil
 }
 
+// GetByContentID returns the static course owning the given content blob
+// (one-to-one), or nil if none exists.
+func (r *SQLStaticCourseRepository) GetByContentID(contentID string) (*market.StaticCourse, error) {
+	sc := &market.StaticCourse{ContentID: contentID}
+	err := r.db.QueryRow(
+		`SELECT static_course_id, course_id, name, description, left_colour, right_colour, num_modules, num_topics, course_owner, publish_date, is_active FROM static_courses WHERE content_id = ?`, contentID,
+	).Scan(&sc.ID, &sc.CourseID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.NumModules, &sc.NumTopics, &sc.CourseOwner, &sc.PublishDate, &sc.IsActive)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return sc, nil
+}
+
 func (r *SQLStaticCourseRepository) GetPublishDateByID(id string) (time.Time, error) {
 	var t time.Time
 	err := r.db.QueryRow(
