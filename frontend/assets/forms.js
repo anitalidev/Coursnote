@@ -51,6 +51,7 @@ function openCourseCardEdit(course) {
   document.getElementById('cef-desc').value = course.description || '';
   document.getElementById('cef-save').dataset.id = course.courseID;
   form.classList.add('open');
+  autoResize(document.getElementById('cef-desc'));
   document.getElementById('cef-name').focus();
 }
 
@@ -66,11 +67,54 @@ function bindModulesForm() {
 
   document.getElementById('ce-save')?.addEventListener('click', saveCourseEdit);
   enterSubmit('ce-name', 'ce-save');
+
+  document.getElementById('me-save')?.addEventListener('click', saveModuleEdit);
+  enterSubmit('me-name', 'me-save');
+}
+
+function openModuleEdit(moduleID) {
+  const m = (S.modules || []).find(m => m.moduleID === moduleID)
+    || (S.currentModule?.moduleID === moduleID ? S.currentModule : null);
+  if (!m) return;
+  document.getElementById('me-name').value = m.name;
+  document.getElementById('me-desc').value = m.description || '';
+  document.getElementById('me-save').dataset.id = m.moduleID;
+  // On the module page, the edit box replaces the header; the modules
+  // overview has no per-module header, so there is nothing to hide there.
+  const header = document.getElementById('module-view-header');
+  if (header) header.style.display = 'none';
+  document.getElementById('module-edit-form').style.display = 'block';
+  autoResize(document.getElementById('me-desc'));
+  document.getElementById('me-name').focus();
+}
+
+function exitModuleEditMode() {
+  document.getElementById('module-edit-form').style.display = 'none';
+  const header = document.getElementById('module-view-header');
+  if (header) header.style.display = '';
+}
+
+async function saveModuleEdit() {
+  const id   = document.getElementById('me-save').dataset.id;
+  const name = document.getElementById('me-name').value.trim();
+  const desc = document.getElementById('me-desc').value.trim();
+  if (!id || !name) return;
+  try {
+    const updated = await PUT('/module', { id, name, description: desc });
+    const idx = (S.modules || []).findIndex(m => m.moduleID === updated.moduleID);
+    if (idx !== -1) S.modules[idx] = updated;
+    if (S.currentModule?.moduleID === updated.moduleID) S.currentModule = updated;
+    render();
+    toast('Module updated');
+  } catch (e) {
+    toast(e.message, 'err');
+  }
 }
 
 function enterCourseEditMode() {
   document.getElementById('course-view-header').style.display = 'none';
   document.getElementById('course-edit-form').style.display = 'block';
+  autoResize(document.getElementById('ce-desc'));
   document.getElementById('ce-name').focus();
   document.getElementById('ce-name').select();
 }
@@ -112,11 +156,62 @@ function bindTopicsForm() {
     createTopic(name, '');
   };
   enterSubmit('tf-name', 'tf-submit');
+
+  document.getElementById('me-save')?.addEventListener('click', saveModuleEdit);
+  enterSubmit('me-name', 'me-save');
+
+  document.getElementById('te-save')?.addEventListener('click', saveTopicEdit);
+  enterSubmit('te-name', 'te-save');
+}
+
+function openTopicEdit(topicID) {
+  const t = (S.topics || []).find(t => t.topicID === topicID)
+    || (S.currentTopic?.topicID === topicID ? S.currentTopic : null);
+  if (!t) return;
+  document.getElementById('te-name').value = t.name;
+  document.getElementById('te-desc').value = t.description || '';
+  document.getElementById('te-save').dataset.id = t.topicID;
+  // On the topic page, the edit box replaces the header; the topics
+  // list has no per-topic header, so there is nothing to hide there.
+  const header = document.getElementById('topic-view-header');
+  if (header) header.style.display = 'none';
+  document.getElementById('topic-edit-form').style.display = 'block';
+  autoResize(document.getElementById('te-desc'));
+  document.getElementById('te-name').focus();
+}
+
+function exitTopicEditMode() {
+  document.getElementById('topic-edit-form').style.display = 'none';
+  const header = document.getElementById('topic-view-header');
+  if (header) header.style.display = '';
+}
+
+async function saveTopicEdit() {
+  const id   = document.getElementById('te-save').dataset.id;
+  const name = document.getElementById('te-name').value.trim();
+  const desc = document.getElementById('te-desc').value.trim();
+  if (!id || !name) return;
+  try {
+    // elements omitted on purpose: the backend leaves them unchanged
+    const updated = await PUT('/topic', { id, name, description: desc });
+    const apply = t => {
+      if (t && t.topicID === updated.topicID) { t.name = updated.name; t.description = updated.description; }
+    };
+    (S.topics || []).forEach(apply);
+    Object.values(S.moduleTopics || {}).forEach(list => (list || []).forEach(apply));
+    apply(S.currentTopic);
+    render();
+    toast('Topic updated');
+  } catch (e) {
+    toast(e.message, 'err');
+  }
 }
 
 function bindTopicListeners() {
   mountPNEditor();
   renderNotebook();
+  document.getElementById('te-save')?.addEventListener('click', saveTopicEdit);
+  enterSubmit('te-name', 'te-save');
 }
 
 function enterSubmit(inputId, btnId) {

@@ -100,7 +100,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 /* ── TYPOGRAPHY ── */
 h1 { font-size: 28px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
 h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+.subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; line-height: 1.6; white-space: pre-line; }
 .sb-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 
@@ -157,6 +157,8 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
   transition: border-color .15s; resize: none;
 }
 .field input:focus, .field textarea:focus { border-color: var(--accent); }
+/* Auto-growing description box: grows with content up to 15 lines, then scrolls. */
+.field textarea.desc-ta { line-height: 1.5; max-height: calc(15 * 1.5em + 20px); overflow-y: auto; }
 .form-actions { display: flex; gap: 8px; margin-top: 14px; }
 .ce-colour-row-outer { display: flex; align-items: flex-end; gap: 16px; margin-top: 10px; }
 .ce-colour-pair { display: flex; gap: 12px; }
@@ -224,7 +226,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .ch2-top { padding: 16px 24px 16px; display: flex; align-items: flex-start; justify-content: space-between; }
 .ch2-left { display: flex; align-items: center; gap: 16px; }
 .course-hero2 h1 { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
-.ch2-desc { font-size: 13px; color: var(--text2); margin: 0; }
+.ch2-desc { font-size: 13px; color: var(--text2); margin: 0; white-space: pre-line; }
 .ch2-actions { display: flex; align-items: center; gap: 8px; }
 .ch2-more { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; position: relative; }
 .ch2-more:hover { background: var(--border); }
@@ -256,7 +258,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .mod2-menu { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; color: var(--text2); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity .15s; position: relative; }
 .mod2-card:hover .mod2-menu { opacity: 1; }
 .mod2-name { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.3; }
-.mod2-desc { font-size: 12px; color: var(--text3); line-height: 1.55; flex: 1; }
+.mod2-desc { font-size: 12px; color: var(--text3); line-height: 1.55; flex: 1; white-space: pre-line; }
 .mod2-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .mod2-chip { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 .mod2-add-card {
@@ -317,7 +319,7 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .cc2-progress-pct { color: var(--accent); font-weight: 800; }
 .cc2-course-title-block { display: flex; flex-direction: column; gap: 3px; }
 .cc2-title { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.2; }
-.cc2-desc { font-size: 13px; font-weight: 400; color: var(--text2); line-height: 1.4; }
+.cc2-desc { font-size: 13px; font-weight: 400; color: var(--text2); line-height: 1.4; white-space: pre-line; }
 .cc2-actions { display: flex; gap: 8px; flex-wrap: nowrap; align-items: stretch; }
 .cc2-continue-btn {
   flex: 1; display: flex; align-items: center; justify-content: flex-start; gap: 8px;

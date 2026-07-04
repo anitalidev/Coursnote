@@ -285,7 +285,7 @@ function coursesHTML() {
       <h3>Edit Course</h3>
       <div class="form-row">
         <div class="field"><label>Name</label><input id="cef-name" /></div>
-        <div class="field"><label>Description</label><input id="cef-desc" /></div>
+        <div class="field"><label>Description</label><textarea id="cef-desc" class="desc-ta" rows="1" oninput="autoResize(this)"></textarea></div>
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" id="cef-save">Save</button>
@@ -446,7 +446,7 @@ function modulesHTML() {
         <h3>Edit Course</h3>
         <div class="form-row">
           <div class="field"><label>Name</label><input id="ce-name" value="${esc(c.name)}" /></div>
-          <div class="field"><label>Description</label><input id="ce-desc" value="${esc(c.description || '')}" placeholder="What's this course about?" /></div>
+          <div class="field"><label>Description</label><textarea id="ce-desc" class="desc-ta" rows="1" placeholder="What's this course about?" oninput="autoResize(this)">${esc(c.description || '')}</textarea></div>
         </div>
         <div class="ce-colour-row-outer">
           <div class="ce-colour-pair">
@@ -469,6 +469,19 @@ function modulesHTML() {
         </div>
       </div>
     </div>
+    <div id="module-edit-form" style="display:none;margin-bottom:24px">
+      <div class="inline-form open" style="margin-bottom:0">
+        <h3>Edit Module</h3>
+        <div class="form-row">
+          <div class="field"><label>Name</label><input id="me-name" /></div>
+          <div class="field"><label>Description</label><textarea id="me-desc" class="desc-ta" rows="1" placeholder="What's this module about?" oninput="autoResize(this)"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="me-save">Save</button>
+          <button class="btn btn-ghost" onclick="exitModuleEditMode()">Cancel</button>
+        </div>
+      </div>
+    </div>
 ` : ''}
 
     <div class="mod2-grid">${addModCard}${modCards}</div>
@@ -488,6 +501,7 @@ function topicsHTML() {
           <div class="item-desc">Open to add notes</div>
         </div>
         ${S.editMode ? `<div class="item-actions">
+          <button class="btn btn-ghost" onclick="event.stopPropagation();openTopicEdit('${t.topicID}')">Edit</button>
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
         </div>` : ''}
       </div>`).join('')
@@ -501,15 +515,53 @@ function topicsHTML() {
       ${!window.STATIC_MODE ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
       <span onclick="goModules(${jsonAttr(S.currentCourse)},${S.editMode})">${esc(S.currentCourse.name)}</span>
     </div>
-    <div class="page-hero">
+    <div class="page-hero" id="module-view-header">
       <div class="section-header" style="align-items:flex-start;margin-bottom:0">
         <h1><span>${esc(m.name)}</span></h1>
-        ${S.editMode ? `<button class="btn btn-primary" onclick="openModal('modal-topic','New Topic')">+ New Topic</button>` : ''}
+        ${S.editMode ? `<div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openModuleEdit('${m.moduleID}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="btn btn-primary" onclick="openModal('modal-topic','New Topic')">+ New Topic</button>
+        </div>` : ''}
       </div>
       ${m.description ? `<p class="subtitle">${esc(m.description)}</p>` : '<div style="margin-bottom:24px"></div>'}
     </div>
+    ${S.editMode ? `
+    <div id="module-edit-form" style="display:none;margin-bottom:24px">
+      <div class="inline-form open" style="margin-bottom:0">
+        <h3>Edit Module</h3>
+        <div class="form-row">
+          <div class="field"><label>Name</label><input id="me-name" /></div>
+          <div class="field"><label>Description</label><textarea id="me-desc" class="desc-ta" rows="1" placeholder="What's this module about?" oninput="autoResize(this)"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="me-save">Save</button>
+          <button class="btn btn-ghost" onclick="exitModuleEditMode()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    ${topicEditFormHTML()}
+` : ''}
     <div class="item-list">${items}</div>
   </div>`;
+}
+
+function topicEditFormHTML() {
+  return `<div id="topic-edit-form" style="display:none;margin-bottom:24px">
+      <div class="inline-form open" style="margin-bottom:0">
+        <h3>Edit Topic</h3>
+        <div class="form-row">
+          <div class="field"><label>Name</label><input id="te-name" /></div>
+          <div class="field"><label>Description</label><textarea id="te-desc" class="desc-ta" rows="1" placeholder="What's this topic about?" oninput="autoResize(this)"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="te-save">Save</button>
+          <button class="btn btn-ghost" onclick="exitTopicEditMode()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 function topicHTML() {
@@ -521,11 +573,16 @@ function topicHTML() {
       <span class="sep">›</span>
       <span onclick="goTopics(${jsonAttr(S.currentModule)})">${esc(S.currentModule.name)}</span>
     </div>
-    <div class="topic-header">
+    <div class="topic-header" id="topic-view-header">
       <div>
         <h1><span>${esc(t.name)}</span></h1>
+        ${t.description ? `<p class="subtitle">${esc(t.description)}</p>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:12px">
+        ${S.editMode ? `<button class="btn btn-ghost" onclick="openTopicEdit('${t.topicID}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>` : ''}
         ${window.STATIC_MODE ? `<button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.completed ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
         ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
@@ -533,6 +590,7 @@ function topicHTML() {
       </div>
       </div>
     </div>
+    ${S.editMode ? topicEditFormHTML() : ''}
     ${!window.STATIC_MODE ? `<div id="pane-pn" class="note-pane" style="${S.notesTab === 'pn' ? '' : 'display:none'}">
       <div class="note-pane-header">
         <span class="note-pane-title private">Private Notes</span>

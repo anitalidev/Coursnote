@@ -81,6 +81,7 @@ function openModuleMenu(moduleID, btn) {
   const menu = document.createElement('div');
   menu.className = 'cc2-dropdown';
   menu.innerHTML = `
+    <div class="cc2-dd-item" onclick="openModuleEdit('${moduleID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Edit</div>
     <div class="cc2-dd-item cc2-dd-danger" onclick="deleteModule('${moduleID}');document.querySelectorAll('.cc2-dropdown').forEach(d=>d.remove())">Delete</div>`;
   btn.style.position = 'relative';
   btn.appendChild(menu);
