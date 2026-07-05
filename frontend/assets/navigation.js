@@ -54,7 +54,7 @@ async function goTopics(module) {
   try {
     destroyPNEditor();
     S.currentModule = module; S.currentTopic = null;
-    S.topics = await loadAll('/topic?id=', module.topicIDs || []);
+    S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
     S.moduleTopics[module.moduleID] = S.topics;
     S.view = 'topics';
     pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID + (S.editMode ? '/edit' : ''));
@@ -124,7 +124,7 @@ async function restoreFromHash(hash) {
       S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
       S.courses = await loadCourses();
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-      S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
+      S.currentModule = module; S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
       S.currentTopic = topic; S.notebookCells = parseRawElements(topic.rawElements);
       S.moduleTopics = await loadAllTopics(S.modules);
       S.moduleTopics[module.moduleID] = S.topics;
@@ -135,7 +135,7 @@ async function restoreFromHash(hash) {
       const [course, module] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID)]);
       S.courses = await loadCourses();
       S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-      S.currentModule = module; S.topics = await loadAll('/topic?id=', module.topicIDs || []);
+      S.currentModule = module; S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
       S.moduleTopics = await loadAllTopics(S.modules);
       S.moduleTopics[module.moduleID] = S.topics;
       S.view = 'topics';

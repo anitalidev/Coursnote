@@ -10,10 +10,24 @@ async function loadAll(path, ids) {
   return Promise.all(ids.map(id => GET(path + id)));
 }
 
+async function loadAllTopicsWithCompleted(topicIDs) {
+  const topics = await loadAll('/topic?id=', topicIDs || []);
+  if (window.STATIC_MODE) {
+    const _progress = window._progress || { completed: {} };
+    topics.forEach(t => { t.completed = !!_progress.completed[t.topicID]; });
+  }
+  return topics;
+}
+
+async function loadAllTopicsFromModulesWithCompleted(modules) {
+  const allTopics = (await Promise.all(modules.map(m => loadAllTopicsWithCompleted(m.topicIDs || [])))).flat();
+  return allTopics;
+}
+
 async function loadAllTopics(modules) {
   const map = {};
   await Promise.all((modules || []).map(async m => {
-    map[m.moduleID] = m.topicIDs?.length ? await loadAll('/topic?id=', m.topicIDs) : [];
+    map[m.moduleID] = m.topicIDs?.length ? await loadAllTopicsWithCompleted(m.topicIDs) : [];
   }));
   return map;
 }

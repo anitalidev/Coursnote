@@ -496,20 +496,52 @@ function modulesHTML() {
 function topicsHTML() {
   const m = S.currentModule;
   const items = S.topics.length
-    ? S.topics.map(t => `
-      <div class="item-card" onclick="goTopic(${jsonAttr(t)})">
+    ? S.topics.map((t, idx) => {
+        const rules = t.compTypes || [];
+        const labelMap = {
+          'self_reported': 'Manual',
+          'percentage_questions_correct': 'Percentage of Questions Completed',
+          'read_to_bottom': 'Finish Reading',
+          'timed': 'Time Spent'
+        };
+        const ruleMap = {};
+        rules.forEach(r => { ruleMap[r.type] = r.config; });
+        const ruleLabels = Object.keys(ruleMap).map(type => {
+          const config = ruleMap[type];
+          let label = labelMap[type] || type;
+          if (config !== null && config !== '') {
+            if (type === 'timed') label += ` (${config}s)`;
+            if (type === 'percentage_questions_correct') label += ` (${config}%)`;
+          }
+          return label;
+        });
+        let tooltipContent;
+        if (rules.length === 0) {
+          tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
+        } else {
+          tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
+        }
+        const rulesHTML = `<div class="tooltip-trigger" style="display:inline-block;margin-left:8px" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
+              <span class="info-icon">(i)</span>
+              <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
+            </div>`;
+        return `
+      <div class="item-card${t.completed ? ' completed' : ''}" onclick="goTopic(${jsonAttr(t)})">
         <div class="item-icon topic">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </div>
         <div class="item-body">
           <div class="item-title">${esc(t.name)}</div>
-          <div class="item-desc">Open to add notes</div>
+          <div class="item-desc" style="display:flex;gap:8px;margin-bottom:4px">Open to add notes</div>
+          <div class="item-status">${t.completed ? '✓ Completed' : 'Not Completed'}</div>
         </div>
+        <div style="display:flex;align-items:center;gap:4px">${rulesHTML}</div>
         ${S.editMode ? `<div class="item-actions">
           <button class="btn btn-ghost" onclick="event.stopPropagation();openTopicEdit('${t.topicID}')">Edit</button>
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
         </div>` : ''}
-      </div>`).join('')
+      </div>`;
+      }).join('')
     : `<div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <p>No topics yet.<br>Add your first topic above.</p>
@@ -578,12 +610,6 @@ function renderTopicRulesDisplay(topic) {
   if (!container) return;
 
   const rules = topic.compTypes || [];
-
-  if (rules.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
   const ruleMap = {};
   rules.forEach(r => { ruleMap[r.type] = r.config; });
 
@@ -594,17 +620,22 @@ function renderTopicRulesDisplay(topic) {
     'timed': 'Time Spent'
   };
 
-  const ruleLabels = Object.keys(ruleMap).map(type => {
-    const config = ruleMap[type];
-    let label = labelMap[type] || type;
-    if (config !== null && config !== '') {
-      if (type === 'timed') label += ` (${config}s)`;
-      if (type === 'percentage_questions_correct') label += ` (${config}%)`;
-    }
-    return label;
-  });
+  let tooltipContent;
+  if (rules.length === 0) {
+    tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
+  } else {
+    const ruleLabels = Object.keys(ruleMap).map(type => {
+      const config = ruleMap[type];
+      let label = labelMap[type] || type;
+      if (config !== null && config !== '') {
+        if (type === 'timed') label += ` (${config}s)`;
+        if (type === 'percentage_questions_correct') label += ` (${config}%)`;
+      }
+      return label;
+    });
+    tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
+  }
 
-  const tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
   container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
     <span style="font-size:12px;color:var(--text3)">Completion Rules <span class="info-icon">(i)</span></span>
     <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
@@ -683,7 +714,7 @@ function topicHTML() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>` : ''}
-        ${window.STATIC_MODE ? `<button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.completed ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
+        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.completed ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
         ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
         <button class="notes-tab ${window.STATIC_MODE || S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>

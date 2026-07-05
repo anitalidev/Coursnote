@@ -56,6 +56,7 @@ function _getLocalCompleted() {
 var _progress = _ED
   ? { completed: (_ED.progress && _ED.progress.completed) || {}, lastAnswered: (_ED.progress && _ED.progress.lastAnswered) || {} }
   : { completed: _getLocalCompleted(), lastAnswered: {} };
+window._progress = _progress;
 
 var _saveTimer = null;
 function _sendProgress() {

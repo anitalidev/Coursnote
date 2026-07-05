@@ -109,7 +109,8 @@ function renderSidebar() {
     const mTopics = (S.moduleTopics || {})[m.moduleID] || [];
     const topicItems = mTopics.map(t => {
       const tActive = S.currentTopic?.topicID === t.topicID ? ' nav-sub-active' : '';
-      return `<div class="nav-sub-item${tActive}" onclick="event.stopPropagation();goTopic(${jsonAttr(t)})">
+      const tDone   = t.completed && !tActive ? ' nav-sub-done' : '';
+      return `<div class="nav-sub-item${tActive}${tDone}" onclick="event.stopPropagation();goTopic(${jsonAttr(t)})">
         <span class="nav-sub-dot"></span><span>${esc(t.name)}</span>
       </div>`;
     }).join('');

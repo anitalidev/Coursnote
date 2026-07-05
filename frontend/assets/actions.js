@@ -55,10 +55,10 @@ async function createModule(name, desc) {
 
 
 async function createTopic(name, desc) {
-  await POST('/topic', { name, description: desc, moduleID: S.currentModule.moduleID });
+  await POST('/topic', { name, description: desc, moduleID: S.currentModule.moduleID, compRules: [{ type: 'self_reported', config: null }] });
   const updated = await GET('/module?id=' + S.currentModule.moduleID);
   S.currentModule = updated;
-  S.topics = await loadAll('/topic?id=', updated.topicIDs || []);
+  S.topics = await loadAllTopicsWithCompleted(updated.topicIDs || []);
   S.moduleTopics[S.currentModule.moduleID] = S.topics;
   S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
   render();
@@ -113,7 +113,7 @@ async function publishCourse(id) {
   if (!course) return;
 
   const modules = await loadAll('/module?id=', course.moduleIDs || []);
-  const allTopics = (await Promise.all(modules.map(m => loadAll('/topic?id=', m.topicIDs || [])))).flat();
+  const allTopics = await loadAllTopicsFromModulesWithCompleted(modules);
   const topicMap = {};
   const privateNotes = {};
   await Promise.all(allTopics.map(async t => {
@@ -136,7 +136,7 @@ async function downloadCourse(id) {
   if (!course) return;
 
   const modules = await loadAll('/module?id=', course.moduleIDs || []);
-  const allTopics = (await Promise.all(modules.map(m => loadAll('/topic?id=', m.topicIDs || [])))).flat();
+  const allTopics = await loadAllTopicsFromModulesWithCompleted(modules);
 
   // Keyed maps for COURSE_DATA
   const topicMap = {};
@@ -292,7 +292,7 @@ async function deleteTopic(id) {
   await DEL('/topic?id=' + id);
   const updated = await GET('/module?id=' + S.currentModule.moduleID);
   S.currentModule = updated;
-  S.topics = await loadAll('/topic?id=', updated.topicIDs || []);
+  S.topics = await loadAllTopicsWithCompleted(updated.topicIDs || []);
   S.moduleTopics[S.currentModule.moduleID] = S.topics;
   S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
   render();
