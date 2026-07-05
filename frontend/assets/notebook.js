@@ -41,7 +41,11 @@ function nbMountMonacoEditors() {
       domReadOnly: false,
       padding: { top: 10, bottom: 10 },
       tabSize: 2,
+      // When the editor is scrolled to its edge, let the wheel event
+      // through so the page keeps scrolling instead of getting stuck.
+      scrollbar: { alwaysConsumeMouseWheel: false },
     });
+    nbAttachScrollLatch(el, editor);
     _monacoEditors[c.id] = editor;
     if (S.editMode) {
       editor.onDidChangeModelContent(() => {
@@ -56,6 +60,42 @@ function nbMountMonacoEditors() {
       });
     }
   });
+}
+
+// Edge latch: the scroll gesture that reaches the editor's edge stops there
+// completely — the page never moves, no matter how far the user overshoots.
+// A NEW gesture that starts while the editor is already at the edge scrolls
+// the page. "New gesture" means: direction changed, a pause since the last
+// wheel event (continuous pushing emits events every few ms, so a real gap
+// means the user let go), or a strong wheel kick right after a decaying
+// trackpad momentum tail. Editors with nothing to scroll are left alone.
+const NB_LATCH_GESTURE_GAP_MS = 180; // silence this long = a new gesture
+const NB_LATCH_HOLD_MS        = 400; // firm stop at the edge for this long, then release
+
+function nbAttachScrollLatch(el, editor) {
+  const s = { last: 0, dir: 0, toPage: false, edgeAt: 0 };
+  el.addEventListener('wheel', e => {
+    const dir = e.deltaY > 0 ? 1 : e.deltaY < 0 ? -1 : 0;
+    if (!dir) return;
+    const maxScroll = editor.getScrollHeight() - editor.getLayoutInfo().height;
+    if (maxScroll <= 1) return;                       // nothing to scroll: page handles it
+    const top = editor.getScrollTop();
+    const atEdge = dir > 0 ? top >= maxScroll - 1 : top <= 1;
+    const now = performance.now();
+    const fresh = dir !== s.dir || now - s.last > NB_LATCH_GESTURE_GAP_MS;
+    s.last = now;
+    s.dir = dir;
+    if (fresh) { s.toPage = atEdge; s.edgeAt = 0; } // gesture starting at the edge belongs to the page
+    if (!atEdge) { s.edgeAt = 0; return; }          // interior: Monaco scrolls
+    if (s.toPage) return;                           // page gesture flows through
+    if (!s.edgeAt) s.edgeAt = now;                  // just hit the edge: start the hold
+    if (now - s.edgeAt < NB_LATCH_HOLD_MS) {
+      e.preventDefault();                           // brief firm stop against overshoot
+      e.stopPropagation();
+    } else {
+      s.toPage = true;                              // held long enough: scroll the page
+    }
+  }, { passive: false, capture: true });
 }
 
 function nbDestroyMonacoEditors() {
