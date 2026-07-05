@@ -233,14 +233,14 @@ function buildStaticIndex(course, courseData, fileMap) {
 
 async function enrollInCourse(staticCourseID) {
   await POST('/course/enroll', { userID: S.user.id, staticCourseID });
-  S.marketCourses = await GET('/market?userID=' + S.user.id) || [];
+  await loadMarketCourses();
   S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
   render();
 }
 
 async function updateEnrollment(staticCourseID) {
   await POST('/course/update-enroll', { userID: S.user.id, staticCourseID });
-  S.marketCourses = await GET('/market?userID=' + S.user.id) || [];
+  await loadMarketCourses();
   S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
   render();
 }
@@ -325,50 +325,36 @@ function toggleCustomDropdown(id) {
   opts.style.display = opts.style.display === 'none' ? '' : 'none';
 }
 
-// ── Market filter/sort ────────────────────────────────────────────────────────
+// ── Market filter/sort (server-side; see GET /api/market) ────────────────────
 
-function marketFilteredCards() {
+// Build the /market query string from the current filter state.
+function marketQueryString() {
   const f = S.marketFilter;
-  const q = f.search.toLowerCase();
-
-  let list = (S.marketCourses || []).filter(c => {
-    if (q && !(
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.description || '').toLowerCase().includes(q) ||
-      (c.courseOwner || '').toLowerCase().includes(q)
-    )) return false;
-
-    if (f.author) {
-      const a = (c.courseOwner || '').toLowerCase();
-      if (!a.includes(f.author.toLowerCase())) return false;
-    }
-
-    const m = c.numModules || 0;
-    if (f.sizeMin !== '' && m < Number(f.sizeMin)) return false;
-    if (f.sizeMax !== '' && m > Number(f.sizeMax)) return false;
-
-    return true;
-  });
-
-  if ((f.sorts || []).length > 0) {
-    list = [...list].sort((a, b) => {
-      for (const { key, dir } of f.sorts) {
-        const d = dir === 'desc' ? -1 : 1;
-        let res = 0;
-        switch (key) {
-          case 'AtoZ':        res = (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()); break;
-          case 'modules':     res = (a.numModules || 0) - (b.numModules || 0); break;
-          case 'topics':      res = (a.numTopics  || 0) - (b.numTopics  || 0); break;
-          case 'owner':       res = (a.courseOwner || '').toLowerCase().localeCompare((b.courseOwner || '').toLowerCase()); break;
-          case 'publishDate': res = new Date(a.publishDate) - new Date(b.publishDate); break;
-        }
-        if (res !== 0) return d * res;
-      }
-      return 0;
-    });
+  const p = new URLSearchParams();
+  p.set('userID', S.user.id);
+  if (f.search)           p.set('search', f.search);
+  if (f.author)           p.set('author', f.author);
+  if (f.status)           p.set('status', f.status);
+  if (f.sizeMin !== '')   p.set('modSizeMin', f.sizeMin);
+  if (f.sizeMax !== '')   p.set('modSizeMax', f.sizeMax);
+  if (f.topicsMin !== '') p.set('topSizeMin', f.topicsMin);
+  if (f.topicsMax !== '') p.set('topSizeMax', f.topicsMax);
+  if ((f.sorts || []).length) {
+    p.set('sortBy', f.sorts.map(s => (s.dir === 'desc' ? '-' : '') + s.key).join(','));
   }
+  return '/market?' + p.toString();
+}
 
-  return list;
+// Fields counted as "active filters" for the badge on the filter button.
+function marketActiveFilterCount() {
+  const f = S.marketFilter;
+  return [f.sizeMin, f.sizeMax, f.topicsMin, f.topicsMax, f.author, f.status].filter(v => v !== '').length;
+}
+
+async function loadMarketCourses() {
+  const res = await GET(marketQueryString());
+  S.marketCourses = res?.courses || [];
+  S.marketTotal   = res?.total ?? S.marketCourses.length;
 }
 
 function marketSetSearch(val) {
@@ -376,24 +362,30 @@ function marketSetSearch(val) {
   marketRerender();
 }
 
-function marketClearFilters() {
+// From a home-page "Update available" link: open the market pre-filtered so
+// the course's newer published version is what shows.
+async function goMarketForUpdate(courseName) {
   const f = S.marketFilter;
-  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.author = '';
-  const panel = document.getElementById('mkt-filter-panel');
-  if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
-  marketUpdateFilterBadge();
-  marketRerender();
+  f.search = courseName;
+  f.status = 'update';
+  f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = '';
+  await goMarket();
 }
 
+// Debounced so typing in the search/filter inputs doesn't fire a request per
+// keystroke; the server does the filtering and sorting.
+let _mktFetchTimer = null;
 function marketRerender() {
-  const filtered = marketFilteredCards();
-  const total = (S.marketCourses || []).length;
-  const grid = document.getElementById('mkt-grid');
-  if (grid) grid.innerHTML = filtered.map(marketCardHTML).join('');
-  const countEl = document.querySelector('.mkt-count');
-  if (countEl) countEl.textContent = filtered.length === total
-    ? `${total} course${total !== 1 ? 's' : ''}`
-    : `${filtered.length} of ${total} courses`;
+  clearTimeout(_mktFetchTimer);
+  _mktFetchTimer = setTimeout(async () => {
+    await loadMarketCourses();
+    const grid = document.getElementById('mkt-grid');
+    if (grid) grid.innerHTML = S.marketCourses.map(marketCardHTML).join('');
+    const countEl = document.querySelector('.mkt-count');
+    if (countEl) countEl.textContent = S.marketCourses.length === S.marketTotal
+      ? `${S.marketTotal} course${S.marketTotal !== 1 ? 's' : ''}`
+      : `${S.marketCourses.length} of ${S.marketTotal} courses`;
+  }, 250);
 }
 
 function marketSetSort(key) {
@@ -426,7 +418,7 @@ function marketUpdateSortBtn() {
     btn.innerHTML = `${sortIcon}<span>Sort</span>`;
     btn.classList.remove('mkt-icon-btn-active');
   } else {
-    const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author' };
+    const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author', status: 'Status' };
     const label = sorts.length === 1 ? labelMap[sorts[0].key] : `${sorts.length} sorts`;
     btn.innerHTML = `${sortIcon}<span>${label}</span>`;
     btn.classList.add('mkt-icon-btn-active');
@@ -444,6 +436,7 @@ const MKT_SORT_OPTIONS = [
   { key: 'modules',     label: 'Modules'       },
   { key: 'topics',      label: 'Topics'        },
   { key: 'owner',       label: 'Author'        },
+  { key: 'status',      label: 'Status'        },
 ];
 
 function marketBuildSortPanelHTML() {
@@ -504,8 +497,27 @@ function marketBuildFilterPanelHTML() {
       </div>
     </div>
     <div class="mkt-fp-row">
+      <span class="mkt-fp-label">Topics</span>
+      <div class="mkt-range-wrap">
+        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Min"
+          value="${esc(String(f.topicsMin))}" oninput="marketSetFilter('topicsMin',this.value)" />
+        <span class="mkt-range-sep">–</span>
+        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Max"
+          value="${esc(String(f.topicsMax))}" oninput="marketSetFilter('topicsMax',this.value)" />
+      </div>
+    </div>
+    <div class="mkt-fp-row">
       <span class="mkt-fp-label">Author</span>
       <input class="mkt-fp-input" placeholder="Search author…" value="${esc(f.author)}" oninput="marketSetFilter('author',this.value)" />
+    </div>
+    <div class="mkt-fp-row">
+      <span class="mkt-fp-label">Status</span>
+      <select class="mkt-fp-input" onchange="marketSetFilter('status',this.value)">
+        <option value=""${f.status === '' ? ' selected' : ''}>Any</option>
+        <option value="enrolled"${f.status === 'enrolled' ? ' selected' : ''}>Enrolled</option>
+        <option value="update"${f.status === 'update' ? ' selected' : ''}>Update available</option>
+        <option value="not enrolled"${f.status === 'not enrolled' ? ' selected' : ''}>Not enrolled</option>
+      </select>
     </div>`;
 }
 
@@ -542,8 +554,7 @@ function marketSetFilter(key, val) {
 }
 
 function marketUpdateFilterBadge() {
-  const f = S.marketFilter;
-  const filterCount = [f.sizeMin, f.sizeMax, f.author].filter(v => v !== '').length;
+  const filterCount = marketActiveFilterCount();
   const filterBtn = document.getElementById('mkt-filter-btn');
   if (!filterBtn) return;
   filterBtn.classList.toggle('mkt-icon-btn-active', filterCount > 0);
@@ -559,7 +570,7 @@ function marketUpdateFilterBadge() {
 
 function marketClearFilters() {
   const f = S.marketFilter;
-  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.author = '';
+  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = ''; f.status = '';
   const panel = document.getElementById('mkt-filter-panel');
   if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
   marketUpdateFilterBadge();

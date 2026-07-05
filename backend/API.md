@@ -629,14 +629,27 @@ Creates the content blob and static course, deactivates the course's previous st
 
 ---
 
-### `GET /api/market?userID=<id>&sortBy=<fields>`
+### `GET /api/market`
 
-Returns all **active** static courses as `MarketCourseDTO`s.
+Returns **active** static courses, filtered and sorted server-side. The frontend does no market filtering or sorting of its own — every control maps to a query parameter here.
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `userID`  | No       | If given, sets each DTO's `status`: `"enrolled"` (enrolled in this exact version), `"update"` (enrolled in an older version of the same course), or `""` |
-| `sortBy`  | No       | Comma-separated field names; prefix with `-` to reverse |
+| Parameter    | Required | Description                                                                                                                                      |
+|--------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `userID`     | No       | If given, sets each DTO's `status`: `"enrolled"` (enrolled in this exact version), `"update"` (enrolled in an older version of the same course), or `""` (not enrolled) |
+| `search`     | No       | Case-insensitive substring match against name, description, or owner                                                                             |
+| `author`     | No       | Case-insensitive substring match against owner only                                                                                              |
+| `status`     | No       | `enrolled`, `update`, or `not enrolled` (needs `userID` to be meaningful)                                                                        |
+| `modSizeMin` / `modSizeMax` | No | Bounds on `numModules` (inclusive; non-numeric values are ignored)                                                                 |
+| `topSizeMin` / `topSizeMax` | No | Bounds on `numTopics` (inclusive; non-numeric values are ignored)                                                                  |
+| `sortBy`     | No       | Comma-separated keys, applied in order; prefix with `-` for descending. Keys: `publishDate`, `AtoZ`, `owner`, `modules`, `topics`, `status`, `id`. `status` orders enrolled → update → not enrolled |
+
+Filtering runs before sorting. The response is an envelope so clients can show "shown of total":
+
+```json
+{ "total": 12, "courses": [ { "...": "MarketCourseDTO" } ] }
+```
+
+`total` counts all active courses before filtering; `courses` is the filtered, sorted list.
 
 **`MarketCourseDTO` shape:**
 ```json

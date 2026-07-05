@@ -3,11 +3,26 @@ package handlers
 import (
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 )
+
+// intQueryParam parses an integer query parameter; ok is false when the
+// parameter is absent or not a number.
+func intQueryParam(r *http.Request, name string) (int, bool) {
+	v := r.URL.Query().Get(name)
+	if v == "" {
+		return 0, false
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
 
 type MarketCourseDTO struct {
 	ID          string    `json:"id"`
@@ -85,6 +100,69 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 			dtos = append(dtos, dto)
 		}
 
+		total := len(dtos)
+
+		// Server-side filtering: free-text search over name/description/owner,
+		// author substring, and module-count bounds.
+		search := strings.ToLower(r.URL.Query().Get("search"))
+		author := strings.ToLower(r.URL.Query().Get("author"))
+		status := r.URL.Query().Get("status")
+		sizeModMin, hasModMin := intQueryParam(r, "modSizeMin")
+		sizeTopMin, hasTopMin := intQueryParam(r, "topSizeMin")
+		sizeModMax, hasModMax := intQueryParam(r, "modSizeMax")
+		sizeTopMax, hasTopMax := intQueryParam(r, "topSizeMax")
+
+		filtered := dtos[:0]
+		for _, dto := range dtos {
+			// Searching for courses by content
+			if search != "" &&
+				!strings.Contains(strings.ToLower(dto.Name), search) &&
+				!strings.Contains(strings.ToLower(dto.Description), search) &&
+				!strings.Contains(strings.ToLower(dto.CourseOwner), search) {
+				continue
+			}
+
+			// Searching for courses by author
+			if author != "" && !strings.Contains(strings.ToLower(dto.CourseOwner), author) {
+				continue
+			}
+
+			// Searching for courses with some status:
+			// "enrolled", "update", or "not enrolled" (the DTO stores
+			// not-enrolled as an empty string).
+			if status != "" {
+				want := status
+				if want == "not enrolled" {
+					want = ""
+				}
+				if dto.Status != want {
+					continue
+				}
+			}
+
+			// Courses with # of modules between modSizeMin and modSizeMax (if specified, inclusive)
+			if hasModMin && dto.NumModules < sizeModMin {
+				continue
+			}
+			if hasModMax && dto.NumModules > sizeModMax {
+				continue
+			}
+
+			// Courses with # of topics between topSizeMin and topSizeMax (if specified, inclusive)
+			if hasTopMin && dto.NumTopics < sizeTopMin {
+				continue
+			}
+			if hasTopMax && dto.NumTopics > sizeTopMax {
+				continue
+			}
+
+			// If pass all filters, add to final filtered out list
+			filtered = append(filtered, dto)
+		}
+		dtos = filtered
+
+		// Now sort the filtered list
+
 		sortByFields := make([]string, 0)
 		sortFlips := make([]bool, 0)
 		for _, s := range strings.Split(r.URL.Query().Get("sortBy"), ",") {
@@ -115,6 +193,8 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 				comps = append(comps, courseCompModules)
 			case "topics":
 				comps = append(comps, courseCompTopics)
+			case "status":
+				comps = append(comps, courseCompStatus)
 			}
 		}
 
@@ -133,13 +213,19 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		writeJSON(w, http.StatusOK, dtos)
+		writeJSON(w, http.StatusOK, struct {
+			Total   int               `json:"total"`
+			Courses []MarketCourseDTO `json:"courses"`
+		}{total, dtos})
 
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
 }
 
+// Filter functions:
+
+// Comparator Functions:
 func courseCompID(a, b *MarketCourseDTO, flip bool) int {
 	if a.ID < b.ID {
 		if !flip {
@@ -198,6 +284,33 @@ func courseCompOwner(a, b *MarketCourseDTO, flip bool) int {
 		}
 		return After
 	} else if ao > bo {
+		if !flip {
+			return After
+		}
+		return Before
+	}
+	return Equal
+}
+
+// courseCompStatus orders enrolled first, then update, then not enrolled.
+func courseCompStatus(a, b *MarketCourseDTO, flip bool) int {
+	rank := func(s string) int {
+		switch s {
+		case "enrolled":
+			return 0
+		case "update":
+			return 1
+		default:
+			return 2
+		}
+	}
+	ra, rb := rank(a.Status), rank(b.Status)
+	if ra < rb {
+		if !flip {
+			return Before
+		}
+		return After
+	} else if ra > rb {
 		if !flip {
 			return After
 		}

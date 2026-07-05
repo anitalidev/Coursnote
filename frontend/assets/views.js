@@ -196,6 +196,12 @@ function homeHTML() {
               View Course
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+          </div>
+          <div class="cc2-update-row">
+            ${c.isActive === false ? `<button class="cc2-update-avail" onclick="goMarketForUpdate(${jsonAttr(c.name)})" title="A newer version of this course was published">
+              Update available
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>` : `<span class="cc2-up-to-date" title="You are on the latest published version">Updated</span>`}
           </div>`;
         return ccCardShell(c, '', body);
       }).join('');
@@ -344,19 +350,18 @@ function marketCardHTML(c) {
 
 function marketHTML() {
   const f = S.marketFilter;
-  const all = S.marketCourses || [];
-  const filtered = marketFilteredCards();
-  const total = all.length;
+  const filtered = S.marketCourses || [];
+  const total = S.marketTotal ?? filtered.length;
   const shown = filtered.length;
   const countLabel = shown === total
     ? `${total} course${total !== 1 ? 's' : ''}`
     : `${shown} of ${total} courses`;
 
   const sorts = f.sorts || [];
-  const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author' };
+  const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author', status: 'Status' };
   const sortLabel = sorts.length === 0 ? 'Sort' : sorts.length === 1 ? labelMap[sorts[0].key] : `${sorts.length} sorts`;
   const sortActive = sorts.length > 0;
-  const filterCount = [f.sizeMin, f.sizeMax, f.author].filter(v => v !== '').length;
+  const filterCount = marketActiveFilterCount();
 
   const empty = shown === 0
     ? `<div style="color:var(--text3);padding:40px 0;text-align:center">${total === 0 ? 'No published courses yet.' : 'No courses match your filters.'}</div>`

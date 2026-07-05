@@ -85,7 +85,7 @@ async function goTopic(topic) {
 async function goMarket() {
   destroyPNEditor();
   S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.marketCourses = await GET('/market?userID=' + S.user.id);
+  await loadMarketCourses();
   S.view = 'market';
   pushHash('#market');
   render();

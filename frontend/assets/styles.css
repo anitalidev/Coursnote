@@ -321,6 +321,14 @@ h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 .cc2-title { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.2; }
 .cc2-desc { font-size: 13px; font-weight: 400; color: var(--text2); line-height: 1.4; white-space: pre-line; }
 .cc2-actions { display: flex; gap: 8px; flex-wrap: nowrap; align-items: stretch; }
+.cc2-update-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+.cc2-update-avail {
+  display: flex; align-items: center; gap: 3px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font-size: 12px; font-weight: 600;
+}
+.cc2-update-avail:hover { text-decoration: underline; }
+.cc2-up-to-date { color: var(--text3); font-size: 12px; font-weight: 600; }
 .cc2-continue-btn {
   flex: 1; display: flex; align-items: center; justify-content: flex-start; gap: 8px;
   padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
