@@ -177,6 +177,7 @@ function openTopicEdit(topicID) {
   if (header) header.style.display = 'none';
   document.getElementById('topic-edit-form').style.display = 'block';
   autoResize(document.getElementById('te-desc'));
+  renderTopicRulesUI(t);
   document.getElementById('te-name').focus();
 }
 
@@ -192,10 +193,29 @@ async function saveTopicEdit() {
   const desc = document.getElementById('te-desc').value.trim();
   if (!id || !name) return;
   try {
+    // Collect completion rules from checkboxes
+    const compRules = [];
+    const ruleChecks = document.querySelectorAll('[data-rule-type]');
+    ruleChecks.forEach(cb => {
+      if (!cb.checked) return;
+      const ruleType = cb.dataset.ruleType;
+      const input = document.getElementById(`te-rule-input-${ruleType}`);
+      let config = null;
+      if (input) {
+        const val = input.value.trim();
+        if (val) config = ruleType === 'timed' ? parseInt(val) : parseInt(val);
+      }
+      compRules.push({ type: ruleType, config });
+    });
+
     // elements omitted on purpose: the backend leaves them unchanged
-    const updated = await PUT('/topic', { id, name, description: desc });
+    const updated = await PUT('/topic', { id, name, description: desc, compRules });
     const apply = t => {
-      if (t && t.topicID === updated.topicID) { t.name = updated.name; t.description = updated.description; }
+      if (t && t.topicID === updated.topicID) {
+        t.name = updated.name;
+        t.description = updated.description;
+        t.compTypes = updated.compTypes;
+      }
     };
     (S.topics || []).forEach(apply);
     Object.values(S.moduleTopics || {}).forEach(list => (list || []).forEach(apply));
@@ -210,6 +230,7 @@ async function saveTopicEdit() {
 function bindTopicListeners() {
   mountPNEditor();
   renderNotebook();
+  renderTopicRulesDisplay(S.currentTopic);
   document.getElementById('te-save')?.addEventListener('click', saveTopicEdit);
   enterSubmit('te-name', 'te-save');
 }

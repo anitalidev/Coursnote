@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/models/elements"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
-
 type TopicDTO struct {
-	TopicID       string          `json:"topicID"`
-	Name          string          `json:"name"`
-	Description   string          `json:"description"`
-	ModuleID      string          `json:"moduleID"`
-	PrivateNoteID string          `json:"privateNoteID"`
-	CoursePageID  string          `json:"coursePageID"`
-	RawElements   json.RawMessage `json:"rawElements"`
+	TopicID       string                  `json:"topicID"`
+	Name          string                  `json:"name"`
+	Description   string                  `json:"description"`
+	ModuleID      string                  `json:"moduleID"`
+	PrivateNoteID string                  `json:"privateNoteID"`
+	CoursePageID  string                  `json:"coursePageID"`
+	RawElements   json.RawMessage         `json:"rawElements"`
+	CompRules     []models.CompletionRule `json:"compTypes"`
 }
 
 func TopicHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,13 +44,15 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
 			RawElements:   topic.RawElements,
+			CompRules:     topic.CompRules,
 		})
 
 	case http.MethodPost:
 		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-			ModuleID    string `json:"moduleID"`
+			Name        string                  `json:"name"`
+			Description string                  `json:"description"`
+			ModuleID    string                  `json:"moduleID"`
+			CompRules   []models.CompletionRule `json:"compRules"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.ModuleID == "" {
 			writeError(w, http.StatusBadRequest, "name and moduleID required")
@@ -63,6 +66,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			Name:        body.Name,
 			Description: body.Description,
 			ModuleID:    body.ModuleID,
+			CompRules:   body.CompRules,
 		})
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -96,14 +100,16 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
 			RawElements:   topic.RawElements,
+			CompRules:     topic.CompRules,
 		})
 
 	case http.MethodPut:
 		var body struct {
-			ID          string          `json:"id"`
-			Name        string          `json:"name"`
-			Description string          `json:"description"`
-			RawElements json.RawMessage `json:"elements"`
+			ID          string                  `json:"id"`
+			Name        string                  `json:"name"`
+			Description string                  `json:"description"`
+			RawElements json.RawMessage         `json:"elements"`
+			CompRules   []models.CompletionRule `json:"compRules"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" || body.Name == "" {
 			writeError(w, http.StatusBadRequest, "id and name required")
@@ -112,7 +118,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
-		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description); err != nil {
+		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description, body.CompRules); err != nil {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -136,6 +142,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
 			RawElements:   topic.RawElements,
+			CompRules:     topic.CompRules,
 		})
 
 	case http.MethodDelete:
@@ -151,7 +158,10 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if err := store.repos.Topics.DeleteTopicByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+		if err := store.repos.Topics.DeleteTopicByID(id); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 
 	default:

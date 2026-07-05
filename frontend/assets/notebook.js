@@ -127,7 +127,7 @@ function nbCodeCellHTML(c) {
     `<option value="${l}"${c.language === l ? ' selected' : ''}>${l}</option>`
   ).join('');
   return `<div class="nb-cell nb-code-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill code-pill">Code</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="nb-code-header">
         <select class="nb-code-lang" onchange="nbChangeCodeLanguage('${c.id}',this.value)">${langOpts}</select>
@@ -139,9 +139,7 @@ function nbCodeCellHTML(c) {
       </div>
       <div id="monaco-${c.id}" class="nb-monaco-wrap" style="height:${c.maxLines > 0 ? c.maxLines * 19 + 20 : 200}px"></div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -213,6 +211,193 @@ function nbAddCell(type, insertIdx) {
     const el = document.querySelector(`[data-id="${cell.id}"] textarea, [data-id="${cell.id}"] input`);
     if (el) el.focus();
   }, 0);
+}
+
+// Shared right-hand controls for every edit-mode cell.
+function nbCellControlsHTML(c) {
+  return `<div class="nb-cell-right">
+      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
+    </div>`;
+}
+
+// ── Type pill: click to change an element's type via a custom dropdown ───────
+const NB_TYPE_META = {
+  text:          { label: 'Text',    pill: 'text-pill' },
+  table:         { label: 'Table',   pill: 'table-pill' },
+  card:          { label: 'Card',    pill: 'card-pill' },
+  cardSlide:     { label: 'Slide',   pill: 'slide-pill' },
+  question:      { label: 'Q',       pill: 'question-pill' },
+  questionSlide: { label: 'Q Slide', pill: 'qslide-pill' },
+  codeEditor:    { label: 'Code',    pill: 'code-pill' },
+};
+
+function nbTypePillHTML(c) {
+  const m = NB_TYPE_META[c.type] || NB_TYPE_META.text;
+  return `<button class="nb-type-pill nb-type-pill-btn ${m.pill}" onclick="nbTypeMenu(event,'${c.id}')" title="Change element type">${m.label} ▾</button>`;
+}
+
+function nbTypeMenu(e, id) {
+  e.stopPropagation();
+  const existing = document.getElementById('nb-type-menu');
+  if (existing) { existing.remove(); return; }
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c) return;
+  const panel = document.createElement('div');
+  panel.id = 'nb-type-menu';
+  panel.className = 'nb-type-menu';
+  panel.innerHTML = Object.entries(NB_TYPE_META).map(([type, m]) =>
+    `<div class="nb-type-menu-item${type === c.type ? ' nb-type-menu-active' : ''}" onclick="nbChangeCellType('${id}','${type}')">
+      <span class="nb-type-pill ${m.pill}">${m.label}</span>
+      ${type === c.type ? '<span class="nb-type-menu-check">✓</span>' : ''}
+    </div>`).join('');
+  document.body.appendChild(panel);
+  const btn = e.currentTarget;
+  const r = btn.getBoundingClientRect();
+  panel.style.top = (r.bottom + 6) + 'px';
+  panel.style.left = r.left + 'px';
+  setTimeout(() => {
+    document.addEventListener('mousedown', function _(ev) {
+      // Ignore mousedown on the pill itself: its click handler does the toggle
+      // (otherwise we'd remove the panel here and the click would reopen it).
+      if (!ev.target.closest('#nb-type-menu') && !btn.contains(ev.target)) {
+        panel.remove();
+        document.removeEventListener('mousedown', _);
+      }
+    });
+  }, 0);
+}
+
+function nbCellHasContent(c) {
+  if (!c) return false;
+  switch (c.type) {
+    case 'text':
+      return c.content && JSON.stringify(c.content).length > 100;
+    case 'table':
+      return c.cells && c.cells.some(row => row.some(cell => cell));
+    case 'card':
+      return c.cards && c.cards.some(card => card.header || card.content);
+    case 'cardSlide':
+      return c.cards && c.cards.some(card => card.header || card.content);
+    case 'question':
+      return (c.question && c.question.trim()) || (c.options && c.options.some(opt => opt)) || (c.answer !== 0);
+    case 'questionSlide':
+      return c.questions && c.questions.length > 1;
+    case 'codeEditor':
+      return c.code && c.code.trim();
+    default:
+      return false;
+  }
+}
+
+function nbChangeCellType(id, type) {
+  document.getElementById('nb-type-menu')?.remove();
+  const c = S.notebookCells.find(c => c.id === id);
+  if (!c || c.type === type || !NB_TYPE_META[type]) return;
+
+  if (nbCellHasContent(c)) {
+    if (!confirm(`Changing type will discard ${NB_TYPE_META[c.type].label} content. Continue?`)) {
+      return;
+    }
+  }
+
+  c.type = type;
+  // Backfill structures the new type renders/serializes (cells created as one
+  // type may lack the defaults of another).
+  if (!c.cells || !c.cells.length) c.cells = [[null, null], [null, null]];
+  if (!c.cards || !c.cards.length) c.cards = [{ header: null, content: null }];
+  if (!c.options || !c.options.length) c.options = [null, null];
+  if (!c.questions || !c.questions.length) c.questions = [{ id: nbGenId(), question: null, options: [null, null], answer: 0 }];
+  if (c.answer == null) c.answer = 0;
+  if (c.code == null) c.code = '';
+  if (!c.language) c.language = 'javascript';
+  if (c.maxLines == null) c.maxLines = 0;
+  renderNotebook();
+  scheduleElementsSave();
+}
+
+// ── Drag-to-reorder via the grip handle in each cell's left column ───────────
+let _nbDragId = null;
+
+function nbDragHandleHTML(c) {
+  const dots = [3, 9, 15].map(y => [3, 9, 15].map(x => `<circle cx="${x}" cy="${y}" r="1.3"/>`).join('')).join('');
+  return `<span class="nb-drag-handle" draggable="true" title="Drag to reorder"
+    ondragstart="nbDragStart(event,'${c.id}')" ondragend="nbDragEnd()"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">${dots}</svg></span>`;
+}
+
+function nbDragStart(e, id) {
+  _nbDragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch {}
+  const cell = e.target.closest('.nb-cell');
+  if (cell) {
+    if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(cell, 24, 24);
+    cell.classList.add('nb-dragging');
+  }
+}
+
+function nbDragEnd() {
+  _nbDragId = null;
+  _nbDropTargetId = null;
+  document.querySelectorAll('.nb-dragging, .nb-drop-above, .nb-drop-below')
+    .forEach(el => el.classList.remove('nb-dragging', 'nb-drop-above', 'nb-drop-below'));
+}
+
+function nbClearDropMarkers(nb) {
+  nb.querySelectorAll('.nb-drop-above, .nb-drop-below')
+    .forEach(el => el.classList.remove('nb-drop-above', 'nb-drop-below'));
+}
+
+// Bound to the (freshly rebuilt) #notebook container on every edit render.
+// Capture phase + stopPropagation: TipTap (ProseMirror) and Monaco register
+// their own drag/drop handlers inside cells and would otherwise swallow the
+// drop (ProseMirror treats it as a text drop). While a handle-drag is active
+// the editors must never see the events.
+let _nbDropTargetId = null;
+let _nbDropBelow = false;
+
+function nbDragTrack(nb, e) {
+  const cell = e.target.closest ? e.target.closest('.nb-cell') : null;
+  if (!cell || !cell.dataset.id) return;
+  const r = cell.getBoundingClientRect();
+  _nbDropTargetId = cell.dataset.id;
+  _nbDropBelow = e.clientY > r.top + r.height / 2;
+  nbClearDropMarkers(nb);
+  if (_nbDropTargetId !== _nbDragId) cell.classList.add(_nbDropBelow ? 'nb-drop-below' : 'nb-drop-above');
+}
+
+function nbBindDragReorder(nb) {
+  ['dragenter', 'dragover'].forEach(type => {
+    nb.addEventListener(type, e => {
+      if (!_nbDragId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      if (type === 'dragover') nbDragTrack(nb, e);
+    }, true);
+  });
+  nb.addEventListener('drop', e => {
+    if (!_nbDragId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    nbDragTrack(nb, e); // refresh from the drop position when it's over a cell
+    if (_nbDropTargetId) nbDropCell(_nbDragId, _nbDropTargetId, _nbDropBelow);
+    else nbDragEnd();
+  }, true);
+}
+
+function nbDropCell(dragId, targetId, below) {
+  _nbDragId = null;
+  _nbDropTargetId = null;
+  const cells = S.notebookCells;
+  const from = cells.findIndex(c => c.id === dragId);
+  let to = cells.findIndex(c => c.id === targetId);
+  if (from === -1 || to === -1) { renderNotebook(); return; }
+  if (below) to++;
+  if (to > from) to--; // dragged cell is removed first, shifting later indices
+  const [moved] = cells.splice(from, 1);
+  cells.splice(to, 0, moved);
+  renderNotebook();
+  if (from !== to) scheduleElementsSave();
 }
 
 function nbDeleteCell(id) {
@@ -455,14 +640,12 @@ function nbTtInlineHTML(key) {
 
 function nbTextCellHTML(c) {
   return `<div class="nb-cell nb-text-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill text-pill">Text</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       ${nbTtToolbarHTML(c.id)}
       <div id="tiptap-${c.id}" class="nb-tiptap" onclick="_nbEditors['${c.id}']?.commands.focus()"></div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -632,7 +815,7 @@ function nbTableCellHTML(c) {
   });
   tbl += '</table>';
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill table-pill">Table</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="nb-table-controls">
         <button class="nb-ctrl-btn" onclick="nbAddRow('${c.id}')">+ Row</button>
@@ -642,25 +825,21 @@ function nbTableCellHTML(c) {
       </div>
       <div class="nb-table-wrap">${tbl}</div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
 function nbCardCellHTML(c) {
   const hKey = `${c.id}-hdr`, cKey = `${c.id}-cnt`;
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill card-pill">Card</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="nb-tiptap-label">Header</div>
       <div id="tiptap-${hKey}" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="_nbEditors['${hKey}']?.commands.focus()"></div>
       ${nbTtToolbarHTML(cKey)}
       <div id="tiptap-${cKey}" class="nb-tiptap" onclick="_nbEditors['${cKey}']?.commands.focus()"></div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -678,7 +857,7 @@ function nbCardSlideCellHTML(c) {
   const total = c.cards.length;
   const tabs = nbCardSlideTabs(c, c.id, 'cards');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill slide-pill">Slide</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="slide-tabs-row">${tabs}</div>
       <div class="nb-slide-edit-nav">
@@ -693,9 +872,7 @@ function nbCardSlideCellHTML(c) {
       ${nbTtToolbarHTML(`${c.id}-${idx}-cnt`)}
       <div id="tiptap-${c.id}-${idx}-cnt" class="nb-tiptap" onclick="_nbEditors['${c.id}-${idx}-cnt']?.commands.focus()"></div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -708,16 +885,14 @@ function nbQuestionCellHTML(c) {
       <button class="nb-ctrl-btn" onclick="nbDelOption('${c.id}',${i})" ${c.options.length <= 2 ? 'disabled' : ''}>−</button>
     </div>`).join('');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill question-pill">Q</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div id="tiptap-${c.id}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="_nbEditors['${c.id}-q']?.commands.focus()"></div>
       <div class="nb-q-options">${optsHTML}</div>
       <button class="nb-ctrl-btn" onclick="nbAddOption('${c.id}')">＋ Add option</button>
       <div class="nb-q-hint">Select the correct answer with the radio button.</div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -733,7 +908,7 @@ function nbQSlideCellHTML(c) {
       <button class="nb-ctrl-btn" onclick="nbDelQSlideOption('${c.id}',${idx},${i})" ${q.options.length <= 2 ? 'disabled' : ''}>−</button>
     </div>`).join('');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left"><span class="nb-type-pill qslide-pill">Q Slide</span></div>
+    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="nb-slide-edit-nav">
         <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',-1)">‹</button>
@@ -749,9 +924,7 @@ function nbQSlideCellHTML(c) {
       </div>
       <div class="nb-q-hint">Select the correct answer with the radio button.</div>
     </div>
-    <div class="nb-cell-right">
-      <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
-    </div>
+    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -1147,6 +1320,7 @@ function renderNotebook() {
     nb.innerHTML = buildNotebookHTML();
     nb.querySelectorAll('.nb-textarea, .nb-cell-input').forEach(ta => autoResize(ta));
     nbMountTipTapEditors();
+    nbBindDragReorder(nb);
   } else {
     nb.innerHTML = buildCourseViewHTML(S.notebookCells);
     cvSlideSyncHeights();

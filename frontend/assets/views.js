@@ -561,12 +561,106 @@ function topicEditFormHTML() {
           <div class="field"><label>Name</label><input id="te-name" /></div>
           <div class="field"><label>Description</label><textarea id="te-desc" class="desc-ta" rows="1" placeholder="What's this topic about?" oninput="autoResize(this)"></textarea></div>
         </div>
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <label style="display:block;margin-bottom:12px;font-weight:500">Completion Rules</label>
+          <div id="te-rules" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="te-save">Save</button>
           <button class="btn btn-ghost" onclick="exitTopicEditMode()">Cancel</button>
         </div>
       </div>
     </div>`;
+}
+
+function renderTopicRulesDisplay(topic) {
+  const container = document.getElementById('topic-completion-rules-display');
+  if (!container) return;
+
+  const rules = topic.compTypes || [];
+
+  if (rules.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const ruleMap = {};
+  rules.forEach(r => { ruleMap[r.type] = r.config; });
+
+  const labelMap = {
+    'self_reported': 'Manual',
+    'percentage_questions_correct': 'Percentage of Questions Completed',
+    'read_to_bottom': 'Finish Reading',
+    'timed': 'Time Spent'
+  };
+
+  const ruleLabels = Object.keys(ruleMap).map(type => {
+    const config = ruleMap[type];
+    let label = labelMap[type] || type;
+    if (config !== null && config !== '') {
+      if (type === 'timed') label += ` (${config}s)`;
+      if (type === 'percentage_questions_correct') label += ` (${config}%)`;
+    }
+    return label;
+  });
+
+  const tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
+  container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
+    <span style="font-size:12px;color:var(--text3)">Completion Rules <span class="info-icon">(i)</span></span>
+    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
+  </div>`;
+}
+
+function renderTopicRulesUI(topic) {
+  const container = document.getElementById('te-rules');
+  if (!container) return;
+
+  const rules = topic.compTypes || [];
+  const ruleMap = {};
+  rules.forEach(r => { ruleMap[r.type] = r.config; });
+
+  const ruleTypes = [
+    { type: 'self_reported', label: 'Manual', tooltip: 'User manually marks topic as completed', config: null },
+    { type: 'percentage_questions_correct', label: 'Percentage Questions Completed', tooltip: 'Percentage of questions answered correctly', config: 100 },
+    { type: 'read_to_bottom', label: 'Finished Reading', tooltip: 'User scrolled to bottom of page', config: null },
+    { type: 'timed', label: 'Time Spent', tooltip: 'Time spent on page', config: 60 },
+  ];
+
+  container.innerHTML = ruleTypes.map(r => {
+    const checked = r.type in ruleMap;
+    const configVal = checked ? ruleMap[r.type] : (r.config !== null ? r.config : '');
+    const needsInput = r.type === 'timed' || r.type === 'percentage_questions_correct';
+    return `<div class="te-rule" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="te-rule-${r.type}" data-rule-type="${r.type}" ${checked ? 'checked' : ''} onchange="toggleTopicRule(this)">
+      <label for="te-rule-${r.type}" style="cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px">${r.label}
+        <span class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
+          <span class="info-icon">(i)</span>
+          <div class="tooltip-content" style="white-space:normal;width:140px">${r.tooltip}</div>
+        </span>
+      </label>
+      ${needsInput ? `<input type="number" id="te-rule-input-${r.type}" class="te-rule-input" placeholder="${r.type === 'timed' ? 'seconds' : '%'}" value="${configVal}" ${!checked ? 'style="visibility:hidden"' : ''}>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleTopicRule(checkbox) {
+  const ruleType = checkbox.dataset.ruleType;
+  const input = document.getElementById(`te-rule-input-${ruleType}`);
+  if (input) {
+    input.style.visibility = checkbox.checked ? 'visible' : 'hidden';
+  }
+}
+
+let _tooltipTimer = null;
+function showTooltipAfterDelay(element) {
+  _tooltipTimer = setTimeout(() => {
+    element.classList.add('tooltip-visible');
+  }, 200);
+}
+
+function hideTooltip(element) {
+  clearTimeout(_tooltipTimer);
+  element.classList.remove('tooltip-visible');
 }
 
 function topicHTML() {
@@ -584,7 +678,8 @@ function topicHTML() {
         ${t.description ? `<p class="subtitle">${esc(t.description)}</p>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        ${S.editMode ? `<button class="btn btn-ghost" onclick="openTopicEdit('${t.topicID}')">
+        <div id="topic-completion-rules-display" style="display:flex;align-items:flex-start;gap:8px;flex-direction:column"></div>
+        ${S.editMode ? `<button class="btn btn-ghost" onclick="openTopicEdit('${t.topicID}')" style="margin-top:5px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>` : ''}

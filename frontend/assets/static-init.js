@@ -23,7 +23,7 @@ S.editMode = false;
 function bindCoursesForm()    {}
 function bindModulesForm()    {}
 function bindTopicsForm()     {}
-function bindTopicListeners() { renderNotebook(); }
+function bindTopicListeners() { renderNotebook(); renderTopicRulesDisplay(S.currentTopic); }
 
 // Re-render the notebook once TipTap loads so text/card/table content isn't blank.
 window.addEventListener('tiptap-ready', function() {

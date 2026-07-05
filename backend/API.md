@@ -357,6 +357,9 @@ Returns a single topic by ID.
   "rawElements":   [
     { "type": "text",  "content": "Arrays grow dynamically by doubling capacity." },
     { "type": "table", "cells": [["Operation","Big-O"],["Access","O(1)"],["Insert","O(n)"]] }
+  ],
+  "compTypes": [
+    { "type": "self_reported", "config": null }
   ]
 }
 ```
@@ -388,13 +391,25 @@ Creates a new topic inside a module. **Automatically creates one CoursePage and 
 **Request body:**
 ```json
 {
-  "name":      "Dynamic Arrays",
+  "name":        "Dynamic Arrays",
   "description": "Resizing strategies and Big-O",
-  "moduleID":  "10"
+  "moduleID":    "10",
+  "compRules": [
+    { "type": "self_reported", "config": null }
+  ]
 }
 ```
 
-`description` is optional. `name` and `moduleID` are required.
+`description` and `compRules` are optional. `name` and `moduleID` are required.
+
+`compRules` is an array of completion rules. Each rule has a `type` and an optional `config` blob:
+
+| `type` | Description |
+|--------|-------------|
+| `self_reported` | User manually marks the topic complete |
+| `read_to_bottom` | Topic is complete when scrolled to the bottom |
+| `timed` | Complete after a minimum time spent on page |
+| `percentage_questions_correct` | Complete after a score threshold on embedded questions |
 
 **Response `201 Created`:** Full topic object (same shape as GET), including the auto-generated `coursePageID` and `privateNoteID`.
 
@@ -418,13 +433,16 @@ Updates a topic's name, description, and/or elements. Does **not** update the na
   "elements": [
     { "type": "text",  "content": "Arrays grow dynamically by doubling capacity." },
     { "type": "table", "cells": [["Operation","Big-O"],["Access","O(1)"]] }
+  ],
+  "compRules": [
+    { "type": "self_reported", "config": null }
   ]
 }
 ```
 
-`id` and `name` are required. `description` and `elements` are optional. If `elements` is omitted or empty, the stored elements are left unchanged. Each element must have a `"type"` field matching a registered type (see the table under `GET /api/topic`); elements should carry their persistent `"id"` so per-user answer history stays attached to the right question.
+`id` and `name` are required. `description`, `elements`, and `compRules` are optional. If `elements` is omitted or empty, the stored elements are left unchanged. If `compRules` is omitted or empty, completion rules are cleared. Each element must have a `"type"` field matching a registered type (see the table under `GET /api/topic`); elements should carry their persistent `"id"` so per-user answer history stays attached to the right question.
 
-**Response `200 OK`:** Full updated topic object (same shape as GET, including `rawElements`).
+**Response `200 OK`:** Full updated topic object (same shape as GET, including `rawElements` and `compTypes`).
 
 **Errors:**
 | Status | Condition |
@@ -756,6 +774,16 @@ The one endpoint that returns **HTML, not JSON**: the standalone course-viewer p
 The response is the shared viewer shell with `window.COURSE_DATA = <snapshot>` and `window.ENROLLMENT_DATA` inlined, followed by the app's asset scripts. With `ENROLLMENT_DATA` present, the viewer persists progress via `PUT /api/course/progress`; without it, progress falls back to `localStorage` (downloaded-zip behavior).
 
 **Errors:** `400` missing `id` · `404` content not found.
+
+---
+
+## Schema Notes
+
+The `comp_rules` column on `topics` is not in the original `schema.sql`. Run this migration before using completion rules:
+
+```sql
+ALTER TABLE topics ADD COLUMN comp_rules TEXT;
+```
 
 ---
 

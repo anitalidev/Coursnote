@@ -20,9 +20,9 @@ func NewSQLTopicRepository(db *sql.DB) *SQLTopicRepository {
 
 func (r *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
 	t := &models.Topic{TopicID: id}
-	var rawElements sql.NullString
-	err := r.db.QueryRow(`SELECT name, description, module_id, raw_elements FROM topics WHERE topic_id = ?`, id).
-		Scan(&t.Name, &t.Description, &t.ModuleID, &rawElements)
+	var rawElements, rawCompRules sql.NullString
+	err := r.db.QueryRow(`SELECT name, description, module_id, raw_elements, comp_rules FROM topics WHERE topic_id = ?`, id).
+		Scan(&t.Name, &t.Description, &t.ModuleID, &rawElements, &rawCompRules)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -43,6 +43,12 @@ func (r *SQLTopicRepository) GetTopicByID(id string) (*models.Topic, error) {
 		t.Elements = elems
 	}
 
+	if rawCompRules.Valid && len(rawCompRules.String) > 0 {
+		if err := json.Unmarshal([]byte(rawCompRules.String), &t.CompRules); err != nil {
+			return nil, fmt.Errorf("deserializing comp_rules for topic %s: %w", id, err)
+		}
+	}
+
 	return t, nil
 }
 
@@ -57,11 +63,19 @@ func (r *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, error)
 		rawElements = sql.NullString{String: string(info.RawElements), Valid: true}
 	}
 
+	var rawCompRules sql.NullString
+	if len(info.CompRules) > 0 {
+		b, err := json.Marshal(info.CompRules)
+		if err != nil {
+			return nil, fmt.Errorf("serializing comp_rules: %w", err)
+		}
+		rawCompRules = sql.NullString{String: string(b), Valid: true}
+	}
+
 	res, err := r.db.Exec(
-		`INSERT INTO topics (name, description, module_id, raw_elements) VALUES (?, ?, ?, ?)`,
-		info.Name, info.Description, info.ModuleID, rawElements,
+		`INSERT INTO topics (name, description, module_id, raw_elements, comp_rules) VALUES (?, ?, ?, ?, ?)`,
+		info.Name, info.Description, info.ModuleID, rawElements, rawCompRules,
 	)
-	// completed defaults to FALSE on insert
 	if err != nil {
 		return nil, err
 	}
@@ -74,11 +88,20 @@ func (r *SQLTopicRepository) CreateTopic(info *TopicInfo) (*models.Topic, error)
 		PrivateNoteID: info.PrivateNoteID,
 		CoursePageID:  info.CoursePageID,
 		RawElements:   info.RawElements,
+		CompRules:     info.CompRules,
 	}, nil
 }
 
-func (r *SQLTopicRepository) UpdateTopic(id string, name string, description string) error {
-	res, err := r.db.Exec(`UPDATE topics SET name = ?, description = ? WHERE topic_id = ?`, name, description, id)
+func (r *SQLTopicRepository) UpdateTopic(id string, name string, description string, compRules []models.CompletionRule) error {
+	var rawCompRules sql.NullString
+	if len(compRules) > 0 {
+		b, err := json.Marshal(compRules)
+		if err != nil {
+			return fmt.Errorf("serializing comp_rules: %w", err)
+		}
+		rawCompRules = sql.NullString{String: string(b), Valid: true}
+	}
+	res, err := r.db.Exec(`UPDATE topics SET name = ?, description = ?, comp_rules = ? WHERE topic_id = ?`, name, description, rawCompRules, id)
 	if err != nil {
 		return err
 	}

@@ -65,6 +65,7 @@ type TopicInfo struct {
 	PrivateNoteID string
 	CoursePageID  string
 	RawElements   json.RawMessage
+	CompRules     []models.CompletionRule
 }
 
 type CoursePageInfo struct {
@@ -119,7 +120,7 @@ type TopicRepository interface {
 	GetTopicByID(id string) (*models.Topic, error)
 	CreateTopic(topic *TopicInfo) (*models.Topic, error)
 	DeleteTopicByID(id string) error
-	UpdateTopic(id string, name string, description string) error
+	UpdateTopic(id string, name string, description string, compRules []models.CompletionRule) error
 	SaveTopicElements(id string, elems []elements.Element) error
 }
 
