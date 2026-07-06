@@ -1,8 +1,8 @@
 'use strict';
 
 async function loadCourses() {
-  if (!S.user?.id) return [];
-  return await GET('/courses?userID=' + S.user.id) || [];
+  if (!S.data.user?.id) return [];
+  return await GET('/courses?userID=' + S.data.user.id) || [];
 }
 
 async function loadAll(path, ids) {
@@ -28,6 +28,22 @@ async function loadAllTopics(modules) {
 }
 
 async function refreshUser() {
-  const u = await GET('/user?id=' + S.user.id);
-  S.user = { id: u.id || S.user.id, username: u.username, avatarURL: u.avatarURL || '', courseIDs: u.courseIDs };
+  const u = await GET('/user?id=' + S.data.user.id);
+  S.data.user = { id: u.id || S.data.user.id, username: u.username, avatarURL: u.avatarURL || '', courseIDs: u.courseIDs };
+}
+
+// Reload the current course and its modules from the API into S.
+async function reloadCurrentCourse() {
+  const updated = await GET('/course?id=' + S.ui.currentCourse.courseID);
+  S.ui.currentCourse = updated;
+  S.data.modules = await loadAll('/module?id=', updated.moduleIDs || []);
+  S.data.modules.forEach(m => { if (!S.data.moduleTopics[m.moduleID]) S.data.moduleTopics[m.moduleID] = []; });
+}
+
+// Reload the current module and its topics from the API into S.
+async function reloadCurrentModule() {
+  const updated = await GET('/module?id=' + S.ui.currentModule.moduleID);
+  S.ui.currentModule = updated;
+  S.data.topics = await loadAllTopicsWithCompleted(updated.topicIDs || []);
+  S.data.moduleTopics[updated.moduleID] = S.data.topics;
 }

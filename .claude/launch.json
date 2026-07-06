@@ -4,9 +4,23 @@
     {
       "name": "coursnote-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "frontend",
       "port": 3336,
+      "autoPort": false
+    },
+    {
+      "name": "coursnote-frontend-review",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "frontend",
+      "port": 3337,
       "autoPort": false
     }
   ]

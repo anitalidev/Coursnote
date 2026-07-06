@@ -2,21 +2,40 @@
 
 const API = 'http://localhost:8081/api';
 
+const Editors = {
+  notebook: {},
+  monaco: {},
+};
+
 const S = {
-  user: null,
-  courses: [],
-  currentCourse: null,
-  modules: [],
-  moduleTopics: {},
-  editMode: false, notesTab: 'cp',
-  currentModule: null,
-  topics: [],
-  currentTopic: null,
-  notebookCells: [],
-  privateNote: null,
-  view: 'login',
-  marketCourses: [],
-  marketTotal: 0,
-  marketFilter: { search: '', sorts: [], sizeMin: '', sizeMax: '', topicsMin: '', topicsMax: '', author: '', status: '' },
-  enrolledCourses: [],
+  // Application data loaded from the API
+  data: {
+    user: null,
+    courses: [],
+    modules: [],
+    moduleTopics: {},
+    topics: [],
+    enrolledCourses: [],
+    marketCourses: [],
+    marketTotal: 0,
+    progress: { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
+  },
+
+  // UI / navigation state
+  ui: {
+    view: 'login',
+    editMode: false,
+    notesTab: 'cp',
+    currentCourse: null,
+    currentModule: null,
+    currentTopic: null,
+    marketFilter: { search: '', sorts: [], sizeMin: '', sizeMax: '', topicsMin: '', topicsMax: '', author: '', status: '' },
+    courseProgress: {},
+  },
+
+  // Editor state (notebook cells and private notes for the active topic)
+  editor: {
+    cells: [],
+    privateNote: null,
+  },
 };

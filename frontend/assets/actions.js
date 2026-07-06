@@ -1,11 +1,12 @@
 'use strict';
 
 function openCourseViewer(contentId) {
-  const uid = S.user?.id ? '&userID=' + encodeURIComponent(S.user.id) : '';
-  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.view + uid;
+  const uid = S.data.user?.id ? '&userID=' + encodeURIComponent(S.data.user.id) : '';
+  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.ui.view + uid;
 }
 
 function toggleUserMenu(e) {
+  if (!Runtime.showUserMenu) return;
   e.stopPropagation();
   const menu = document.getElementById('icon-user-menu');
   if (!menu) return;
@@ -29,38 +30,31 @@ async function handleLogin(username) {
     user = await POST('/user', { username });
   }
   const full = await GET('/user?id=' + user.id);
-  S.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [] };
-  localStorage.setItem('coursnote_user', JSON.stringify(S.user));
+  S.data.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [] };
+  Storage.saveUser(S.data.user);
   await goCourses();
 }
 
 async function createCourse(name, desc) {
-  await POST('/course', { name, description: desc, userID: S.user.id });
-  const full = await GET('/user?id=' + S.user.id);
-  S.user.courseIDs = full.courseIDs || [];
-  S.courses = await loadCourses();
+  await POST('/course', { name, description: desc, userID: S.data.user.id });
+  const full = await GET('/user?id=' + S.data.user.id);
+  S.data.user.courseIDs = full.courseIDs || [];
+  S.data.courses = await loadCourses();
   render();
   toast('Course created');
 }
 
 async function createModule(name, desc) {
-  await POST('/module', { name, description: desc, courseID: S.currentCourse.courseID });
-  const updated = await GET('/course?id=' + S.currentCourse.courseID);
-  S.currentCourse = updated;
-  S.modules = await loadAll('/module?id=', updated.moduleIDs || []);
-  S.modules.forEach(m => { if (!S.moduleTopics[m.moduleID]) S.moduleTopics[m.moduleID] = []; });
+  await POST('/module', { name, description: desc, courseID: S.ui.currentCourse.courseID });
+  await reloadCurrentCourse();
   render();
   toast('Module created');
 }
 
-
 async function createTopic(name, desc) {
-  await POST('/topic', { name, description: desc, moduleID: S.currentModule.moduleID, compRules: [{ type: 'self_reported', config: null }] });
-  const updated = await GET('/module?id=' + S.currentModule.moduleID);
-  S.currentModule = updated;
-  S.topics = await loadAllTopicsWithCompleted(updated.topicIDs || []);
-  S.moduleTopics[S.currentModule.moduleID] = S.topics;
-  S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
+  await POST('/topic', { name, description: desc, moduleID: S.ui.currentModule.moduleID, compRules: [{ type: 'self_reported', config: null }] });
+  await reloadCurrentModule();
+  await reloadCurrentCourse();
   render();
   toast('Topic created');
 }
@@ -109,7 +103,7 @@ function openCourseMenu(courseID, course, btn) {
 }
 
 async function publishCourse(id) {
-  const course = S.courses.find(c => c.courseID === id);
+  const course = S.data.courses.find(c => c.courseID === id);
   if (!course) return;
 
   const modules = await loadAll('/module?id=', course.moduleIDs || []);
@@ -126,13 +120,13 @@ async function publishCourse(id) {
   const courseData = { course, modules, topics: topicMap, privateNotes };
 
   const updated = await POST('/course/publish?id=' + id, { courseData });
-  S.courses = S.courses.map(c => c.courseID === id ? updated : c);
+  S.data.courses = S.data.courses.map(c => c.courseID === id ? updated : c);
   render();
   toast('Course published!');
 }
 
 async function downloadCourse(id) {
-  const course = S.courses.find(c => c.courseID === id);
+  const course = S.data.courses.find(c => c.courseID === id);
   if (!course) return;
 
   const modules = await loadAll('/module?id=', course.moduleIDs || []);
@@ -232,16 +226,16 @@ function buildStaticIndex(course, courseData, fileMap) {
 
 
 async function enrollInCourse(staticCourseID) {
-  await POST('/course/enroll', { userID: S.user.id, staticCourseID });
+  await POST('/course/enroll', { userID: S.data.user.id, staticCourseID });
   await loadMarketCourses();
-  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
+  S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
   render();
 }
 
 async function updateEnrollment(staticCourseID) {
-  await POST('/course/update-enroll', { userID: S.user.id, staticCourseID });
+  await POST('/course/update-enroll', { userID: S.data.user.id, staticCourseID });
   await loadMarketCourses();
-  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
+  S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
   render();
 }
 
@@ -269,9 +263,9 @@ async function viewPublishedVersions(courseID) {
 async function deleteCourse(id) {
   if (!confirm('Delete this course and all its contents?')) return;
   await DEL('/course?id=' + id);
-  const full = await GET('/user?id=' + S.user.id);
-  S.user.courseIDs = full.courseIDs || [];
-  S.courses = await loadCourses();
+  const full = await GET('/user?id=' + S.data.user.id);
+  S.data.user.courseIDs = full.courseIDs || [];
+  S.data.courses = await loadCourses();
   render();
   toast('Course deleted', 'err');
 }
@@ -279,10 +273,8 @@ async function deleteCourse(id) {
 async function deleteModule(id) {
   if (!confirm('Delete this module and all its topics?')) return;
   await DEL('/module?id=' + id);
-  const updated = await GET('/course?id=' + S.currentCourse.courseID);
-  S.currentCourse = updated;
-  S.modules = await loadAll('/module?id=', updated.moduleIDs || []);
-  delete S.moduleTopics[id];
+  delete S.data.moduleTopics[id];
+  await reloadCurrentCourse();
   render();
   toast('Module deleted', 'err');
 }
@@ -290,11 +282,8 @@ async function deleteModule(id) {
 async function deleteTopic(id) {
   if (!confirm('Delete this topic?')) return;
   await DEL('/topic?id=' + id);
-  const updated = await GET('/module?id=' + S.currentModule.moduleID);
-  S.currentModule = updated;
-  S.topics = await loadAllTopicsWithCompleted(updated.topicIDs || []);
-  S.moduleTopics[S.currentModule.moduleID] = S.topics;
-  S.currentCourse = await GET('/course?id=' + S.currentCourse.courseID);
+  await reloadCurrentModule();
+  await reloadCurrentCourse();
   render();
   toast('Topic deleted', 'err');
 }
@@ -329,9 +318,9 @@ function toggleCustomDropdown(id) {
 
 // Build the /market query string from the current filter state.
 function marketQueryString() {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   const p = new URLSearchParams();
-  p.set('userID', S.user.id);
+  p.set('userID', S.data.user.id);
   if (f.search)           p.set('search', f.search);
   if (f.author)           p.set('author', f.author);
   if (f.status)           p.set('status', f.status);
@@ -347,25 +336,25 @@ function marketQueryString() {
 
 // Fields counted as "active filters" for the badge on the filter button.
 function marketActiveFilterCount() {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   return [f.sizeMin, f.sizeMax, f.topicsMin, f.topicsMax, f.author, f.status].filter(v => v !== '').length;
 }
 
 async function loadMarketCourses() {
   const res = await GET(marketQueryString());
-  S.marketCourses = res?.courses || [];
-  S.marketTotal   = res?.total ?? S.marketCourses.length;
+  S.data.marketCourses = res?.courses || [];
+  S.data.marketTotal   = res?.total ?? S.data.marketCourses.length;
 }
 
 function marketSetSearch(val) {
-  S.marketFilter.search = val;
+  S.ui.marketFilter.search = val;
   marketRerender();
 }
 
 // From a home-page "Update available" link: open the market pre-filtered so
 // the course's newer published version is what shows.
 async function goMarketForUpdate(courseName) {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   f.search = courseName;
   f.status = 'update';
   f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = '';
@@ -380,16 +369,16 @@ function marketRerender() {
   _mktFetchTimer = setTimeout(async () => {
     await loadMarketCourses();
     const grid = document.getElementById('mkt-grid');
-    if (grid) grid.innerHTML = S.marketCourses.map(marketCardHTML).join('');
+    if (grid) grid.innerHTML = S.data.marketCourses.map(marketCardHTML).join('');
     const countEl = document.querySelector('.mkt-count');
-    if (countEl) countEl.textContent = S.marketCourses.length === S.marketTotal
-      ? `${S.marketTotal} course${S.marketTotal !== 1 ? 's' : ''}`
-      : `${S.marketCourses.length} of ${S.marketTotal} courses`;
+    if (countEl) countEl.textContent = S.data.marketCourses.length === S.data.marketTotal
+      ? `${S.data.marketTotal} course${S.data.marketTotal !== 1 ? 's' : ''}`
+      : `${S.data.marketCourses.length} of ${S.data.marketTotal} courses`;
   }, 250);
 }
 
 function marketSetSort(key) {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   const sorts = f.sorts || [];
   const idx = sorts.findIndex(s => s.key === key);
   if (idx === -1) {
@@ -412,7 +401,7 @@ function marketSetSort(key) {
 function marketUpdateSortBtn() {
   const btn = document.getElementById('mkt-sort-btn');
   if (!btn) return;
-  const sorts = S.marketFilter.sorts || [];
+  const sorts = S.ui.marketFilter.sorts || [];
   const sortIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>`;
   if (sorts.length === 0) {
     btn.innerHTML = `${sortIcon}<span>Sort</span>`;
@@ -440,7 +429,7 @@ const MKT_SORT_OPTIONS = [
 ];
 
 function marketBuildSortPanelHTML() {
-  const sorts = S.marketFilter.sorts || [];
+  const sorts = S.ui.marketFilter.sorts || [];
   const upArrow   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>`;
   const downArrow = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
   return MKT_SORT_OPTIONS.map(o => {
@@ -480,7 +469,7 @@ function marketToggleSort(btn) {
 }
 
 function marketBuildFilterPanelHTML() {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   return `
     <div class="mkt-fp-header">
       <span>Filters</span>
@@ -547,7 +536,7 @@ function marketToggleFilter(btn) {
 
 
 function marketSetFilter(key, val) {
-  S.marketFilter[key] = val;
+  S.ui.marketFilter[key] = val;
   // text inputs: don't rebuild panel (would steal focus), just update results
   marketUpdateFilterBadge();
   marketRerender();
@@ -569,7 +558,7 @@ function marketUpdateFilterBadge() {
 }
 
 function marketClearFilters() {
-  const f = S.marketFilter;
+  const f = S.ui.marketFilter;
   f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = ''; f.status = '';
   const panel = document.getElementById('mkt-filter-panel');
   if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
@@ -586,15 +575,15 @@ async function uploadAvatar(input) {
   const form = new FormData();
   form.append('avatar', file);
   try {
-    const res = await fetch(`http://localhost:8081/api/user/avatar?userID=${S.user.id}`, { method: 'POST', body: form });
+    const res = await fetch(`http://localhost:8081/api/user/avatar?userID=${S.data.user.id}`, { method: 'POST', body: form });
     if (!res.ok) {
       let msg = 'Upload failed';
       try { const d = await res.json(); msg = d.error || msg; } catch {}
       throw new Error(msg);
     }
     const { avatarURL } = await res.json();
-    S.user.avatarURL = avatarURL;
-    localStorage.setItem('coursnote_user', JSON.stringify(S.user));
+    S.data.user.avatarURL = avatarURL;
+    Storage.saveUser(S.data.user);
     render();
   } catch (e) {
     setStatus(e.message || 'Upload failed.');
@@ -604,8 +593,8 @@ async function uploadAvatar(input) {
 }
 
 function removeAvatar() {
-  S.user.avatarURL = '';
-  localStorage.setItem('coursnote_user', JSON.stringify(S.user));
-  fetch(`http://localhost:8081/api/user/avatar?userID=${S.user.id}`, { method: 'DELETE' }).catch(() => {});
+  S.data.user.avatarURL = '';
+  Storage.saveUser(S.data.user);
+  fetch(`http://localhost:8081/api/user/avatar?userID=${S.data.user.id}`, { method: 'DELETE' }).catch(() => {});
   render();
 }

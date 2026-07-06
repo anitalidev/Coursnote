@@ -2,15 +2,16 @@
 
 let elemSaveTimer, pnSaveTimer;
 
-function scheduleElementsSave() {
+function scheduleElementsSave(topic = S.ui.currentTopic) {
+  if (!Runtime.canSave) return;
   clearTimeout(elemSaveTimer);
   setStatus('cp', 'saving...');
   elemSaveTimer = setTimeout(async () => {
     try {
       await PUT('/topic', {
-        id: S.currentTopic.topicID,
-        name: S.currentTopic.name,
-        description: S.currentTopic.description,
+        id: topic.topicID,
+        name: topic.name,
+        description: topic.description,
         elements: nbCellsToElements(),
       });
       setStatus('cp', 'Saved');
@@ -19,18 +20,20 @@ function scheduleElementsSave() {
 }
 
 function schedulePNSave(doc) {
+  if (!Runtime.canSave) return;
   clearTimeout(pnSaveTimer);
   setStatus('pn', 'saving...');
   pnSaveTimer = setTimeout(async () => {
     try {
-      await PUT('/privatenotes', { id: S.privateNote.privateNoteID, description: doc });
-      S.privateNote.description = doc;
+      await PUT('/privatenotes', { id: S.editor.privateNote.privateNoteID, description: doc });
+      S.editor.privateNote.description = doc;
       setStatus('pn', 'Saved');
     } catch { setStatus('pn', 'Error saving'); }
   }, 800);
 }
 
 function setStatus(pane, msg) {
+  if (!Runtime.canSave) return;
   const el = document.getElementById('status-' + pane);
   if (!el) return;
   el.textContent = msg;

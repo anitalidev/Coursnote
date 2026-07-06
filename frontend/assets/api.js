@@ -20,7 +20,7 @@ const staticRoutes = {
 };
 
 function staticGet(path) {
-  const CD   = window.COURSE_DATA;
+  const CD   = Runtime.courseData;
   const base = path.split('?')[0];
   const id   = new URLSearchParams(path.includes('?') ? path.split('?')[1] : '').get('id');
   const handler = staticRoutes[base];
@@ -31,7 +31,7 @@ function staticReadOnly() {
   return Promise.reject(new Error('Static courses are read-only'));
 }
 
-function GET(path)         { return window.STATIC_MODE ? staticGet(path)    : req('GET',    path);      }
-const POST = (path, body) => window.STATIC_MODE ? staticReadOnly()          : req('POST',   path, body);
-const PUT  = (path, body) => window.STATIC_MODE ? staticReadOnly()          : req('PUT',    path, body);
-const DEL  = path         => window.STATIC_MODE ? staticReadOnly()          : req('DELETE', path);
+function GET(path)         { return Runtime.trackProgress ? staticGet(path)    : req('GET',    path);      }
+const POST = (path, body) => Runtime.trackProgress ? staticReadOnly()          : req('POST',   path, body);
+const PUT  = (path, body) => Runtime.trackProgress ? staticReadOnly()          : req('PUT',    path, body);
+const DEL  = path         => Runtime.trackProgress ? staticReadOnly()          : req('DELETE', path);

@@ -18,6 +18,7 @@ function syncColourHex(pickerId, hexId) {
 }
 
 function bindCoursesForm() {
+  if (!Runtime.editable) return;
   // inputs live in the persistent modal — bind once via onclick on the button
   document.getElementById('cf-submit').onclick = () => {
     const name = document.getElementById('cf-name').value.trim();
@@ -35,8 +36,8 @@ function bindCoursesForm() {
     if (!name) return;
     try {
       const updated = await PUT('/course', { id, name, description: desc });
-      const idx = S.courses.findIndex(c => c.courseID === updated.courseID);
-      if (idx !== -1) S.courses[idx] = updated;
+      const idx = S.data.courses.findIndex(c => c.courseID === updated.courseID);
+      if (idx !== -1) S.data.courses[idx] = updated;
       render();
       toast('Course updated');
     } catch (e) { toast(e.message, 'err'); }
@@ -56,6 +57,7 @@ function openCourseCardEdit(course) {
 }
 
 function bindModulesForm() {
+  if (!Runtime.editable) return;
   document.getElementById('mf-submit').onclick = () => {
     const name = document.getElementById('mf-name').value.trim();
     const desc = document.getElementById('mf-desc').value.trim();
@@ -73,8 +75,8 @@ function bindModulesForm() {
 }
 
 function openModuleEdit(moduleID) {
-  const m = (S.modules || []).find(m => m.moduleID === moduleID)
-    || (S.currentModule?.moduleID === moduleID ? S.currentModule : null);
+  const m = (S.data.modules || []).find(m => m.moduleID === moduleID)
+    || (S.ui.currentModule?.moduleID === moduleID ? S.ui.currentModule : null);
   if (!m) return;
   document.getElementById('me-name').value = m.name;
   document.getElementById('me-desc').value = m.description || '';
@@ -101,9 +103,9 @@ async function saveModuleEdit() {
   if (!id || !name) return;
   try {
     const updated = await PUT('/module', { id, name, description: desc });
-    const idx = (S.modules || []).findIndex(m => m.moduleID === updated.moduleID);
-    if (idx !== -1) S.modules[idx] = updated;
-    if (S.currentModule?.moduleID === updated.moduleID) S.currentModule = updated;
+    const idx = (S.data.modules || []).findIndex(m => m.moduleID === updated.moduleID);
+    if (idx !== -1) S.data.modules[idx] = updated;
+    if (S.ui.currentModule?.moduleID === updated.moduleID) S.ui.currentModule = updated;
     render();
     toast('Module updated');
   } catch (e) {
@@ -133,14 +135,14 @@ function saveCourseFromEditMode() {
 async function saveCourseEdit() {
   const name        = document.getElementById('ce-name').value.trim();
   const desc        = document.getElementById('ce-desc').value.trim();
-  const leftColour  = document.getElementById('ce-left-colour')?.value || S.currentCourse.leftColour;
-  const rightColour = document.getElementById('ce-right-colour')?.value || S.currentCourse.rightColour;
+  const leftColour  = document.getElementById('ce-left-colour')?.value || S.ui.currentCourse.leftColour;
+  const rightColour = document.getElementById('ce-right-colour')?.value || S.ui.currentCourse.rightColour;
   if (!name) return;
   try {
-    const updated = await PUT('/course', { id: S.currentCourse.courseID, name, description: desc, leftColour, rightColour });
-    S.currentCourse = updated;
-    const idx = S.courses.findIndex(c => c.courseID === updated.courseID);
-    if (idx !== -1) S.courses[idx] = updated;
+    const updated = await PUT('/course', { id: S.ui.currentCourse.courseID, name, description: desc, leftColour, rightColour });
+    S.ui.currentCourse = updated;
+    const idx = S.data.courses.findIndex(c => c.courseID === updated.courseID);
+    if (idx !== -1) S.data.courses[idx] = updated;
     render();
     toast('Course updated');
   } catch (e) {
@@ -149,6 +151,7 @@ async function saveCourseEdit() {
 }
 
 function bindTopicsForm() {
+  if (!Runtime.editable) return;
   document.getElementById('tf-submit').onclick = () => {
     const name = document.getElementById('tf-name').value.trim();
     if (!name) return;
@@ -165,8 +168,8 @@ function bindTopicsForm() {
 }
 
 function openTopicEdit(topicID) {
-  const t = (S.topics || []).find(t => t.topicID === topicID)
-    || (S.currentTopic?.topicID === topicID ? S.currentTopic : null);
+  const t = (S.data.topics || []).find(t => t.topicID === topicID)
+    || (S.ui.currentTopic?.topicID === topicID ? S.ui.currentTopic : null);
   if (!t) return;
   document.getElementById('te-name').value = t.name;
   document.getElementById('te-desc').value = t.description || '';
@@ -217,9 +220,9 @@ async function saveTopicEdit() {
         t.compTypes = updated.compTypes;
       }
     };
-    (S.topics || []).forEach(apply);
-    Object.values(S.moduleTopics || {}).forEach(list => (list || []).forEach(apply));
-    apply(S.currentTopic);
+    (S.data.topics || []).forEach(apply);
+    Object.values(S.data.moduleTopics || {}).forEach(list => (list || []).forEach(apply));
+    apply(S.ui.currentTopic);
     render();
     toast('Topic updated');
   } catch (e) {
@@ -228,11 +231,17 @@ async function saveTopicEdit() {
 }
 
 function bindTopicListeners() {
-  mountPNEditor();
+  if (Runtime.editable) mountPNEditor();
   renderNotebook();
-  renderTopicRulesDisplay(S.currentTopic);
-  document.getElementById('te-save')?.addEventListener('click', saveTopicEdit);
-  enterSubmit('te-name', 'te-save');
+  renderTopicRulesDisplay(S.ui.currentTopic);
+  if (Runtime.editable) {
+    document.getElementById('te-save')?.addEventListener('click', saveTopicEdit);
+    enterSubmit('te-name', 'te-save');
+  }
+  if (Runtime.trackProgress) {
+    if (S.ui.currentTopic) _startTopicTracking(S.ui.currentTopic.topicID);
+    _injectDebugPanel();
+  }
 }
 
 function enterSubmit(inputId, btnId) {

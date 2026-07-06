@@ -5,34 +5,39 @@ function pushHash(hash) {
 }
 
 async function goLogin() {
-  localStorage.removeItem('coursnote_user');
-  Object.assign(S, { user: null, courses: [], currentCourse: null, modules: [], currentModule: null, topics: [], currentTopic: null, coursePage: null, privateNote: null, view: 'login' });
+  if (!Runtime.canLogin) return;
+  Storage.clearUser();
+  Object.assign(S.data, { user: null, courses: [], modules: [], moduleTopics: {}, topics: [] });
+  Object.assign(S.ui, { currentCourse: null, currentModule: null, currentTopic: null, view: 'login' });
+  Object.assign(S.editor, { cells: [], privateNote: null });
   pushHash('#');
   render();
 }
 
 async function goHome() {
+  if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
   destroyPNEditor();
-  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.enrolledCourses = await GET('/course/enrolled?userID=' + S.user.id) || [];
-  S.view = 'home';
+  S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
+  S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
+  S.ui.view = 'home';
   pushHash('#home');
   render();
 }
 
 async function goCourses() {
+  if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
   destroyPNEditor();
-  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.courses = await loadCourses();
+  S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
+  S.data.courses = await loadCourses();
   const progMap = {};
-  await Promise.all(S.courses.map(async c => {
+  await Promise.all(S.data.courses.map(async c => {
     if (!c.moduleIDs?.length) { progMap[c.courseID] = 0; return; }
     const mods = await loadAll('/module?id=', c.moduleIDs);
     const done = mods.filter(m => m.slashed).length;
     progMap[c.courseID] = Math.round(done / mods.length * 100);
   }));
-  S.courseProgress = progMap;
-  S.view = 'courses';
+  S.ui.courseProgress = progMap;
+  S.ui.view = 'courses';
   pushHash('#courses');
   render();
 }
@@ -40,11 +45,11 @@ async function goCourses() {
 async function goModules(course, editMode = false) {
   try {
     destroyPNEditor();
-    S.currentCourse = course; S.currentModule = null; S.currentTopic = null;
-    S.editMode = editMode;
-    S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-    S.moduleTopics = await loadAllTopics(S.modules);
-    S.view = 'modules';
+    S.ui.currentCourse = course; S.ui.currentModule = null; S.ui.currentTopic = null;
+    S.ui.editMode = editMode;
+    S.data.modules = await loadAll('/module?id=', course.moduleIDs || []);
+    S.data.moduleTopics = await loadAllTopics(S.data.modules);
+    S.ui.view = 'modules';
     pushHash('#course/' + course.courseID + (editMode ? '/edit' : ''));
     render();
   } catch (e) { toast(e.message || 'Failed to open course', 'err'); }
@@ -53,11 +58,11 @@ async function goModules(course, editMode = false) {
 async function goTopics(module) {
   try {
     destroyPNEditor();
-    S.currentModule = module; S.currentTopic = null;
-    S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
-    S.moduleTopics[module.moduleID] = S.topics;
-    S.view = 'topics';
-    pushHash('#course/' + S.currentCourse.courseID + '/module/' + module.moduleID + (S.editMode ? '/edit' : ''));
+    S.ui.currentModule = module; S.ui.currentTopic = null;
+    S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
+    S.data.moduleTopics[module.moduleID] = S.data.topics;
+    S.ui.view = 'topics';
+    pushHash('#course/' + S.ui.currentCourse.courseID + '/module/' + module.moduleID + (S.ui.editMode ? '/edit' : ''));
     render();
   } catch (e) { toast(e.message || 'Failed to open module', 'err'); }
 }
@@ -65,16 +70,16 @@ async function goTopics(module) {
 async function goTopic(topic) {
   try {
     destroyPNEditor();
-    if (!S.currentModule || S.currentModule.moduleID !== topic.moduleID) {
-      S.currentModule = await GET('/module?id=' + topic.moduleID);
-      S.topics = await loadAll('/topic?id=', S.currentModule.topicIDs || []);
-      S.moduleTopics[S.currentModule.moduleID] = S.topics;
+    if (!S.ui.currentModule || S.ui.currentModule.moduleID !== topic.moduleID) {
+      S.ui.currentModule = await GET('/module?id=' + topic.moduleID);
+      S.data.topics = await loadAll('/topic?id=', S.ui.currentModule.topicIDs || []);
+      S.data.moduleTopics[S.ui.currentModule.moduleID] = S.data.topics;
     }
-    S.currentTopic = topic;
-    S.notebookCells = parseRawElements(topic.rawElements);
-    S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
-    S.view = 'topic';
-    pushHash('#course/' + S.currentCourse.courseID + '/module/' + S.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.notesTab + (S.editMode ? '/edit' : ''));
+    S.ui.currentTopic = topic;
+    S.editor.cells = parseRawElements(topic.rawElements);
+    S.editor.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
+    S.ui.view = 'topic';
+    pushHash('#course/' + S.ui.currentCourse.courseID + '/module/' + S.ui.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.ui.notesTab + (S.ui.editMode ? '/edit' : ''));
     render();
   } catch (e) {
     console.error('goTopic failed:', e);
@@ -83,23 +88,25 @@ async function goTopic(topic) {
 }
 
 async function goMarket() {
+  if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
   destroyPNEditor();
-  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
+  S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   await loadMarketCourses();
-  S.view = 'market';
+  S.ui.view = 'market';
   pushHash('#market');
   render();
 }
 
 async function goSettings() {
-  S.currentCourse = null; S.currentModule = null; S.currentTopic = null;
-  S.view = 'settings';
+  if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
+  S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
+  S.ui.view = 'settings';
   pushHash('#settings');
   render();
 }
 
 async function restoreFromHash(hash) {
-  if (!S.user) return;
+  if (!S.data.user) return;
   const m = {
     settings: hash.match(/^#settings$/),
     home:     hash.match(/^#home$/),
@@ -111,42 +118,42 @@ async function restoreFromHash(hash) {
   };
   try {
     if (m.settings) {
-      S.view = 'settings'; render(); return;
+      S.ui.view = 'settings'; render(); return;
     } else if (m.home) {
       await goHome(); return;
     } else if (m.market) {
       await goMarket(); return;
     } else if (m.topic) {
       const [courseID, moduleID, topicID] = [m.topic[1], m.topic[2], m.topic[3]];
-      S.notesTab = m.topic[4] || 'cp';
-      S.editMode = !!m.topic[5];
+      S.ui.notesTab = m.topic[4] || 'cp';
+      S.ui.editMode = !!m.topic[5];
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
-      S.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
-      S.courses = await loadCourses();
-      S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-      S.currentModule = module; S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
-      S.currentTopic = topic; S.notebookCells = parseRawElements(topic.rawElements);
-      S.moduleTopics = await loadAllTopics(S.modules);
-      S.moduleTopics[module.moduleID] = S.topics;
-      S.view = 'topic';
+      S.editor.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
+      S.data.courses = await loadCourses();
+      S.ui.currentCourse = course; S.data.modules = await loadAll('/module?id=', course.moduleIDs || []);
+      S.ui.currentModule = module; S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
+      S.ui.currentTopic = topic; S.editor.cells = parseRawElements(topic.rawElements);
+      S.data.moduleTopics = await loadAllTopics(S.data.modules);
+      S.data.moduleTopics[module.moduleID] = S.data.topics;
+      S.ui.view = 'topic';
     } else if (m.topics) {
       const [courseID, moduleID] = [m.topics[1], m.topics[2]];
-      S.editMode = !!m.topics[3];
+      S.ui.editMode = !!m.topics[3];
       const [course, module] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID)]);
-      S.courses = await loadCourses();
-      S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-      S.currentModule = module; S.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
-      S.moduleTopics = await loadAllTopics(S.modules);
-      S.moduleTopics[module.moduleID] = S.topics;
-      S.view = 'topics';
+      S.data.courses = await loadCourses();
+      S.ui.currentCourse = course; S.data.modules = await loadAll('/module?id=', course.moduleIDs || []);
+      S.ui.currentModule = module; S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
+      S.data.moduleTopics = await loadAllTopics(S.data.modules);
+      S.data.moduleTopics[module.moduleID] = S.data.topics;
+      S.ui.view = 'topics';
     } else if (m.modules) {
       const courseID = m.modules[1];
       const course = await GET('/course?id=' + courseID);
-      S.courses = await loadCourses();
-      S.currentCourse = course; S.modules = await loadAll('/module?id=', course.moduleIDs || []);
-      S.moduleTopics = await loadAllTopics(S.modules);
-      S.editMode = !!m.modules[2];
-      S.view = 'modules';
+      S.data.courses = await loadCourses();
+      S.ui.currentCourse = course; S.data.modules = await loadAll('/module?id=', course.moduleIDs || []);
+      S.data.moduleTopics = await loadAllTopics(S.data.modules);
+      S.ui.editMode = !!m.modules[2];
+      S.ui.view = 'modules';
     } else {
       await goCourses(); return;
     }

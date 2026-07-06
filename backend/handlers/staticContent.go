@@ -34,6 +34,8 @@ const staticShell = `<!DOCTYPE html>
 <script type="module" src="/static/assets/static-main.js"></script>
 <script>window.COURSE_DATA = %s;</script>
 <script>window.ENROLLMENT_DATA = %s;</script>
+<script src="/static/assets/storage.js"></script>
+<script src="/static/assets/runtime.js"></script>
 <script src="/static/assets/state.js"></script>
 <script src="/static/assets/api.js"></script>
 <script src="/static/assets/utils.js"></script>

@@ -1,101 +1,81 @@
 'use strict';
 
-window.STATIC_MODE = true;
+// ── Runtime capabilities for static/enrolled mode ─────────────────────────────
+Runtime.editable        = false;
+Runtime.canSave         = false;
+Runtime.canNavigateApp  = false;
+Runtime.canLogin        = false;
+Runtime.showUserMenu    = false;
+Runtime.hasPrivateNotes = false;
+Runtime.trackProgress   = true;
 
-// Build fast-lookup maps for the API shim in api.js
-const _CD = window.COURSE_DATA;
-window._CD = _CD; // exposed so views.js can resolve topic elements for non-current topics
+// Fold COURSE_DATA / ENROLLMENT_DATA into Runtime and build fast-lookup maps.
+Runtime.courseData     = window.COURSE_DATA;
+Runtime.enrollmentData = window.ENROLLMENT_DATA || null;
+
+const _CD = Runtime.courseData;
 _CD.courseMap = { [_CD.course.courseID]: _CD.course };
 _CD.moduleMap = {};
 _CD.topicMap  = {};
+(_CD.modules || []).forEach(function(m) { _CD.moduleMap[m.moduleID] = m; });
+Object.values(_CD.topics || {}).forEach(function(t) { _CD.topicMap[t.topicID] = t; });
 
-(_CD.modules || []).forEach(function(m) {
-  _CD.moduleMap[m.moduleID] = m;
-});
-Object.values(_CD.topics || {}).forEach(function(t) {
-  _CD.topicMap[t.topicID] = t;
-});
+Runtime.navigateFallback = function() { goModules(_CD.course); };
 
 // Synthetic user — bypasses login screen
-S.user     = { id: 'static', username: 'Viewer', courseIDs: [_CD.course.courseID] };
-S.editMode = false;
-
-// ── Stubs for functions not needed in static mode ─────────────────────────────
-function bindCoursesForm()    {}
-function bindModulesForm()    {}
-function bindTopicsForm()     {}
-function bindTopicListeners() {
-  renderNotebook();
-  renderTopicRulesDisplay(S.currentTopic);
-  if (S.currentTopic) _startTopicTracking(S.currentTopic.topicID);
-  _injectDebugPanel();
-}
+S.data.user     = { id: 'static', username: 'Viewer', courseIDs: [_CD.course.courseID] };
+S.ui.editMode = false;
 
 // Re-render the notebook once TipTap loads so text/card/table content isn't blank.
 window.addEventListener('tiptap-ready', function() {
-  if (S.view === 'topic') renderNotebook();
+  if (S.ui.view === 'topic') renderNotebook();
 }, { once: true });
-function scheduleElementsSave() {}
-function schedulePNSave()       {}
-function setStatus()            {}
-function toggleUserMenu()       {}
-
-// Override navigation functions that have no meaning in a single downloaded course
-function goCourses()  { goModules(_CD.course); }
-function goHome()     { goModules(_CD.course); }
-function goMarket()   { goModules(_CD.course); }
-function goSettings() { goModules(_CD.course); }
-function goLogin()    {}
 
 // ── Progress tracking ─────────────────────────────────────────────────────────
-// Enrolled viewing: backend injects window.ENROLLMENT_DATA; progress is saved
-// exclusively via PUT /api/course/progress. Downloaded ZIPs have no
-// ENROLLMENT_DATA and fall back to localStorage.
-var _ED = window.ENROLLMENT_DATA || null;
-
-var _progress = (function() {
-  var empty = { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {} };
-  if (!_ED) {
-    // Downloaded ZIP — use localStorage.
-    var _progressKey = 'cn_progress_' + _CD.course.courseID;
-    try {
-      var stored = JSON.parse(localStorage.getItem(_progressKey) || '{}');
-      return {
-        marked_manually: stored.marked_manually || {},
-        time_spent:      stored.time_spent      || {},
-        read_to_bottom:  stored.read_to_bottom  || {},
-        lastAnswered:    stored.lastAnswered     || {}
-      };
-    } catch { return empty; }
+// ── Progress — fold into S.data.progress ──────────────────────────────────────────
+(function() {
+  var _ED = Runtime.enrollmentData;
+  var src;
+  if (_ED) {
+    var srv = _ED.progress || {};
+    src = {
+      marked_manually:   srv.marked_manually   || {},
+      time_spent:        srv.time_spent        || {},
+      read_to_bottom:    srv.read_to_bottom    || {},
+      lastAnswered:      srv.lastAnswered      || {},
+      correctlyAnswered: srv.correctlyAnswered || {},
+    };
+  } else {
+    var stored = Storage.loadDownloadedProgress(_CD.course.courseID) || {};
+    src = {
+      marked_manually:   stored.marked_manually   || {},
+      time_spent:        stored.time_spent        || {},
+      read_to_bottom:    stored.read_to_bottom    || {},
+      lastAnswered:      stored.lastAnswered      || {},
+      correctlyAnswered: stored.correctlyAnswered || {},
+    };
   }
-  // Enrolled — initialise entirely from server data.
-  var srv = _ED.progress || {};
-  return {
-    marked_manually: srv.marked_manually || {},
-    time_spent:      srv.time_spent      || {},
-    read_to_bottom:  srv.read_to_bottom  || {},
-    lastAnswered:    srv.lastAnswered     || {}
-  };
+  Object.assign(S.data.progress, src);
 })();
-window._progress = _progress;
 
 var _saveTimer = null;
 function _computePercentageCompleted() {
   var topics = Object.values(_CD.topicMap || {});
   if (topics.length === 0) return 0;
   var completed = topics.filter(function(t) {
-    return typeof _isTopicComplete === 'function' ? _isTopicComplete(t) : false;
+    return typeof isTopicComplete === 'function' ? isTopicComplete(t) : false;
   }).length;
   return Math.round(completed / topics.length * 100);
 }
 
 function _sendProgress() {
+  var _ED = Runtime.enrollmentData;
   _saveTimer = null;
   fetch('/api/course/progress', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,
-    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: _progress }),
+    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: S.data.progress }),
   }).catch(function() {});
   fetch('/api/course/enroll', {
     method: 'PUT',
@@ -106,23 +86,21 @@ function _sendProgress() {
 }
 
 function _persistProgress() {
-  if (_ED) {
+  if (Runtime.enrollmentData) {
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(_sendProgress, 800);
   } else {
-    // Downloaded ZIP only.
-    var _progressKey = 'cn_progress_' + _CD.course.courseID;
-    localStorage.setItem(_progressKey, JSON.stringify(_progress));
+    Storage.saveDownloadedProgress(_CD.course.courseID, S.data.progress);
   }
 }
 
 window.addEventListener('beforeunload', function() {
   _checkpointTopicTime();
-  if (_ED && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
+  if (Runtime.enrollmentData && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
 });
 window.addEventListener('pagehide', function() {
   _flushTopicTime();
-  if (_ED && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
+  if (Runtime.enrollmentData && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
 });
 
 // ── Time spent & scroll tracking ──────────────────────────────────────────────
@@ -144,7 +122,7 @@ function _startTopicTracking(topicID) {
 function _checkpointTopicTime() {
   if (_trackingTopicID == null || _enterTime == null) return;
   var elapsed = (Date.now() - _enterTime) / 1000;
-  _progress.time_spent[_trackingTopicID] = (_progress.time_spent[_trackingTopicID] || 0) + elapsed;
+  S.data.progress.time_spent[_trackingTopicID] = (S.data.progress.time_spent[_trackingTopicID] || 0) + elapsed;
   _enterTime = Date.now();
   _persistProgress();
 }
@@ -153,7 +131,7 @@ function _flushTopicTime() {
   if (_checkpointTimer) { clearInterval(_checkpointTimer); _checkpointTimer = null; }
   if (_trackingTopicID == null || _enterTime == null) return;
   var elapsed = (Date.now() - _enterTime) / 1000;
-  _progress.time_spent[_trackingTopicID] = (_progress.time_spent[_trackingTopicID] || 0) + elapsed;
+  S.data.progress.time_spent[_trackingTopicID] = (S.data.progress.time_spent[_trackingTopicID] || 0) + elapsed;
   _persistProgress();
   _enterTime       = null;
   _trackingTopicID = null;
@@ -162,10 +140,10 @@ function _flushTopicTime() {
 
 function _setupScrollTracking(topicID) {
   if (_scrollHandler) { window.removeEventListener('scroll', _scrollHandler); _scrollHandler = null; }
-  if (_progress.read_to_bottom[topicID]) return; // already reached bottom before
+  if (S.data.progress.read_to_bottom[topicID]) return; // already reached bottom before
   _scrollHandler = function() {
     if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 100) {
-      _progress.read_to_bottom[topicID] = true;
+      S.data.progress.read_to_bottom[topicID] = true;
       _persistProgress();
       window.removeEventListener('scroll', _scrollHandler);
       _scrollHandler = null;
@@ -188,8 +166,8 @@ function _injectDebugPanel() {
   _debugInterval = setInterval(_updateDebugPanel, 100);
 }
 
-window._getTopicLiveTime = function(topicID) {
-  var stored = _progress.time_spent[topicID] || 0;
+function _getTopicLiveTime(topicID) {
+  var stored = S.data.progress.time_spent[topicID] || 0;
   var live   = (_enterTime && _trackingTopicID === topicID) ? (Date.now() - _enterTime) / 1000 : 0;
   return stored + live;
 };
@@ -197,20 +175,20 @@ window._getTopicLiveTime = function(topicID) {
 var _rulesDisplayTick = 0;
 function _updateDebugPanel() {
   var panel = document.getElementById('static-debug-panel');
-  if (!panel || !S.currentTopic) return;
-  var id     = S.currentTopic.topicID;
-  var stored = _progress.time_spent[id] || 0;
+  if (!panel || !S.ui.currentTopic) return;
+  var id     = S.ui.currentTopic.topicID;
+  var stored = S.data.progress.time_spent[id] || 0;
   var live   = (_enterTime && _trackingTopicID === id) ? (Date.now() - _enterTime) / 1000 : 0;
   panel.innerHTML =
     'time_spent: <b style="color:#e2e8f0">'      + (stored + live).toFixed(1) + 's</b><br>' +
-    'read_to_bottom: <b style="color:#e2e8f0">'  + (!!_progress.read_to_bottom[id])  + '</b><br>' +
-    'marked_manually: <b style="color:#e2e8f0">' + (!!_progress.marked_manually[id]) + '</b>';
+    'read_to_bottom: <b style="color:#e2e8f0">'  + (!!S.data.progress.read_to_bottom[id])  + '</b><br>' +
+    'marked_manually: <b style="color:#e2e8f0">' + (!!S.data.progress.marked_manually[id]) + '</b>';
   // Re-render completion rules display every ~1s, but not while the tooltip is open
   _rulesDisplayTick++;
-  if (_rulesDisplayTick % 10 === 0 && S.currentTopic) {
+  if (_rulesDisplayTick % 10 === 0 && S.ui.currentTopic) {
     var rulesEl = document.getElementById('topic-completion-rules-display');
     if (rulesEl && !rulesEl.querySelector('.tooltip-visible')) {
-      renderTopicRulesDisplay(S.currentTopic);
+      renderTopicRulesDisplay(S.ui.currentTopic);
     }
   }
 }
@@ -239,10 +217,10 @@ function _updateDebugPanel() {
 
 // ── Manual completion ─────────────────────────────────────────────────────────
 function toggleTopicCompleted() {
-  var t = S.currentTopic;
+  var t = S.ui.currentTopic;
   if (!t) return;
-  if (_progress.marked_manually[t.topicID]) delete _progress.marked_manually[t.topicID];
-  else _progress.marked_manually[t.topicID] = true;
+  if (S.data.progress.marked_manually[t.topicID]) delete S.data.progress.marked_manually[t.topicID];
+  else S.data.progress.marked_manually[t.topicID] = true;
   _persistProgress();
   _updateDebugPanel();
   render();
@@ -253,7 +231,7 @@ if (_ED) {
   // the snapshot has one. Snapshots published before element ids existed fall
   // back to a positional key so answers at least stay stable until republish.
   var _answerKey = function(cellIdx, qi, topicID) {
-    var tid = topicID != null ? topicID : (S.currentTopic && S.currentTopic.topicID);
+    var tid = topicID != null ? topicID : (S.ui.currentTopic && S.ui.currentTopic.topicID);
     if (tid == null) return null;
     var topic = _CD.topicMap[tid];
     var raw = topic && topic.rawElements;
@@ -267,23 +245,23 @@ if (_ED) {
   cvQSave = function(cellIdx, qi, chosen) {
     var k = _answerKey(cellIdx, qi);
     if (k == null) return;
-    _progress.lastAnswered[k] = Number(chosen);
+    S.data.progress.lastAnswered[k] = Number(chosen);
     _persistProgress();
   };
   cvQLoad = function(cellIdx, qi, topicID) {
     var k = _answerKey(cellIdx, qi, topicID);
-    var v = k == null ? null : _progress.lastAnswered[k];
+    var v = k == null ? null : S.data.progress.lastAnswered[k];
     return v == null ? null : Number(v);
   };
   cvQsBestSave = function(cellIdx, score) {
     var k = _answerKey(cellIdx, null);
     if (k == null) return;
-    _progress.correctlyAnswered[k] = Number(score);
+    S.data.progress.correctlyAnswered[k] = Number(score);
     _persistProgress();
   };
   cvQsBestLoad = function(cellIdx) {
     var k = _answerKey(cellIdx, null);
-    var v = k == null ? null : _progress.correctlyAnswered[k];
+    var v = k == null ? null : S.data.progress.correctlyAnswered[k];
     return v == null ? null : Number(v);
   };
 }

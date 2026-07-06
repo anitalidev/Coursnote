@@ -4,8 +4,6 @@
 // stored in raw_elements, and reused on every load thereafter.
 function nbGenId() { return 'el_' + crypto.randomUUID().replace(/-/g, '').slice(0, 10); }
 
-const _nbEditors = {};
-const _monacoEditors = {};
 
 const NB_CODE_LANGS = ['javascript','typescript','python','java','c','cpp','go','rust','html','css','json','sql','shell','markdown'];
 
@@ -24,10 +22,10 @@ function nbMountMonacoEditors() {
     window.addEventListener('monaco-ready', nbMountMonacoEditors, { once: true });
     return;
   }
-  S.notebookCells.forEach(c => {
+  S.editor.cells.forEach(c => {
     if (c.type !== 'codeEditor') return;
     const el = document.getElementById('monaco-' + c.id);
-    if (!el || _monacoEditors[c.id]) return;
+    if (!el || Editors.monaco[c.id]) return;
     const editor = monaco.editor.create(el, {
       value: c.code || '',
       language: c.language || 'javascript',
@@ -46,8 +44,8 @@ function nbMountMonacoEditors() {
       scrollbar: { alwaysConsumeMouseWheel: false },
     });
     nbAttachScrollLatch(el, editor);
-    _monacoEditors[c.id] = editor;
-    if (S.editMode) {
+    Editors.monaco[c.id] = editor;
+    if (S.ui.editMode) {
       editor.onDidChangeModelContent(() => {
         c.code = editor.getValue();
         scheduleElementsSave();
@@ -99,23 +97,23 @@ function nbAttachScrollLatch(el, editor) {
 }
 
 function nbDestroyMonacoEditors() {
-  Object.keys(_monacoEditors).forEach(id => {
-    _monacoEditors[id].dispose();
-    delete _monacoEditors[id];
+  Object.keys(Editors.monaco).forEach(id => {
+    Editors.monaco[id].dispose();
+    delete Editors.monaco[id];
   });
 }
 
 function nbChangeCodeLanguage(id, lang) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c.language = lang;
-  const editor = _monacoEditors[id];
+  const editor = Editors.monaco[id];
   if (editor) monaco.editor.setModelLanguage(editor.getModel(), lang);
   scheduleElementsSave();
 }
 
 function nbChangeCodeMaxLines(id, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c.maxLines = parseInt(val) || 0;
   renderNotebook();
@@ -190,7 +188,7 @@ function parseRawElements(raw) {
 
 function nbCellsToElements() {
   const wrap = v => ({ content: v });
-  return S.notebookCells.map(c => {
+  return S.editor.cells.map(c => {
     if (c.type === 'table')     return { id: c.id, type: 'table', cells: c.cells.map(row => row.map(wrap)) };
     if (c.type === 'card')      return { id: c.id, type: 'card', header: wrap(c.header), content: wrap(c.content) };
     if (c.type === 'cardSlide') return { id: c.id, type: 'cardSlide', cards: c.cards.map(card => ({ header: wrap(card.header), content: wrap(card.content) })) };
@@ -204,7 +202,7 @@ function nbCellsToElements() {
 function nbAddCell(type, insertIdx) {
   const base = { id: nbGenId(), type, content: null, cells: [], header: null, cards: [{ header: null, content: null }], question: null, options: [null, null], answer: 0, questions: [{ id: nbGenId(), question: null, options: [null, null], answer: 0 }], code: '', language: 'javascript', maxLines: 0 };
   if (type === 'table') base.cells = [[null, null], [null, null]];
-  S.notebookCells.splice(insertIdx, 0, base);
+  S.editor.cells.splice(insertIdx, 0, base);
   renderNotebook();
   scheduleElementsSave();
   setTimeout(() => {
@@ -240,7 +238,7 @@ function nbTypeMenu(e, id) {
   e.stopPropagation();
   const existing = document.getElementById('nb-type-menu');
   if (existing) { existing.remove(); return; }
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   const panel = document.createElement('div');
   panel.id = 'nb-type-menu';
@@ -291,7 +289,7 @@ function nbCellHasContent(c) {
 
 function nbChangeCellType(id, type) {
   document.getElementById('nb-type-menu')?.remove();
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || c.type === type || !NB_TYPE_META[type]) return;
 
   if (nbCellHasContent(c)) {
@@ -388,7 +386,7 @@ function nbBindDragReorder(nb) {
 function nbDropCell(dragId, targetId, below) {
   _nbDragId = null;
   _nbDropTargetId = null;
-  const cells = S.notebookCells;
+  const cells = S.editor.cells;
   const from = cells.findIndex(c => c.id === dragId);
   let to = cells.findIndex(c => c.id === targetId);
   if (from === -1 || to === -1) { renderNotebook(); return; }
@@ -408,16 +406,16 @@ function nbDeleteCell(id) {
 }
 
 function _doDeleteCell(id) {
-  S.notebookCells = S.notebookCells.filter(c => c.id !== id);
+  S.editor.cells = S.editor.cells.filter(c => c.id !== id);
   renderNotebook();
   scheduleElementsSave();
 }
 
 function nbMountEditor(key, content, setter, hasToolbar, placeholder) {
   const el = document.getElementById('tiptap-' + key);
-  if (!el || _nbEditors[key]) return;
+  if (!el || Editors.notebook[key]) return;
   if (placeholder) el.dataset.placeholder = placeholder;
-  _nbEditors[key] = new window.TipTapEditor({
+  Editors.notebook[key] = new window.TipTapEditor({
     element: el,
     extensions: window.TipTapAllExtensions,
     content: content ?? '',
@@ -435,7 +433,7 @@ function nbMountTipTapEditors() {
     window.addEventListener('tiptap-ready', nbMountTipTapEditors, { once: true });
     return;
   }
-  S.notebookCells.forEach(c => {
+  S.editor.cells.forEach(c => {
     if (c.type === 'text') {
       nbMountEditor(c.id, c.content, v => { c.content = v; }, true, 'Start typing…');
     } else if (c.type === 'table') {
@@ -469,20 +467,20 @@ function nbMountTipTapEditors() {
 }
 
 function nbDestroyTipTapEditors() {
-  Object.keys(_nbEditors).forEach(id => {
+  Object.keys(Editors.notebook).forEach(id => {
     if (id === _pnKey) return;
-    _nbEditors[id].destroy();
-    delete _nbEditors[id];
+    Editors.notebook[id].destroy();
+    delete Editors.notebook[id];
   });
 }
 
 function nbUpdateTableCell(id, r, col, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c && c.cells[r]) c.cells[r][col] = val;
 }
 
 function nbAddRow(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   const cols = c.cells[0]?.length || 1;
   c.cells.push(Array(cols).fill(null));
@@ -491,7 +489,7 @@ function nbAddRow(id) {
 }
 
 function nbDelRow(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || c.cells.length <= 1) return;
   c.cells.pop();
   renderNotebook();
@@ -499,7 +497,7 @@ function nbDelRow(id) {
 }
 
 function nbAddCol(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || (c.cells[0]?.length ?? 0) >= 10) return;
   c.cells.forEach(row => row.push(null));
   renderNotebook();
@@ -507,7 +505,7 @@ function nbAddCol(id) {
 }
 
 function nbDelCol(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || (c.cells[0]?.length ?? 0) <= 1) return;
   c.cells.forEach(row => row.pop());
   renderNotebook();
@@ -635,7 +633,7 @@ function nbTtToolbarHTML(key) {
 }
 
 function nbTtInlineHTML(key) {
-  return `<div id="tiptap-${key}" class="nb-tiptap nb-tiptap-inline" onclick="_nbEditors['${key}']?.commands.focus()"></div>`;
+  return `<div id="tiptap-${key}" class="nb-tiptap nb-tiptap-inline" onclick="Editors.notebook['${key}']?.commands.focus()"></div>`;
 }
 
 function nbTextCellHTML(c) {
@@ -643,7 +641,7 @@ function nbTextCellHTML(c) {
     <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       ${nbTtToolbarHTML(c.id)}
-      <div id="tiptap-${c.id}" class="nb-tiptap" onclick="_nbEditors['${c.id}']?.commands.focus()"></div>
+      <div id="tiptap-${c.id}" class="nb-tiptap" onclick="Editors.notebook['${c.id}']?.commands.focus()"></div>
     </div>
     ${nbCellControlsHTML(c)}
   </div>`;
@@ -661,7 +659,7 @@ function nbInsertImage(key) {
       const res = await fetch('http://localhost:8081/api/image', { method: 'POST', body: form });
       if (!res.ok) throw new Error(await res.text());
       const { url } = await res.json();
-      const ed = _nbEditors[key];
+      const ed = Editors.notebook[key];
       if (ed) ed.chain().focus().setImage({ src: url }).run();
     } catch (e) {
       console.error('Image upload failed:', e);
@@ -672,7 +670,7 @@ function nbInsertImage(key) {
 }
 
 function nbTipTapCmd(id, cmd, arg) {
-  const ed = _nbEditors[id];
+  const ed = Editors.notebook[id];
   if (!ed) return;
   const chain = ed.chain().focus();
   if (cmd === 'bold')          chain.toggleBold().run();
@@ -773,7 +771,7 @@ function nbGetFontSizeAtSelection(ed) {
 }
 
 function nbTipTapUpdateToolbar(id) {
-  const ed = _nbEditors[id];
+  const ed = Editors.notebook[id];
   const tb = document.getElementById('tttb-' + id);
   if (!ed || !tb) return;
   const checks = {
@@ -835,9 +833,9 @@ function nbCardCellHTML(c) {
     <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
       <div class="nb-tiptap-label">Header</div>
-      <div id="tiptap-${hKey}" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="_nbEditors['${hKey}']?.commands.focus()"></div>
+      <div id="tiptap-${hKey}" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="Editors.notebook['${hKey}']?.commands.focus()"></div>
       ${nbTtToolbarHTML(cKey)}
-      <div id="tiptap-${cKey}" class="nb-tiptap" onclick="_nbEditors['${cKey}']?.commands.focus()"></div>
+      <div id="tiptap-${cKey}" class="nb-tiptap" onclick="Editors.notebook['${cKey}']?.commands.focus()"></div>
     </div>
     ${nbCellControlsHTML(c)}
   </div>`;
@@ -868,9 +866,9 @@ function nbCardSlideCellHTML(c) {
         <button class="nb-ctrl-btn" onclick="nbAddSlideCard('${c.id}')">＋ Add</button>
       </div>
       <div class="nb-tiptap-label">Header</div>
-      <div id="tiptap-${c.id}-${idx}-hdr" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="_nbEditors['${c.id}-${idx}-hdr']?.commands.focus()"></div>
+      <div id="tiptap-${c.id}-${idx}-hdr" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="Editors.notebook['${c.id}-${idx}-hdr']?.commands.focus()"></div>
       ${nbTtToolbarHTML(`${c.id}-${idx}-cnt`)}
-      <div id="tiptap-${c.id}-${idx}-cnt" class="nb-tiptap" onclick="_nbEditors['${c.id}-${idx}-cnt']?.commands.focus()"></div>
+      <div id="tiptap-${c.id}-${idx}-cnt" class="nb-tiptap" onclick="Editors.notebook['${c.id}-${idx}-cnt']?.commands.focus()"></div>
     </div>
     ${nbCellControlsHTML(c)}
   </div>`;
@@ -887,7 +885,7 @@ function nbQuestionCellHTML(c) {
   return `<div class="nb-cell" data-id="${c.id}">
     <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
     <div class="nb-cell-body">
-      <div id="tiptap-${c.id}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="_nbEditors['${c.id}-q']?.commands.focus()"></div>
+      <div id="tiptap-${c.id}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="Editors.notebook['${c.id}-q']?.commands.focus()"></div>
       <div class="nb-q-options">${optsHTML}</div>
       <button class="nb-ctrl-btn" onclick="nbAddOption('${c.id}')">＋ Add option</button>
       <div class="nb-q-hint">Select the correct answer with the radio button.</div>
@@ -917,7 +915,7 @@ function nbQSlideCellHTML(c) {
         <button class="nb-ctrl-btn nb-slide-del" style="margin-left:auto" onclick="nbDelQSlideQuestion('${c.id}',${idx})" ${total <= 1 ? 'disabled' : ''}>− Remove</button>
         <button class="nb-ctrl-btn" onclick="nbAddQSlideQuestion('${c.id}')">＋ Add</button>
       </div>
-      <div id="tiptap-${c.id}-qs-${idx}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="_nbEditors['${c.id}-qs-${idx}-q']?.commands.focus()"></div>
+      <div id="tiptap-${c.id}-qs-${idx}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="Editors.notebook['${c.id}-qs-${idx}-q']?.commands.focus()"></div>
       <div class="nb-q-options">${optsHTML}</div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="nb-ctrl-btn" onclick="nbAddQSlideOption('${c.id}',${idx})">＋ Option</button>
@@ -929,17 +927,17 @@ function nbQSlideCellHTML(c) {
 }
 
 function nbUpdateQSlideField(id, qi, field, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c?.questions[qi]) c.questions[qi][field] = val;
 }
 
 function nbUpdateQSlideOption(id, qi, i, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c?.questions[qi]?.options[i] !== undefined) c.questions[qi].options[i] = val;
 }
 
 function nbAddQSlideOption(id, qi) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c?.questions[qi]) return;
   c.questions[qi].options.push(null);
   renderNotebook();
@@ -947,7 +945,7 @@ function nbAddQSlideOption(id, qi) {
 }
 
 function nbDelQSlideOption(id, qi, i) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   const q = c?.questions[qi];
   if (!q || q.options.length <= 2) return;
   if (q.answer >= i && q.answer > 0) q.answer--;
@@ -957,7 +955,7 @@ function nbDelQSlideOption(id, qi, i) {
 }
 
 function nbAddQSlideQuestion(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c.questions.push({ id: nbGenId(), question: null, options: [null, null], answer: 0 });
   c._slideIdx = c.questions.length - 1;
@@ -966,7 +964,7 @@ function nbAddQSlideQuestion(id) {
 }
 
 function nbDelQSlideQuestion(id, qi) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || c.questions.length <= 1) return;
   c.questions.splice(qi, 1);
   c._slideIdx = Math.min(c._slideIdx ?? 0, c.questions.length - 1);
@@ -975,7 +973,7 @@ function nbDelQSlideQuestion(id, qi) {
 }
 
 function nbSlideNav(id, listKey, dir) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   const len = c[listKey].length;
   c._slideIdx = ((c._slideIdx ?? 0) + dir + len) % len;
@@ -985,7 +983,7 @@ function nbSlideNav(id, listKey, dir) {
 }
 
 function nbSlideGoTo(id, listKey, i) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c._slideIdx = i;
   const scrollY = window.scrollY;
@@ -994,17 +992,17 @@ function nbSlideGoTo(id, listKey, i) {
 }
 
 function nbUpdateField(id, field, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c) c[field] = val;
 }
 
 function nbUpdateSlideCard(id, i, field, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c?.cards[i]) c.cards[i][field] = val;
 }
 
 function nbAddSlideCard(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c.cards.push({ header: null, content: null });
   c._slideIdx = c.cards.length - 1;
@@ -1013,7 +1011,7 @@ function nbAddSlideCard(id) {
 }
 
 function nbDelSlideCard(id, i) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || c.cards.length <= 1) return;
   c.cards.splice(i, 1);
   c._slideIdx = Math.min(c._slideIdx ?? 0, c.cards.length - 1);
@@ -1022,12 +1020,12 @@ function nbDelSlideCard(id, i) {
 }
 
 function nbUpdateOption(id, i, val) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (c?.options[i] !== undefined) c.options[i] = val;
 }
 
 function nbAddOption(id) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c) return;
   c.options.push(null);
   renderNotebook();
@@ -1035,7 +1033,7 @@ function nbAddOption(id) {
 }
 
 function nbDelOption(id, i) {
-  const c = S.notebookCells.find(c => c.id === id);
+  const c = S.editor.cells.find(c => c.id === id);
   if (!c || c.options.length <= 2) return;
   if (c.answer >= i && c.answer > 0) c.answer--;
   c.options.splice(i, 1);
@@ -1044,11 +1042,11 @@ function nbDelOption(id, i) {
 }
 
 function buildNotebookHTML() {
-  if (!S.notebookCells.length) {
+  if (!S.editor.cells.length) {
     return nbAddZoneHTML(0) +
       '<div class="nb-empty">No content yet — add a cell above.</div>';
   }
-  return S.notebookCells.reduce((html, c, i) => {
+  return S.editor.cells.reduce((html, c, i) => {
     let cellHTML;
     if (c.type === 'table')          cellHTML = nbTableCellHTML(c);
     else if (c.type === 'card')      cellHTML = nbCardCellHTML(c);
@@ -1164,13 +1162,13 @@ function buildCourseViewHTML(cells) {
   }).join('');
 }
 
-function cvQKey(cellId, qi, topicID) { return `coursnote_q_${topicID ?? S.currentTopic?.topicID}_${cellId}${qi != null ? '_' + qi : ''}`; }
-function cvQSave(cellId, qi, chosen) { try { localStorage.setItem(cvQKey(cellId, qi), chosen); } catch {} }
-function cvQLoad(cellId, qi, topicID){ const v = localStorage.getItem(cvQKey(cellId, qi, topicID)); return v == null ? null : Number(v); }
+function cvQKey(cellId, qi, topicID) { return `coursnote_q_${topicID ?? S.ui.currentTopic?.topicID}_${cellId}${qi != null ? '_' + qi : ''}`; }
+function cvQSave(cellId, qi, chosen) { Storage.saveQuizAnswer(cvQKey(cellId, qi), chosen); }
+function cvQLoad(cellId, qi, topicID){ return Storage.loadQuizAnswer(cvQKey(cellId, qi, topicID)); }
 
-function cvQsBestKey(cellIdx)        { return `coursnote_qs_best_${S.currentTopic?.topicID}_${cellIdx}`; }
-function cvQsBestLoad(cellIdx)       { const v = localStorage.getItem(cvQsBestKey(cellIdx)); return v == null ? null : Number(v); }
-function cvQsBestSave(cellIdx, score){ try { localStorage.setItem(cvQsBestKey(cellIdx), score); } catch {} }
+function cvQsBestKey(cellIdx)        { return `coursnote_qs_best_${S.ui.currentTopic?.topicID}_${cellIdx}`; }
+function cvQsBestLoad(cellIdx)       { return Storage.loadQuizBest(cvQsBestKey(cellIdx)); }
+function cvQsBestSave(cellIdx, score){ Storage.saveQuizBest(cvQsBestKey(cellIdx), score); }
 
 function cvQsScoreHTML(correct, total, best) {
   if (total === 0) return '';
@@ -1197,7 +1195,7 @@ function cvApplyAnswer(container, fb, chosen, correct) {
 }
 
 function cvAnswerQSlide(cellIdx, qi, chosen, correct) {
-  const cell = S.notebookCells[cellIdx];
+  const cell = S.editor.cells[cellIdx];
   if (!cell) return;
   const container = document.getElementById(`cvq-${cell.id}-${qi}`);
   const fb = document.getElementById(`cvqf-${cell.id}-${qi}`);
@@ -1262,7 +1260,7 @@ function cvSlideActivate(id, el, cards, idx) {
 }
 
 function cvAnswerQuestion(cellIdx, chosen, correct) {
-  const cell = S.notebookCells[cellIdx];
+  const cell = S.editor.cells[cellIdx];
   if (!cell) return;
   const fb = document.getElementById('cvqf-' + cell.id);
   const container = document.getElementById('cvq-' + cell.id);
@@ -1278,7 +1276,7 @@ function mountPNEditor() {
     window.addEventListener('tiptap-ready', mountPNEditor, { once: true });
     return;
   }
-  const pn = S.privateNote;
+  const pn = S.editor.privateNote;
   let content = null;
   if (pn?.description) {
     try { content = typeof pn.description === 'string' ? JSON.parse(pn.description) : pn.description; } catch {}
@@ -1290,9 +1288,9 @@ function mountPNEditor() {
 }
 
 function destroyPNEditor() {
-  if (_nbEditors[_pnKey]) {
-    try { _nbEditors[_pnKey].destroy(); } catch {}
-    delete _nbEditors[_pnKey];
+  if (Editors.notebook[_pnKey]) {
+    try { Editors.notebook[_pnKey].destroy(); } catch {}
+    delete Editors.notebook[_pnKey];
   }
 }
 
@@ -1316,13 +1314,13 @@ function renderNotebook() {
   if (!nb) return;
   nbDestroyTipTapEditors();
   nbDestroyMonacoEditors();
-  if (S.editMode) {
+  if (S.ui.editMode) {
     nb.innerHTML = buildNotebookHTML();
     nb.querySelectorAll('.nb-textarea, .nb-cell-input').forEach(ta => autoResize(ta));
     nbMountTipTapEditors();
     nbBindDragReorder(nb);
   } else {
-    nb.innerHTML = buildCourseViewHTML(S.notebookCells);
+    nb.innerHTML = buildCourseViewHTML(S.editor.cells);
     cvSlideSyncHeights();
   }
   nbMountMonacoEditors();

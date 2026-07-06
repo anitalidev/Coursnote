@@ -1,17 +1,17 @@
 'use strict';
 
 function settingsHTML() {
-  const avatarSrc = S.user.avatarURL;
+  const avatarSrc = S.data.user.avatarURL;
   return `<div class="section">
     <h1 style="margin-bottom:24px">Settings</h1>
     <div class="settings-card">
       <h2 class="settings-section-title">Profile</h2>
       <div class="settings-avatar-row">
         <div class="settings-avatar-preview" id="avatar-preview">
-          ${avatarSrc ? `<img src="${esc(avatarSrc)}" class="settings-avatar-img">` : `<span class="settings-avatar-initial">${esc((S.user.username || '?')[0].toUpperCase())}</span>`}
+          ${avatarSrc ? `<img src="${esc(avatarSrc)}" class="settings-avatar-img">` : `<span class="settings-avatar-initial">${esc((S.data.user.username || '?')[0].toUpperCase())}</span>`}
         </div>
         <div class="settings-avatar-actions">
-          <p class="settings-label">${esc(S.user.username)}</p>
+          <p class="settings-label">${esc(S.data.user.username)}</p>
           <label class="btn btn-secondary settings-upload-btn">
             Upload Photo
             <input type="file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
@@ -158,7 +158,7 @@ function ccFormatDate(iso) {
 // ── Home page ─────────────────────────────────────────────────────────────────
 
 function homeHTML() {
-  const enrolled = S.enrolledCourses || [];
+  const enrolled = S.data.enrolledCourses || [];
   const enrolledCards = enrolled.length === 0
     ? `<p style="color:var(--text2);padding:8px 0">No enrolled courses yet. Visit the <a class="sb-link" onclick="goMarket()">Marketplace</a> to find one.</p>`
     : enrolled.map(c => {
@@ -224,7 +224,7 @@ function homeHTML() {
 // ── Courses page ──────────────────────────────────────────────────────────────
 
 function coursesHTML() {
-  const cards = S.courses.map(c => {
+  const cards = S.data.courses.map(c => {
     const mods   = (c.moduleIDs || []).length;
     const pct    = Math.round((c.pcompleted || 0) * 100);
     const topics = c.ntopics || 0;
@@ -352,9 +352,9 @@ function marketCardHTML(c) {
 }
 
 function marketHTML() {
-  const f = S.marketFilter;
-  const filtered = S.marketCourses || [];
-  const total = S.marketTotal ?? filtered.length;
+  const f = S.ui.marketFilter;
+  const filtered = S.data.marketCourses || [];
+  const total = S.data.marketTotal ?? filtered.length;
   const shown = filtered.length;
   const countLabel = shown === total
     ? `${total} course${total !== 1 ? 's' : ''}`
@@ -398,13 +398,13 @@ function marketHTML() {
 }
 
 function modulesHTML() {
-  const c = S.currentCourse;
-  const totalTopics = S.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const pct = Math.round((S.currentCourse.pcompleted || 0) * 100);
-  const doneMods = Math.round(pct / 100 * S.modules.length);
+  const c = S.ui.currentCourse;
+  const totalTopics = S.data.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
+  const pct = Math.round((S.ui.currentCourse.pcompleted || 0) * 100);
+  const doneMods = Math.round(pct / 100 * S.data.modules.length);
   const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
 
-  const addModCard = S.editMode ? `
+  const addModCard = S.ui.editMode ? `
     <div class="mod2-add-card" onclick="openModal('modal-module','New Module')">
       <div class="mod2-add-circle">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -413,16 +413,16 @@ function modulesHTML() {
       <div class="mod2-add-sub">Create a new module or topic</div>
     </div>` : '';
 
-  const modCards = S.modules.map((m, i) => {
+  const modCards = S.data.modules.map((m, i) => {
     const topics = (m.topicIDs || []).length;
-    const menuHTML = S.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
+    const menuHTML = S.ui.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>` : '';
-    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, _isModuleComplete(m) ? ' mod2-done' : '');
+    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, isModuleComplete(m) ? ' mod2-done' : '');
   }).join('');
 
   return `<div class="course-page">
-    ${!window.STATIC_MODE ? `<div class="back-link" onclick="goCourses()">
+    ${Runtime.editable ? `<div class="back-link" onclick="goCourses()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       All Courses
     </div>` : ''}
@@ -430,7 +430,7 @@ function modulesHTML() {
     <div class="course-hero2" id="course-view-header">
       <div class="ch2-banner" style="background:${bannerGrad}">
         <div class="ch2-actions">
-          ${S.editMode ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()" style="color:#fff;border-color:rgba(255,255,255,.3)">
+          ${S.ui.editMode ? `<button class="btn btn-ghost btn-sm" id="course-edit-btn" onclick="enterCourseEditMode()" style="color:#fff;border-color:rgba(255,255,255,.3)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit
           </button>
@@ -445,10 +445,10 @@ function modulesHTML() {
           <p class="ch2-desc" id="course-desc-display">${esc(c.description) || '<span style="opacity:.4">No description</span>'}</p>
         </div>
       </div><!-- ch2-top -->
-    ${buildCh2StatsRowHTML(S.modules.length, totalTopics, {doneMods, pct})}<!-- ch2-stats-row -->
+    ${buildCh2StatsRowHTML(S.data.modules.length, totalTopics, {doneMods, pct})}<!-- ch2-stats-row -->
     </div><!-- course-hero2 -->
 
-    ${S.editMode ? `
+    ${S.ui.editMode ? `
     <div id="course-edit-form" style="display:none;margin-bottom:24px">
       <div class="inline-form open" style="margin-bottom:0">
         <h3>Edit Course</h3>
@@ -497,9 +497,9 @@ function modulesHTML() {
 }
 
 function topicsHTML() {
-  const m = S.currentModule;
-  const items = S.topics.length
-    ? S.topics.map((t, idx) => {
+  const m = S.ui.currentModule;
+  const items = S.data.topics.length
+    ? S.data.topics.map((t, idx) => {
         const rules = t.compTypes || [];
         const labelMap = {
           'self_reported': 'Manual',
@@ -528,7 +528,7 @@ function topicsHTML() {
               <span class="info-icon">(i)</span>
               <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
             </div>`;
-        const done = _isTopicComplete(t);
+        const done = isTopicComplete(t);
         return `
       <div class="item-card${done ? ' completed' : ''}" onclick="goTopic(${jsonAttr(t)})">
         <div class="item-icon topic">
@@ -540,7 +540,7 @@ function topicsHTML() {
           <div class="item-status">${done ? '✓ Completed' : 'Not Completed'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px">${rulesHTML}</div>
-        ${S.editMode ? `<div class="item-actions">
+        ${S.ui.editMode ? `<div class="item-actions">
           <button class="btn btn-ghost" onclick="event.stopPropagation();openTopicEdit('${t.topicID}')">Edit</button>
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
         </div>` : ''}
@@ -553,13 +553,13 @@ function topicsHTML() {
 
   return `<div class="section">
     <div class="breadcrumb">
-      ${!window.STATIC_MODE ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
-      <span onclick="goModules(${jsonAttr(S.currentCourse)},${S.editMode})">${esc(S.currentCourse.name)}</span>
+      ${Runtime.editable ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
+      <span onclick="goModules(${jsonAttr(S.ui.currentCourse)},${S.ui.editMode})">${esc(S.ui.currentCourse.name)}</span>
     </div>
     <div class="page-hero" id="module-view-header">
       <div class="section-header" style="align-items:flex-start;margin-bottom:0">
         <h1><span>${esc(m.name)}</span></h1>
-        ${S.editMode ? `<div style="display:flex;gap:8px">
+        ${S.ui.editMode ? `<div style="display:flex;gap:8px">
           <button class="btn btn-ghost" onclick="openModuleEdit('${m.moduleID}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit
@@ -569,7 +569,7 @@ function topicsHTML() {
       </div>
       ${m.description ? `<p class="subtitle">${esc(m.description)}</p>` : '<div style="margin-bottom:24px"></div>'}
     </div>
-    ${S.editMode ? `
+    ${S.ui.editMode ? `
     <div id="module-edit-form" style="display:none;margin-bottom:24px">
       <div class="inline-form open" style="margin-bottom:0">
         <h3>Edit Module</h3>
@@ -609,20 +609,20 @@ function topicEditFormHTML() {
     </div>`;
 }
 
-function _calcQuestionPercentage(topicID) {
-  // Use S.notebookCells when on the current topic — these are the exact cells
+function calcQuestionPercentage(topicID) {
+  // Use S.editor.cells when on the current topic — these are the exact cells
   // the viewer rendered, so cellIdx values match what cvQLoad/cvQSave used.
-  var cells = (S.currentTopic && S.currentTopic.topicID === topicID && S.notebookCells && S.notebookCells.length)
-    ? S.notebookCells
+  var cells = (S.ui.currentTopic && S.ui.currentTopic.topicID === topicID && S.editor.cells && S.editor.cells.length)
+    ? S.editor.cells
     : (function() {
-        var td = window._CD && window._CD.topicMap && window._CD.topicMap[topicID];
+        var td = Runtime.courseData && Runtime.courseData.topicMap && Runtime.courseData.topicMap[topicID];
         var raw = td && td.rawElements;
         if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = null; } }
         return Array.isArray(raw) ? raw : null;
       })();
   if (!cells) return null;
   var total = 0, correct = 0;
-  // Pass topicID so saved answers resolve against THIS topic, not S.currentTopic —
+  // Pass topicID so saved answers resolve against THIS topic, not S.ui.currentTopic —
   // the sidebar evaluates completeness for topics other than the one being viewed.
   cells.forEach(function(cell, cellIdx) {
     if (cell.type === 'question') {
@@ -641,32 +641,31 @@ function _calcQuestionPercentage(topicID) {
   return (correct / total) * 100;
 }
 
-function _isModuleComplete(module) {
-  const topics = (S.moduleTopics || {})[module.moduleID] || [];
+function isModuleComplete(module, progress = S.data.progress) {
+  const topics = (S.data.moduleTopics || {})[module.moduleID] || [];
   if (topics.length === 0) return true;
-  return topics.every(t => _isTopicComplete(t));
+  return topics.every(t => isTopicComplete(t, progress));
 }
 
-function _isTopicComplete(topic) {
+function isTopicComplete(topic, progress = S.data.progress) {
   const rules = topic.compTypes || [];
   if (rules.length === 0) return true;
-  if (!window._progress) return false;
+  if (!progress) return false;
   const ruleMap = {};
   rules.forEach(r => { ruleMap[r.type] = r.config; });
-  return Object.keys(ruleMap).every(type => _isRuleMet(type, ruleMap[type], topic.topicID) === true);
+  return Object.keys(ruleMap).every(type => isRuleMet(type, ruleMap[type], topic.topicID, progress) === true);
 }
 
-function _isRuleMet(type, config, topicID) {
-  var progress = window._progress;
+function isRuleMet(type, config, topicID, progress = S.data.progress) {
   if (!progress) return null;
   if (type === 'self_reported') return !!progress.marked_manually[topicID];
   if (type === 'read_to_bottom') return !!progress.read_to_bottom[topicID];
   if (type === 'timed') {
-    var spent = window._getTopicLiveTime ? window._getTopicLiveTime(topicID) : (progress.time_spent[topicID] || 0);
+    var spent = typeof _getTopicLiveTime === 'function' ? _getTopicLiveTime(topicID) : (progress.time_spent[topicID] || 0);
     return spent >= Number(config);
   }
   if (type === 'percentage_questions_correct') {
-    var pct = _calcQuestionPercentage(topicID);
+    var pct = calcQuestionPercentage(topicID);
     return pct != null && pct >= Number(config);
   }
   return null;
@@ -703,7 +702,7 @@ function renderTopicRulesDisplay(topic) {
         if (type === 'timed') label += ` (${config}s)`;
         if (type === 'percentage_questions_correct') label += ` (${config}%)`;
       }
-      const met = _isRuleMet(type, config, topic.topicID);
+      const met = isRuleMet(type, config, topic.topicID);
       const color = met === true ? '#22c55e' : met === false ? '#ef4444' : 'var(--text3)';
       return `<div style="color:${color}">• ${label}</div>`;
     });
@@ -712,7 +711,7 @@ function renderTopicRulesDisplay(topic) {
 
   let overallIndicator = '';
   if (rules.length > 0) {
-    const statuses = Object.keys(ruleMap).map(type => _isRuleMet(type, ruleMap[type], topic.topicID));
+    const statuses = Object.keys(ruleMap).map(type => isRuleMet(type, ruleMap[type], topic.topicID));
     const allMet = statuses.every(s => s === true);
     const anyUnmet = statuses.some(s => s === false);
     const color = allMet ? '#22c55e' : (anyUnmet ? '#ef4444' : 'var(--text3)');
@@ -778,13 +777,13 @@ function hideTooltip(element) {
 }
 
 function topicHTML() {
-  const t = S.currentTopic;
+  const t = S.ui.currentTopic;
   return `<div class="section topic-section">
     <div class="breadcrumb">
-      ${!window.STATIC_MODE ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
-      <span onclick="goModules(${jsonAttr(S.currentCourse)},${S.editMode})">${esc(S.currentCourse.name)}</span>
+      ${Runtime.editable ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
+      <span onclick="goModules(${jsonAttr(S.ui.currentCourse)},${S.ui.editMode})">${esc(S.ui.currentCourse.name)}</span>
       <span class="sep">›</span>
-      <span onclick="goTopics(${jsonAttr(S.currentModule)})">${esc(S.currentModule.name)}</span>
+      <span onclick="goTopics(${jsonAttr(S.ui.currentModule)})">${esc(S.ui.currentModule.name)}</span>
     </div>
     <div class="topic-header" id="topic-view-header">
       <div>
@@ -793,19 +792,19 @@ function topicHTML() {
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <div id="topic-completion-rules-display" style="display:flex;align-items:flex-start;gap:8px;flex-direction:column"></div>
-        ${S.editMode ? `<button class="btn btn-ghost" onclick="openTopicEdit('${t.topicID}')" style="margin-top:5px">
+        ${S.ui.editMode ? `<button class="btn btn-ghost" onclick="openTopicEdit('${t.topicID}')" style="margin-top:5px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>` : ''}
-        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${window._progress?.marked_manually?.[t.topicID] ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${window._progress?.marked_manually?.[t.topicID] ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
+        ${Runtime.trackProgress && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${S.data.progress?.marked_manually?.[t.topicID] ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${S.data.progress?.marked_manually?.[t.topicID] ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
-        ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
-        <button class="notes-tab ${window.STATIC_MODE || S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
+        ${Runtime.editable ? `<button class="notes-tab ${S.ui.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
+        <button class="notes-tab ${Runtime.trackProgress || S.ui.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
       </div>
       </div>
     </div>
-    ${S.editMode ? topicEditFormHTML() : ''}
-    ${!window.STATIC_MODE ? `<div id="pane-pn" class="note-pane" style="${S.notesTab === 'pn' ? '' : 'display:none'}">
+    ${S.ui.editMode ? topicEditFormHTML() : ''}
+    ${Runtime.editable ? `<div id="pane-pn" class="note-pane" style="${S.ui.notesTab === 'pn' ? '' : 'display:none'}">
       <div class="note-pane-header">
         <span class="note-pane-title private">Private Notes</span>
         <span class="save-indicator" id="status-pn"></span>
@@ -815,10 +814,10 @@ function topicHTML() {
         <div id="tiptap-pn" class="nb-tiptap" onclick="_nbEditors['pn']?.commands.focus()"></div>
       </div>
     </div>` : ''}
-    <div id="pane-cp" class="note-pane" style="${!window.STATIC_MODE && S.notesTab !== 'cp' ? 'display:none' : ''}">
+    <div id="pane-cp" class="note-pane" style="${Runtime.editable && S.ui.notesTab !== 'cp' ? 'display:none' : ''}">
       <div class="note-pane-header">
         <span class="note-pane-title course">Course View</span>
-        ${!window.STATIC_MODE ? `<span class="save-indicator" id="status-cp"></span>` : ''}
+        ${Runtime.editable ? `<span class="save-indicator" id="status-cp"></span>` : ''}
       </div>
       <div class="note-pane-body nb-pane-body">
         <div class="notebook" id="notebook"></div>

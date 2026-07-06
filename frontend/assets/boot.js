@@ -1,13 +1,13 @@
 'use strict';
 
 (async () => {
-  const saved = localStorage.getItem('coursnote_user');
+  const saved = Storage.loadUser();
   if (saved) {
-    const parsed = JSON.parse(saved);
+    const parsed = saved;
     try {
       const fresh = await GET('/user?id=' + parsed.id);
-      S.user = { id: fresh.id, username: fresh.username, avatarURL: fresh.avatarURL || '', courseIDs: fresh.courseIDs || [] };
-      localStorage.setItem('coursnote_user', JSON.stringify(S.user));
+      S.data.user = { id: fresh.id, username: fresh.username, avatarURL: fresh.avatarURL || '', courseIDs: fresh.courseIDs || [] };
+      Storage.saveUser(S.data.user);
       if (location.hash && location.hash !== '#courses') {
         await restoreFromHash(location.hash);
       } else {
@@ -19,7 +19,7 @@
         await handleLogin(parsed.username);
         return;
       } catch {
-        localStorage.removeItem('coursnote_user');
+        Storage.clearUser();
       }
     }
   }
