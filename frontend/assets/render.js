@@ -105,11 +105,11 @@ function renderSidebar() {
   const moduleItems = S.modules.map(m => {
     const isMod  = S.currentModule?.moduleID === m.moduleID;
     const active = isMod ? ' active' : '';
-    const slash  = m.slashed ? ' done' : '';
+    const slash  = _isModuleComplete(m) ? ' done' : '';
     const mTopics = (S.moduleTopics || {})[m.moduleID] || [];
     const topicItems = mTopics.map(t => {
       const tActive = S.currentTopic?.topicID === t.topicID ? ' nav-sub-active' : '';
-      const tDone   = t.completed && !tActive ? ' nav-sub-done' : '';
+      const tDone   = _isTopicComplete(t) && !tActive ? ' nav-sub-done' : '';
       return `<div class="nav-sub-item${tActive}${tDone}" onclick="event.stopPropagation();goTopic(${jsonAttr(t)})">
         <span class="nav-sub-dot"></span><span>${esc(t.name)}</span>
       </div>`;

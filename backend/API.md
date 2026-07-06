@@ -47,15 +47,18 @@ Returns one user or all users depending on query parameters.
 {
   "id":        "1",
   "username":  "alice",
+  "avatarURL": "https://…",
   "courseIDs": ["3", "7"]
 }
 ```
 
+`avatarURL` is an empty string when no avatar is set.
+
 **Response — all users `200 OK`:**
 ```json
 [
-  { "id": "1", "username": "alice", "courseIDs": ["3"] },
-  { "id": "2", "username": "bob",   "courseIDs": [] }
+  { "id": "1", "username": "alice", "avatarURL": "", "courseIDs": ["3"] },
+  { "id": "2", "username": "bob",   "avatarURL": "", "courseIDs": [] }
 ]
 ```
 
@@ -691,7 +694,9 @@ Returns all published static course versions of a course (active and inactive), 
 
 ## Enrollment & Progress
 
-Enrolling links a user to a specific static course version. The enrollment also stores the user's progress through that course.
+Enrolling links a user to a specific static course version. The enrollment stores the user's progress as an opaque JSON blob owned by the frontend — see ENROLLMENT_DATA.md for the full blob shape.
+
+> **Known gap:** The Go `EnrollmentProgress` struct only has typed fields `Completed` and `LastAnswered`, so `marked_manually`, `time_spent`, and `read_to_bottom` are currently dropped when saved to the server. Those three fields survive via `localStorage` only. The intended fix is to store the progress blob as `json.RawMessage`.
 
 ### `POST /api/course/enroll`
 
@@ -707,7 +712,7 @@ Creates an enrollment. **Response `204 No Content`.**
 
 **Request body:** `{ "userID": "3", "staticCourseID": "8" }`
 
-Moves an existing enrollment for the same underlying course to a newer static version (used when `status` is `"update"` in the market listing); creates the enrollment if none exists. Progress stored on the enrollment survives the move. **Response `204 No Content`.**
+Moves an existing enrollment for the same underlying course to a newer static version (used when `status` is `"update"` in the market listing); creates the enrollment if none exists. Progress survives the move. **Response `204 No Content`.**
 
 **Errors:** `400` missing fields · `404` unknown `staticCourseID`.
 
@@ -715,24 +720,33 @@ Moves an existing enrollment for the same underlying course to a newer static ve
 
 ### `GET /api/course/enrolled?userID=<id>`
 
-Returns the user's enrolled courses as `MarketCourseDTO`s, each additionally carrying the enrollment's progress:
+Returns the user's enrolled courses as `MarketCourseDTO`s, each additionally carrying the stored progress blob. Due to the struct gap above, the returned `progress` only contains `completed` and `lastAnswered`:
 
 ```json
-{ "...": "market fields as above", "progress": { "completed": { "42": true }, "lastAnswered": { "el_3f8a1c9b2d": 2 } } }
+{
+  "...": "market fields as above",
+  "progress": {
+    "completed":    { "42": true },
+    "lastAnswered": { "el_3f8a1c9b2d": 2 }
+  }
+}
 ```
 
 ---
 
 ### `GET /api/course/progress?userID=<id>&staticCourseID=<id>`
 
-Returns the progress stored on the user's enrollment in that static course.
+Returns the progress stored on the user's enrollment.
 
 **Response `200 OK`:**
 ```json
-{ "completed": { "42": true }, "lastAnswered": { "el_3f8a1c9b2d": 2 } }
+{
+  "completed":    { "42": true },
+  "lastAnswered": { "el_3f8a1c9b2d": 2 }
+}
 ```
 
-`completed` is keyed by topic id; `lastAnswered` is keyed by persistent element/question id, with the selected option index as the value. Both are `{}` when empty.
+`completed` is keyed by topic id; `lastAnswered` is keyed by persistent element/question id (value = selected option index). Both are `{}` when empty.
 
 **Errors:** `400` missing params · `404` not enrolled.
 
@@ -740,18 +754,23 @@ Returns the progress stored on the user's enrollment in that static course.
 
 ### `PUT /api/course/progress`
 
-Replaces the progress blob on the user's enrollment (whole-object replace, last write wins). Called by the course viewer, debounced, on Mark Complete clicks and question answers.
+Replaces the progress blob on the user's enrollment (whole-object replace, last write wins). Called by the static course viewer, debounced 800 ms, whenever the user answers a question, marks a topic complete, scrolls to the bottom, or accumulates time.
 
 **Request body:**
 ```json
 {
   "userID": "1",
   "staticCourseID": "7",
-  "progress": { "completed": { "42": true }, "lastAnswered": { "el_3f8a1c9b2d": 2 } }
+  "progress": {
+    "marked_manually": { "20": true },
+    "time_spent":       { "20": 142.3 },
+    "read_to_bottom":   { "20": true },
+    "lastAnswered":     { "el_3f8a1c9b2d": 2 }
+  }
 }
 ```
 
-Body is capped at 1 MB; every map key must match `^[A-Za-z0-9_-]{1,64}$`.
+Body is capped at 1 MB; every map key must match `^[A-Za-z0-9_-]{1,64}$`. Due to the struct gap, only `lastAnswered` is actually persisted server-side — the others survive via `localStorage`.
 
 **Response `204 No Content`.**
 
@@ -777,15 +796,6 @@ The response is the shared viewer shell with `window.COURSE_DATA = <snapshot>` a
 
 ---
 
-## Schema Notes
-
-The `comp_rules` column on `topics` is not in the original `schema.sql`. Run this migration before using completion rules:
-
-```sql
-ALTER TABLE topics ADD COLUMN comp_rules TEXT;
-```
-
----
 
 ## Cascade Delete Summary
 

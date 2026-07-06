@@ -13,8 +13,12 @@ async function loadAll(path, ids) {
 async function loadAllTopicsWithCompleted(topicIDs) {
   const topics = await loadAll('/topic?id=', topicIDs || []);
   if (window.STATIC_MODE) {
-    const _progress = window._progress || { completed: {} };
-    topics.forEach(t => { t.completed = !!_progress.completed[t.topicID]; });
+    const p = window._progress || { marked_manually: {}, time_spent: {}, read_to_bottom: {} };
+    topics.forEach(t => {
+      t.marked_manually = !!p.marked_manually[t.topicID];
+      t.time_spent      = p.time_spent[t.topicID] || 0;
+      t.read_to_bottom  = !!p.read_to_bottom[t.topicID];
+    });
   }
   return topics;
 }

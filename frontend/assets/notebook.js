@@ -1164,9 +1164,9 @@ function buildCourseViewHTML(cells) {
   }).join('');
 }
 
-function cvQKey(cellId, qi)          { return `coursnote_q_${S.currentTopic?.topicID}_${cellId}${qi != null ? '_' + qi : ''}`; }
+function cvQKey(cellId, qi, topicID) { return `coursnote_q_${topicID ?? S.currentTopic?.topicID}_${cellId}${qi != null ? '_' + qi : ''}`; }
 function cvQSave(cellId, qi, chosen) { try { localStorage.setItem(cvQKey(cellId, qi), chosen); } catch {} }
-function cvQLoad(cellId, qi)         { const v = localStorage.getItem(cvQKey(cellId, qi)); return v == null ? null : Number(v); }
+function cvQLoad(cellId, qi, topicID){ const v = localStorage.getItem(cvQKey(cellId, qi, topicID)); return v == null ? null : Number(v); }
 
 function cvQsBestKey(cellIdx)        { return `coursnote_qs_best_${S.currentTopic?.topicID}_${cellIdx}`; }
 function cvQsBestLoad(cellIdx)       { const v = localStorage.getItem(cvQsBestKey(cellIdx)); return v == null ? null : Number(v); }

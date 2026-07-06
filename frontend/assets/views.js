@@ -53,6 +53,7 @@ const MOD2_PALETTES = [
 // Single mod2-card. onclick is a JS expression string; menuHTML goes inside mod2-card-top.
 function buildMod2CardHTML(m, topicCount, mi, onclick, menuHTML, doneClass) {
   const p = MOD2_PALETTES[mi % MOD2_PALETTES.length];
+  const isDone = !!(doneClass && doneClass.trim());
   return `<div class="mod2-card${doneClass || ''}" onclick="${onclick}">
     <div class="mod2-card-top">
       <div class="mod2-icon" style="background:${p.bg};color:${p.color}">
@@ -63,7 +64,9 @@ function buildMod2CardHTML(m, topicCount, mi, onclick, menuHTML, doneClass) {
     <div class="mod2-name">${esc(m.name || 'Untitled')}</div>
     <div class="mod2-desc">${m.description ? esc(m.description) : '<span style="font-style:italic;opacity:.5">No description</span>'}</div>
     <div class="mod2-foot">
-      <span class="mod2-chip" style="background:${p.bg};color:${p.color}">${topicCount} topic${topicCount !== 1 ? 's' : ''}</span>
+      ${isDone
+        ? `<span class="mod2-chip" style="background:rgba(34,197,94,.15);color:#22c55e">✓ Completed</span>`
+        : `<span class="mod2-chip" style="background:${p.bg};color:${p.color}">${topicCount} topic${topicCount !== 1 ? 's' : ''}</span>`}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text3)"><path d="M9 18l6-6-6-6"/></svg>
     </div>
   </div>`;
@@ -415,7 +418,7 @@ function modulesHTML() {
     const menuHTML = S.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>` : '';
-    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, m.slashed ? ' mod2-done' : '');
+    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, _isModuleComplete(m) ? ' mod2-done' : '');
   }).join('');
 
   return `<div class="course-page">
@@ -525,15 +528,16 @@ function topicsHTML() {
               <span class="info-icon">(i)</span>
               <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
             </div>`;
+        const done = _isTopicComplete(t);
         return `
-      <div class="item-card${t.completed ? ' completed' : ''}" onclick="goTopic(${jsonAttr(t)})">
+      <div class="item-card${done ? ' completed' : ''}" onclick="goTopic(${jsonAttr(t)})">
         <div class="item-icon topic">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </div>
         <div class="item-body">
           <div class="item-title">${esc(t.name)}</div>
           <div class="item-desc" style="display:flex;gap:8px;margin-bottom:4px">Open to add notes</div>
-          <div class="item-status">${t.completed ? '✓ Completed' : 'Not Completed'}</div>
+          <div class="item-status">${done ? '✓ Completed' : 'Not Completed'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px">${rulesHTML}</div>
         ${S.editMode ? `<div class="item-actions">
@@ -605,6 +609,69 @@ function topicEditFormHTML() {
     </div>`;
 }
 
+function _calcQuestionPercentage(topicID) {
+  // Use S.notebookCells when on the current topic — these are the exact cells
+  // the viewer rendered, so cellIdx values match what cvQLoad/cvQSave used.
+  var cells = (S.currentTopic && S.currentTopic.topicID === topicID && S.notebookCells && S.notebookCells.length)
+    ? S.notebookCells
+    : (function() {
+        var td = window._CD && window._CD.topicMap && window._CD.topicMap[topicID];
+        var raw = td && td.rawElements;
+        if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = null; } }
+        return Array.isArray(raw) ? raw : null;
+      })();
+  if (!cells) return null;
+  var total = 0, correct = 0;
+  // Pass topicID so saved answers resolve against THIS topic, not S.currentTopic —
+  // the sidebar evaluates completeness for topics other than the one being viewed.
+  cells.forEach(function(cell, cellIdx) {
+    if (cell.type === 'question') {
+      total++;
+      var saved = cvQLoad(cellIdx, null, topicID);
+      if (saved != null && saved === cell.answer) correct++;
+    } else if (cell.type === 'questionSlide' && Array.isArray(cell.questions)) {
+      cell.questions.forEach(function(q, qi) {
+        total++;
+        var saved = cvQLoad(cellIdx, qi, topicID);
+        if (saved != null && saved === q.answer) correct++;
+      });
+    }
+  });
+  if (total === 0) return null;
+  return (correct / total) * 100;
+}
+
+function _isModuleComplete(module) {
+  const topics = (S.moduleTopics || {})[module.moduleID] || [];
+  if (topics.length === 0) return true;
+  return topics.every(t => _isTopicComplete(t));
+}
+
+function _isTopicComplete(topic) {
+  const rules = topic.compTypes || [];
+  if (rules.length === 0) return true;
+  if (!window._progress) return !!topic.marked_manually;
+  const ruleMap = {};
+  rules.forEach(r => { ruleMap[r.type] = r.config; });
+  return Object.keys(ruleMap).every(type => _isRuleMet(type, ruleMap[type], topic.topicID) === true);
+}
+
+function _isRuleMet(type, config, topicID) {
+  var progress = window._progress;
+  if (!progress) return null;
+  if (type === 'self_reported') return !!progress.marked_manually[topicID];
+  if (type === 'read_to_bottom') return !!progress.read_to_bottom[topicID];
+  if (type === 'timed') {
+    var spent = window._getTopicLiveTime ? window._getTopicLiveTime(topicID) : (progress.time_spent[topicID] || 0);
+    return spent >= Number(config);
+  }
+  if (type === 'percentage_questions_correct') {
+    var pct = _calcQuestionPercentage(topicID);
+    return pct != null && pct >= Number(config);
+  }
+  return null;
+}
+
 function renderTopicRulesDisplay(topic) {
   const container = document.getElementById('topic-completion-rules-display');
   if (!container) return;
@@ -615,7 +682,7 @@ function renderTopicRulesDisplay(topic) {
 
   const labelMap = {
     'self_reported': 'Manual',
-    'percentage_questions_correct': 'Percentage of Questions Completed',
+    'percentage_questions_correct': 'Percentage of Questions Correct',
     'read_to_bottom': 'Finish Reading',
     'timed': 'Time Spent'
   };
@@ -623,22 +690,38 @@ function renderTopicRulesDisplay(topic) {
   let tooltipContent;
   if (rules.length === 0) {
     tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
+    container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
+    <span style="font-size:12px;color:var(--text3)"><span style="color:#22c55e;font-size:11px;font-weight:600;margin-right:4px">●</span>Completion Rules <span class="info-icon">(i)</span></span>
+    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:220px">${tooltipContent}</div>
+  </div>`;
+    return;
   } else {
-    const ruleLabels = Object.keys(ruleMap).map(type => {
+    const ruleItems = Object.keys(ruleMap).map(type => {
       const config = ruleMap[type];
       let label = labelMap[type] || type;
       if (config !== null && config !== '') {
         if (type === 'timed') label += ` (${config}s)`;
         if (type === 'percentage_questions_correct') label += ` (${config}%)`;
       }
-      return label;
+      const met = _isRuleMet(type, config, topic.topicID);
+      const color = met === true ? '#22c55e' : met === false ? '#ef4444' : 'var(--text3)';
+      return `<div style="color:${color}">• ${label}</div>`;
     });
-    tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
+    tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleItems.join('')}`;
+  }
+
+  let overallIndicator = '';
+  if (rules.length > 0) {
+    const statuses = Object.keys(ruleMap).map(type => _isRuleMet(type, ruleMap[type], topic.topicID));
+    const allMet = statuses.every(s => s === true);
+    const anyUnmet = statuses.some(s => s === false);
+    const color = allMet ? '#22c55e' : (anyUnmet ? '#ef4444' : 'var(--text3)');
+    overallIndicator = `<span style="color:${color};font-size:11px;font-weight:600;margin-right:4px">●</span>`;
   }
 
   container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
-    <span style="font-size:12px;color:var(--text3)">Completion Rules <span class="info-icon">(i)</span></span>
-    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
+    <span style="font-size:12px;color:var(--text3)">${overallIndicator}Completion Rules <span class="info-icon">(i)</span></span>
+    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:220px">${tooltipContent}</div>
   </div>`;
 }
 
@@ -669,16 +752,16 @@ function renderTopicRulesUI(topic) {
           <div class="tooltip-content" style="white-space:normal;width:140px">${r.tooltip}</div>
         </span>
       </label>
-      ${needsInput ? `<input type="number" id="te-rule-input-${r.type}" class="te-rule-input" placeholder="${r.type === 'timed' ? 'seconds' : '%'}" value="${configVal}" ${!checked ? 'style="visibility:hidden"' : ''}>` : ''}
+      ${needsInput ? `<span style="display:flex;align-items:center;gap:4px;${!checked ? 'visibility:hidden' : ''}" id="te-rule-input-wrap-${r.type}"><input type="number" id="te-rule-input-${r.type}" class="te-rule-input" value="${configVal}"><span style="font-size:12px;color:var(--text3)">${r.type === 'timed' ? 's' : '%'}</span></span>` : ''}
     </div>`;
   }).join('');
 }
 
 function toggleTopicRule(checkbox) {
   const ruleType = checkbox.dataset.ruleType;
-  const input = document.getElementById(`te-rule-input-${ruleType}`);
-  if (input) {
-    input.style.visibility = checkbox.checked ? 'visible' : 'hidden';
+  const wrap = document.getElementById(`te-rule-input-wrap-${ruleType}`);
+  if (wrap) {
+    wrap.style.visibility = checkbox.checked ? 'visible' : 'hidden';
   }
 }
 
@@ -714,7 +797,7 @@ function topicHTML() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>` : ''}
-        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${t.completed ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.completed ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
+        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${t.marked_manually ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.marked_manually ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
         ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
         <button class="notes-tab ${window.STATIC_MODE || S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>

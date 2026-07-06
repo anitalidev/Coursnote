@@ -108,6 +108,12 @@ function openCourseMenu(courseID, course, btn) {
   wrap.addEventListener('mouseleave', removeOnLeave);
 }
 
+function applyStaticTopicDefaults(t) {
+  t.marked_manually = false;
+  t.read_to_bottom  = false;
+  t.time_spent      = 0;
+}
+
 async function publishCourse(id) {
   const course = S.courses.find(c => c.courseID === id);
   if (!course) return;
@@ -117,6 +123,7 @@ async function publishCourse(id) {
   const topicMap = {};
   const privateNotes = {};
   await Promise.all(allTopics.map(async t => {
+    applyStaticTopicDefaults(t);
     topicMap[t.topicID] = t;
     if (t.privateNoteID) {
       const pn = await GET('/privatenotes?id=' + t.privateNoteID);
@@ -142,6 +149,7 @@ async function downloadCourse(id) {
   const topicMap = {};
   const privateNotes = {};
   await Promise.all(allTopics.map(async t => {
+    applyStaticTopicDefaults(t);
     topicMap[t.topicID] = t;
     if (t.privateNoteID) {
       const pn = await GET('/privatenotes?id=' + t.privateNoteID);

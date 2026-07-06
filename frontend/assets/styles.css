@@ -89,6 +89,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .nav-sub-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
 .nav-sub-active .nav-sub-dot { background: var(--accent); }
 .nav-sub-done .nav-sub-dot { background: var(--accent3); }
+.nav-sub-active.nav-sub-done .nav-sub-dot { background: var(--accent3); }
 .logout-btn {
   width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border);
   border-radius: 6px; color: var(--text3); font-size: 12px; cursor: pointer; transition: all .15s;

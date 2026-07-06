@@ -5,16 +5,18 @@
 |------------|-------------------------|--------------------------|
 | user_id    | INT AUTO_INCREMENT      | PRIMARY KEY              |
 | username   | VARCHAR(255)            | NOT NULL, UNIQUE         |
+| avatar_url | TEXT                    | NULL                     |
 
 ## courses
-| Column       | Type                  | Constraints                                      |
-|--------------|-----------------------|--------------------------------------------------|
-| course_id    | INT AUTO_INCREMENT    | PRIMARY KEY                                      |
-| name         | VARCHAR(255)          | NOT NULL                                         |
-| description  | TEXT                  |                                                  |
-| user_id      | INT                   | NOT NULL, FK → users(user_id) ON DELETE CASCADE  |
-| left_colour  | VARCHAR(7)            | NOT NULL DEFAULT (random hex)                    |
-| right_colour | VARCHAR(7)            | NOT NULL DEFAULT (random hex)                    |
+| Column           | Type                  | Constraints                                      |
+|------------------|-----------------------|--------------------------------------------------|
+| course_id        | INT AUTO_INCREMENT    | PRIMARY KEY                                      |
+| name             | VARCHAR(255)          | NOT NULL                                         |
+| description      | TEXT                  |                                                  |
+| user_id          | INT                   | NOT NULL, FK → users(user_id) ON DELETE CASCADE  |
+| left_colour      | VARCHAR(7)            | NOT NULL DEFAULT (random hex)                    |
+| right_colour     | VARCHAR(7)            | NOT NULL DEFAULT (random hex)                    |
+| static_course_id | INT                   | NULL, FK → static_courses(static_course_id)      |
 
 ## modules
 | Column      | Type                  | Constraints                                        |
@@ -31,8 +33,10 @@
 | name         | VARCHAR(255)          | NOT NULL                                           |
 | description  | TEXT                  |                                                    |
 | module_id    | INT                   | NOT NULL, FK → modules(module_id) ON DELETE CASCADE |
-| completed    | BOOLEAN               | NOT NULL DEFAULT FALSE                             |
-| raw_elements | LONGTEXT              |                                                    |
+| raw_elements | LONGTEXT              | NULL — JSON array of element objects               |
+| comp_rules   | TEXT                  | NULL — JSON array of `{type, config}` completion rules |
+
+> `comp_rules` was added via migration: `ALTER TABLE topics ADD COLUMN comp_rules TEXT;`
 
 ## course_pages
 | Column         | Type                  | Constraints                                       |
@@ -50,6 +54,21 @@
 | description     | TEXT                  |                                                   |
 | topic_id        | INT                   | NOT NULL, UNIQUE, FK → topics(topic_id) ON DELETE CASCADE |
 
+## static_courses
+| Column           | Type               | Constraints                                              |
+|------------------|--------------------|----------------------------------------------------------|
+| static_course_id | INT AUTO_INCREMENT | PRIMARY KEY                                              |
+| course_id        | INT                | NOT NULL, FK → courses(course_id)                        |
+| content_id       | INT                | NOT NULL, FK → static_course_contents(content_id)        |
+| is_active        | BOOLEAN            | NOT NULL DEFAULT TRUE                                    |
+| publish_date     | DATETIME           | NOT NULL                                                 |
+
+## static_course_contents
+| Column             | Type               | Constraints        |
+|--------------------|--------------------|--------------------|
+| content_id         | INT AUTO_INCREMENT | PRIMARY KEY        |
+| published_content  | LONGTEXT           | NOT NULL — full `COURSE_DATA` JSON blob (assembled by frontend at publish time) |
+
 ## course_enrollments
 | Column           | Type                  | Constraints                                       |
 |------------------|-----------------------|---------------------------------------------------|
@@ -57,6 +76,4 @@
 | user_id          | INT                   | NOT NULL, FK → users(user_id)                     |
 | static_course_id | INT                   | NOT NULL, FK → static_courses(static_course_id)   |
 | enrolled_at      | DATETIME              | NOT NULL                                          |
-| progress         | JSON                  | NULL — `{"completed": {topicID: true}, "lastAnswered": {elementID: optionIndex}}`; NULL means no progress yet |
-
----
+| progress         | JSON                  | NULL — opaque blob; see ENROLLMENT_DATA.md        |
