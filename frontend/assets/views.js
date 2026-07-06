@@ -650,7 +650,7 @@ function _isModuleComplete(module) {
 function _isTopicComplete(topic) {
   const rules = topic.compTypes || [];
   if (rules.length === 0) return true;
-  if (!window._progress) return !!topic.marked_manually;
+  if (!window._progress) return false;
   const ruleMap = {};
   rules.forEach(r => { ruleMap[r.type] = r.config; });
   return Object.keys(ruleMap).every(type => _isRuleMet(type, ruleMap[type], topic.topicID) === true);
@@ -797,7 +797,7 @@ function topicHTML() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>` : ''}
-        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${t.marked_manually ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${t.marked_manually ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
+        ${window.STATIC_MODE && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${window._progress?.marked_manually?.[t.topicID] ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${window._progress?.marked_manually?.[t.topicID] ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
         ${!window.STATIC_MODE ? `<button class="notes-tab ${S.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
         <button class="notes-tab ${window.STATIC_MODE || S.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>

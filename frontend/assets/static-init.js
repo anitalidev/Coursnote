@@ -48,51 +48,47 @@ function goSettings() { goModules(_CD.course); }
 function goLogin()    {}
 
 // ── Progress tracking ─────────────────────────────────────────────────────────
-// Enrolled viewing: the backend injects window.ENROLLMENT_DATA (userID,
-// staticCourseID, progress) and progress is saved to the enrollment via the
-// API. Downloaded static courses have no ENROLLMENT_DATA and keep using
-// localStorage.
+// Enrolled viewing: backend injects window.ENROLLMENT_DATA; progress is saved
+// exclusively via PUT /api/course/progress. Downloaded ZIPs have no
+// ENROLLMENT_DATA and fall back to localStorage.
 var _ED = window.ENROLLMENT_DATA || null;
-var _progressKey = 'cn_progress_' + _CD.course.courseID;
-
-function _getLocalProgress() {
-  try {
-    var stored = JSON.parse(localStorage.getItem(_progressKey) || '{}');
-    return {
-      marked_manually: stored.marked_manually || {},
-      time_spent:      stored.time_spent      || {},
-      read_to_bottom:  stored.read_to_bottom  || {},
-      lastAnswered:    stored.lastAnswered     || {}
-    };
-  } catch {
-    return { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {} };
-  }
-}
 
 var _progress = (function() {
-  var local = _getLocalProgress();
-  if (!_ED) return local;
-  // Merge server data with localStorage: localStorage saves synchronously on beforeunload
-  // so it may be ahead of the server after a refresh. Take the max time_spent per topic
-  // and union read_to_bottom to avoid losing progress on refresh.
+  var empty = { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {} };
+  if (!_ED) {
+    // Downloaded ZIP — use localStorage.
+    var _progressKey = 'cn_progress_' + _CD.course.courseID;
+    try {
+      var stored = JSON.parse(localStorage.getItem(_progressKey) || '{}');
+      return {
+        marked_manually: stored.marked_manually || {},
+        time_spent:      stored.time_spent      || {},
+        read_to_bottom:  stored.read_to_bottom  || {},
+        lastAnswered:    stored.lastAnswered     || {}
+      };
+    } catch { return empty; }
+  }
+  // Enrolled — initialise entirely from server data.
   var srv = _ED.progress || {};
-  var srvTime = srv.time_spent || {};
-  var mergedTime = Object.assign({}, srvTime);
-  Object.keys(local.time_spent).forEach(function(k) {
-    mergedTime[k] = Math.max(mergedTime[k] || 0, local.time_spent[k] || 0);
-  });
-  var mergedRTB = Object.assign({}, local.read_to_bottom, srv.read_to_bottom || {});
-  var mergedManually = Object.assign({}, local.marked_manually, srv.marked_manually || {});
   return {
-    marked_manually: mergedManually,
-    time_spent:      mergedTime,
-    read_to_bottom:  mergedRTB,
-    lastAnswered:    srv.lastAnswered || {}
+    marked_manually: srv.marked_manually || {},
+    time_spent:      srv.time_spent      || {},
+    read_to_bottom:  srv.read_to_bottom  || {},
+    lastAnswered:    srv.lastAnswered     || {}
   };
 })();
 window._progress = _progress;
 
 var _saveTimer = null;
+function _computePercentageCompleted() {
+  var topics = Object.values(_CD.topicMap || {});
+  if (topics.length === 0) return 0;
+  var completed = topics.filter(function(t) {
+    return typeof _isTopicComplete === 'function' ? _isTopicComplete(t) : false;
+  }).length;
+  return Math.round(completed / topics.length * 100);
+}
+
 function _sendProgress() {
   _saveTimer = null;
   fetch('/api/course/progress', {
@@ -101,13 +97,22 @@ function _sendProgress() {
     keepalive: true,
     body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: _progress }),
   }).catch(function() {});
+  fetch('/api/course/enroll', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, percentageCompleted: _computePercentageCompleted() }),
+  }).catch(function() {});
 }
 
 function _persistProgress() {
-  localStorage.setItem(_progressKey, JSON.stringify(_progress));
   if (_ED) {
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(_sendProgress, 800);
+  } else {
+    // Downloaded ZIP only.
+    var _progressKey = 'cn_progress_' + _CD.course.courseID;
+    localStorage.setItem(_progressKey, JSON.stringify(_progress));
   }
 }
 
@@ -115,7 +120,6 @@ window.addEventListener('beforeunload', function() {
   _checkpointTopicTime();
   if (_ED && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
 });
-// Flush pending save if the tab closes before the debounce fires.
 window.addEventListener('pagehide', function() {
   _flushTopicTime();
   if (_ED && _saveTimer != null) { clearTimeout(_saveTimer); _sendProgress(); }
@@ -197,13 +201,10 @@ function _updateDebugPanel() {
   var id     = S.currentTopic.topicID;
   var stored = _progress.time_spent[id] || 0;
   var live   = (_enterTime && _trackingTopicID === id) ? (Date.now() - _enterTime) / 1000 : 0;
-  var lsRaw  = null;
-  try { lsRaw = (JSON.parse(localStorage.getItem(_progressKey) || '{}').time_spent || {})[id] || 0; } catch {}
   panel.innerHTML =
-    'time_spent (mem): <b style="color:#e2e8f0">'  + (stored + live).toFixed(1) + 's</b><br>' +
-    'time_spent (ls): <b style="color:#e2e8f0">'   + (lsRaw != null ? lsRaw.toFixed(1) + 's' : '–') + '</b><br>' +
-    'read_to_bottom: <b style="color:#e2e8f0">'    + (!!_progress.read_to_bottom[id])  + '</b><br>' +
-    'marked_manually: <b style="color:#e2e8f0">'   + (!!_progress.marked_manually[id]) + '</b>';
+    'time_spent: <b style="color:#e2e8f0">'      + (stored + live).toFixed(1) + 's</b><br>' +
+    'read_to_bottom: <b style="color:#e2e8f0">'  + (!!_progress.read_to_bottom[id])  + '</b><br>' +
+    'marked_manually: <b style="color:#e2e8f0">' + (!!_progress.marked_manually[id]) + '</b>';
   // Re-render completion rules display every ~1s, but not while the tooltip is open
   _rulesDisplayTick++;
   if (_rulesDisplayTick % 10 === 0 && S.currentTopic) {
@@ -240,13 +241,9 @@ function _updateDebugPanel() {
 function toggleTopicCompleted() {
   var t = S.currentTopic;
   if (!t) return;
-  t.marked_manually = !_progress.marked_manually[t.topicID];
-  if (t.marked_manually) _progress.marked_manually[t.topicID] = true;
-  else delete _progress.marked_manually[t.topicID];
+  if (_progress.marked_manually[t.topicID]) delete _progress.marked_manually[t.topicID];
+  else _progress.marked_manually[t.topicID] = true;
   _persistProgress();
-  var all  = Object.values(_CD.topics || {});
-  var done = all.filter(function(tp) { return _progress.marked_manually[tp.topicID]; }).length;
-  S.currentCourse.pcompleted = all.length ? done / all.length : 0;
   _updateDebugPanel();
   render();
 }
@@ -278,6 +275,17 @@ if (_ED) {
     var v = k == null ? null : _progress.lastAnswered[k];
     return v == null ? null : Number(v);
   };
+  cvQsBestSave = function(cellIdx, score) {
+    var k = _answerKey(cellIdx, null);
+    if (k == null) return;
+    _progress.correctlyAnswered[k] = Number(score);
+    _persistProgress();
+  };
+  cvQsBestLoad = function(cellIdx) {
+    var k = _answerKey(cellIdx, null);
+    var v = k == null ? null : _progress.correctlyAnswered[k];
+    return v == null ? null : Number(v);
+  };
 }
 
 (function() {
@@ -303,17 +311,6 @@ if (_ED) {
   else insertBackBtn();
 })();
 
-// Restore saved progress on load
-(function() {
-  Object.values(_CD.topics || {}).forEach(function(t) {
-    t.marked_manually = !!_progress.marked_manually[t.topicID];
-    t.time_spent      = _progress.time_spent[t.topicID] || 0;
-    t.read_to_bottom  = !!_progress.read_to_bottom[t.topicID];
-  });
-  var all  = Object.values(_CD.topics || {});
-  var done = all.filter(function(t) { return t.marked_manually; }).length;
-  _CD.course.pcompleted = all.length ? done / all.length : 0;
-})();
 
 
 (async function() {

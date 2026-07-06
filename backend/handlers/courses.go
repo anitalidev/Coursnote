@@ -294,7 +294,10 @@ func CourseHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if err := store.repos.Courses.DeleteCourseByID(id); err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+		if err := store.repos.Courses.DeleteCourseByID(id); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 
 	default:
@@ -390,26 +393,47 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func EnrollHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodPost:
+		var body struct {
+			UserID         string `json:"userID"`
+			StaticCourseID string `json:"staticCourseID"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
+			writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
+			return
+		}
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		if _, err := store.repos.Enrollments.Create(body.UserID, body.StaticCourseID); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+
+	case http.MethodPut:
+		var body struct {
+			UserID              string `json:"userID"`
+			StaticCourseID      string `json:"staticCourseID"`
+			PercentageCompleted int    `json:"percentageCompleted"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
+			writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
+			return
+		}
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		if err := store.repos.Enrollments.UpdatePercentageCompleted(body.UserID, body.StaticCourseID, body.PercentageCompleted); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	var body struct {
-		UserID         string `json:"userID"`
-		StaticCourseID string `json:"staticCourseID"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
-		writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
-		return
-	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-
-	if _, err := store.repos.Enrollments.Create(body.UserID, body.StaticCourseID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // Progress map keys are topic ids or persistent element ids; anything else is
@@ -417,7 +441,17 @@ func EnrollHandler(w http.ResponseWriter, r *http.Request) {
 var progressKeyRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 func validProgressKeys(p models.EnrollmentProgress) bool {
-	for k := range p.Completed {
+	for k := range p.ManuallyMarked {
+		if !progressKeyRe.MatchString(k) {
+			return false
+		}
+	}
+	for k := range p.TimeSpent {
+		if !progressKeyRe.MatchString(k) {
+			return false
+		}
+	}
+	for k := range p.ReadToBottom {
 		if !progressKeyRe.MatchString(k) {
 			return false
 		}
@@ -526,4 +560,3 @@ func TopicCount(course *models.Course) int {
 	}
 	return total
 }
-

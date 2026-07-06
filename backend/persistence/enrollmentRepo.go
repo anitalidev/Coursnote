@@ -33,7 +33,7 @@ func NewSQLEnrollmentRepository(db *sql.DB) *SQLEnrollmentRepository {
 func (r *SQLEnrollmentRepository) Create(userID string, staticCourseID string) (*models.CourseEnrollment, error) {
 	now := time.Now()
 	res, err := r.db.Exec(
-		`INSERT INTO course_enrollments (user_id, static_course_id, enrolled_at) VALUES (?, ?, ?)`,
+		`INSERT INTO course_enrollments (user_id, static_course_id, enrolled_at, percentage_completed) VALUES (?, ?, ?, 0)`,
 		userID, staticCourseID, now,
 	)
 	if err != nil {
@@ -41,10 +41,11 @@ func (r *SQLEnrollmentRepository) Create(userID string, staticCourseID string) (
 	}
 	id, _ := res.LastInsertId()
 	e := &models.CourseEnrollment{
-		ID:             fmt.Sprintf("%d", id),
-		UserID:         userID,
-		StaticCourseID: staticCourseID,
-		EnrolledAt:     now,
+		ID:                  fmt.Sprintf("%d", id),
+		UserID:              userID,
+		StaticCourseID:      staticCourseID,
+		EnrolledAt:          now,
+		CompletedPercentage: 0,
 	}
 	e.Progress.EnsureMaps()
 	return e, nil
@@ -148,6 +149,21 @@ func (r *SQLEnrollmentRepository) UpdateProgress(userID string, staticCourseID s
 	res, err := r.db.Exec(
 		`UPDATE course_enrollments SET progress = ? WHERE user_id = ? AND static_course_id = ?`,
 		raw, userID, staticCourseID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return errors.New("enrollment not found")
+	}
+	return nil
+}
+
+func (r *SQLEnrollmentRepository) UpdatePercentageCompleted(userID string, staticCourseID string, percentage int) error {
+	res, err := r.db.Exec(
+		`UPDATE course_enrollments SET percentage_completed = ? WHERE user_id = ? AND static_course_id = ?`,
+		percentage, userID, staticCourseID,
 	)
 	if err != nil {
 		return err
