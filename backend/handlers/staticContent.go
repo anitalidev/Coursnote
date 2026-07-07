@@ -70,6 +70,10 @@ func StaticContentHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
+	if len(content.Content) == 0 {
+		writeError(w, http.StatusNotFound, "course content not yet published")
+		return
+	}
 
 	// When the viewer is enrolled, embed their enrollment so static-init.js
 	// persists progress to the enrollment instead of localStorage.

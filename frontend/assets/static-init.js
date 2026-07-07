@@ -81,6 +81,8 @@ window.addEventListener('tiptap-ready', function() {
 })();
 
 var _saveTimer = null;
+var _cachedPct = 0;
+var _pctDirty  = true;
 
 function _computePercentageCompleted() {
   var topics = Object.values(_CD.topicMap || {});
@@ -89,19 +91,21 @@ function _computePercentageCompleted() {
   return Math.round(completed / topics.length * 100);
 }
 
+function _getPercentageCompleted() {
+  if (_pctDirty) {
+    _cachedPct = _computePercentageCompleted();
+    _pctDirty  = false;
+  }
+  return _cachedPct;
+}
+
 function _sendProgress() {
   _saveTimer = null;
   fetch('/api/course/progress', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,
-    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: S.data.progress }),
-  }).catch(function() {});
-  fetch('/api/course/enroll', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    keepalive: true,
-    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, percentageCompleted: _computePercentageCompleted() }),
+    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: S.data.progress, percentageCompleted: _getPercentageCompleted() }),
   }).catch(function() {});
 }
 
@@ -129,12 +133,39 @@ var _trackingTopicID  = null;
 var _scrollHandler    = null;
 var _debugInterval    = null;
 var _checkpointTimer  = null;
+var _timedRuleTimer   = null;
+
+function _scheduleTimedRuleCheck(topicID) {
+  if (_timedRuleTimer) { clearTimeout(_timedRuleTimer); _timedRuleTimer = null; }
+  var topic = S.ui.currentTopic;
+  if (!topic) return;
+  var timedRule = (topic.compTypes || []).find(function(r) { return r.type === 'timed'; });
+  if (!timedRule) return;
+  var threshold = Number(timedRule.config);
+  if (!threshold || threshold <= 0) return;
+  if (isRuleMet('timed', timedRule.config, topicID) === true) return;
+  var spent = S.data.progress.time_spent[topicID] || 0;
+  var remainingMs = (threshold - spent) * 1000;
+  if (remainingMs <= 0) {
+    _pctDirty = true;
+    renderTopicRulesDisplay(topic);
+    return;
+  }
+  _timedRuleTimer = setTimeout(function() {
+    _timedRuleTimer = null;
+    if (S.ui.currentTopic && S.ui.currentTopic.topicID === topicID) {
+      _pctDirty = true;
+      renderTopicRulesDisplay(S.ui.currentTopic);
+    }
+  }, remainingMs);
+}
 
 function _startTopicTracking(topicID) {
   _flushTopicTime();
   _trackingTopicID = topicID;
   _enterTime       = Date.now();
   _setupScrollTracking(topicID);
+  _scheduleTimedRuleCheck(topicID);
   _checkpointTimer = setInterval(_checkpointTopicTime, 5000);
 }
 
@@ -148,6 +179,7 @@ function _checkpointTopicTime() {
 
 function _flushTopicTime() {
   if (_checkpointTimer) { clearInterval(_checkpointTimer); _checkpointTimer = null; }
+  if (_timedRuleTimer)  { clearTimeout(_timedRuleTimer);  _timedRuleTimer = null; }
   if (_trackingTopicID == null || _enterTime == null) return;
   var elapsed = (Date.now() - _enterTime) / 1000;
   S.data.progress.time_spent[_trackingTopicID] = (S.data.progress.time_spent[_trackingTopicID] || 0) + elapsed;
@@ -157,16 +189,27 @@ function _flushTopicTime() {
   if (_scrollHandler) { window.removeEventListener('scroll', _scrollHandler); _scrollHandler = null; }
 }
 
+function _markReadToBottom(topicID) {
+  S.data.progress.read_to_bottom[topicID] = true;
+  _pctDirty = true;
+  _persistProgress();
+  _updateDebugPanel();
+  if (S.ui.currentTopic) renderTopicRulesDisplay(S.ui.currentTopic);
+}
+
 function _setupScrollTracking(topicID) {
   if (_scrollHandler) { window.removeEventListener('scroll', _scrollHandler); _scrollHandler = null; }
   if (S.data.progress.read_to_bottom[topicID]) return;
+  // Content fits on screen without scrolling — auto-mark as read.
+  if (document.documentElement.scrollHeight <= window.innerHeight) {
+    _markReadToBottom(topicID);
+    return;
+  }
   _scrollHandler = function() {
     if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 100) {
-      S.data.progress.read_to_bottom[topicID] = true;
-      _persistProgress();
+      _markReadToBottom(topicID);
       window.removeEventListener('scroll', _scrollHandler);
       _scrollHandler = null;
-      _updateDebugPanel();
     }
   };
   window.addEventListener('scroll', _scrollHandler);
@@ -222,6 +265,7 @@ function toggleTopicCompleted() {
   if (!t) return;
   if (S.data.progress.marked_manually[t.topicID]) delete S.data.progress.marked_manually[t.topicID];
   else S.data.progress.marked_manually[t.topicID] = true;
+  _pctDirty = true;
   _persistProgress();
   _updateDebugPanel();
   render();
@@ -258,6 +302,7 @@ if (_ED) {
     var k = _answerKey(cellIdx, null);
     if (k == null) return;
     S.data.progress.correctlyAnswered[k] = Number(score);
+    _pctDirty = true;
     _persistProgress();
   };
   cvQsBestLoad = function(cellIdx) {
@@ -297,4 +342,5 @@ if (_ED) {
   } else {
     await goModules(_CD.course);
   }
+  if (_ED) _sendProgress();
 })();

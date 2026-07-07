@@ -151,7 +151,9 @@ function ttUnwrap(v) {
 }
 // Render a TipTap JSON doc to HTML for the viewer.
 function ttHtml(doc) {
-  if (!doc || !window.TipTapGenerateHTML) return '';
+  if (!doc) return '';
+  if (typeof doc === 'string') return esc(doc);
+  if (!window.TipTapGenerateHTML) return '';
   try { return window.TipTapGenerateHTML(doc); } catch { return ''; }
 }
 // Extract plain text from a TipTap JSON doc (for labels/tabs).

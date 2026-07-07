@@ -25,19 +25,20 @@ func intQueryParam(r *http.Request, name string) (int, bool) {
 }
 
 type MarketCourseDTO struct {
-	ID          string    `json:"id"`
-	CourseID    string    `json:"courseId"`
-	ContentID   string    `json:"contentId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	LeftColour  string    `json:"leftColour"`
-	RightColour string    `json:"rightColour"`
-	PublishDate time.Time `json:"publishDate"`
-	NumModules  int       `json:"numModules"`
-	NumTopics   int       `json:"numTopics"`
-	CourseOwner string    `json:"courseOwner"`
-	IsActive    bool      `json:"isActive"`
-	Status      string    `json:"status"` // Status is either "enrolled", "", or "update"
+	ID                  string    `json:"id"`
+	CourseID            string    `json:"courseId"`
+	ContentID           string    `json:"contentId"`
+	Name                string    `json:"name"`
+	Description         string    `json:"description"`
+	LeftColour          string    `json:"leftColour"`
+	RightColour         string    `json:"rightColour"`
+	PublishDate         time.Time `json:"publishDate"`
+	NumModules          int       `json:"numModules"`
+	NumTopics           int       `json:"numTopics"`
+	CourseOwner         string    `json:"courseOwner"`
+	IsActive            bool      `json:"isActive"`
+	Status              string    `json:"status"` // Status is either "enrolled", "", or "update"
+	CompletedPercentage int       `json:"completedPercentage"`
 
 	// Progress is only set on enrolled-course listings.
 	Progress *models.EnrollmentProgress `json:"progress,omitempty"`

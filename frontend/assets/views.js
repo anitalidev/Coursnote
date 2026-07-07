@@ -164,8 +164,7 @@ function homeHTML() {
     : enrolled.map(c => {
         const mods   = c.numModules || 0;
         const topics = c.numTopics  || 0;
-        const done = Object.keys(c.progress?.completed || {}).length;
-        const pct  = topics > 0 ? Math.round(done / topics * 100) : 0;
+        const pct  = c.completedPercentage || 0;
         const body = `
           <div class="cc2-stats-row">
             <div class="cc2-stat">
@@ -400,7 +399,7 @@ function marketHTML() {
 function modulesHTML() {
   const c = S.ui.currentCourse;
   const totalTopics = S.data.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const pct = Math.round((S.ui.currentCourse.pcompleted || 0) * 100);
+  const pct = Runtime.trackProgress ? _computePercentageCompleted() : Math.round((S.ui.currentCourse.pcompleted || 0) * 100);
   const doneMods = Math.round(pct / 100 * S.data.modules.length);
   const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
 

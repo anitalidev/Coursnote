@@ -53,7 +53,7 @@ func (r *SQLEnrollmentRepository) Create(userID string, staticCourseID string) (
 
 func (r *SQLEnrollmentRepository) GetByUserID(userID string) ([]*models.CourseEnrollment, error) {
 	rows, err := r.db.Query(
-		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, '') FROM course_enrollments WHERE user_id = ?`,
+		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed FROM course_enrollments WHERE user_id = ?`,
 		userID,
 	)
 	if err != nil {
@@ -64,7 +64,7 @@ func (r *SQLEnrollmentRepository) GetByUserID(userID string) ([]*models.CourseEn
 	for rows.Next() {
 		e := &models.CourseEnrollment{}
 		var rawProgress []byte
-		if err := rows.Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress); err != nil {
+		if err := rows.Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage); err != nil {
 			return nil, err
 		}
 		if err := scanProgress(rawProgress, e); err != nil {
@@ -81,12 +81,12 @@ func (r *SQLEnrollmentRepository) GetByUserAndCourseID(userID string, courseID s
 	e := &models.CourseEnrollment{}
 	var rawProgress []byte
 	err := r.db.QueryRow(
-		`SELECT ce.enrollment_id, ce.user_id, ce.static_course_id, ce.enrolled_at, COALESCE(ce.progress, '')
+		`SELECT ce.enrollment_id, ce.user_id, ce.static_course_id, ce.enrolled_at, COALESCE(ce.progress, ''), ce.percentage_completed
 		 FROM course_enrollments ce
 		 JOIN static_courses sc ON sc.static_course_id = ce.static_course_id
 		 WHERE ce.user_id = ? AND sc.course_id = ?`,
 		userID, courseID,
-	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress)
+	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -105,11 +105,11 @@ func (r *SQLEnrollmentRepository) GetByUserAndStaticCourseID(userID string, stat
 	e := &models.CourseEnrollment{}
 	var rawProgress []byte
 	err := r.db.QueryRow(
-		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, '')
+		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed
 		 FROM course_enrollments
 		 WHERE user_id = ? AND static_course_id = ?`,
 		userID, staticCourseID,
-	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress)
+	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
