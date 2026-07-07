@@ -22,19 +22,35 @@ Object.values(_CD.topics || {}).forEach(function(t) { _CD.topicMap[t.topicID] = 
 
 Runtime.navigateFallback = function() { goModules(_CD.course); };
 
+// Enrollment data accessible at script scope (used by cvQSave/cvQLoad setup below).
+const _ED = Runtime.enrollmentData;
+
 // Synthetic user — bypasses login screen
-S.data.user     = { id: 'static', username: 'Viewer', courseIDs: [_CD.course.courseID] };
+S.data.user   = { id: 'static', username: 'Viewer', courseIDs: [_CD.course.courseID] };
 S.ui.editMode = false;
+
+// save.js / forms.js / actions.js are not loaded in static mode.
+function scheduleElementsSave() {}
+function schedulePNSave()       {}
+function setStatus()            {}
+function toggleUserMenu()       {}
+function bindCoursesForm()      {}
+function bindModulesForm()      {}
+function bindTopicsForm()       {}
+function bindTopicListeners() {
+  renderNotebook();
+  renderTopicRulesDisplay(S.ui.currentTopic);
+  if (S.ui.currentTopic) _startTopicTracking(S.ui.currentTopic.topicID);
+  if (Runtime.showDebugPanel) _injectDebugPanel();
+}
 
 // Re-render the notebook once TipTap loads so text/card/table content isn't blank.
 window.addEventListener('tiptap-ready', function() {
   if (S.ui.view === 'topic') renderNotebook();
 }, { once: true });
 
-// ── Progress tracking ─────────────────────────────────────────────────────────
-// ── Progress — fold into S.data.progress ──────────────────────────────────────────
+// ── Progress — fold into S.data.progress ──────────────────────────────────────
 (function() {
-  var _ED = Runtime.enrollmentData;
   var src;
   if (_ED) {
     var srv = _ED.progress || {};
@@ -59,17 +75,15 @@ window.addEventListener('tiptap-ready', function() {
 })();
 
 var _saveTimer = null;
+
 function _computePercentageCompleted() {
   var topics = Object.values(_CD.topicMap || {});
   if (topics.length === 0) return 0;
-  var completed = topics.filter(function(t) {
-    return typeof isTopicComplete === 'function' ? isTopicComplete(t) : false;
-  }).length;
+  var completed = topics.filter(function(t) { return isTopicComplete(t); }).length;
   return Math.round(completed / topics.length * 100);
 }
 
 function _sendProgress() {
-  var _ED = Runtime.enrollmentData;
   _saveTimer = null;
   fetch('/api/course/progress', {
     method: 'PUT',
@@ -118,7 +132,6 @@ function _startTopicTracking(topicID) {
   _checkpointTimer = setInterval(_checkpointTopicTime, 5000);
 }
 
-// Saves elapsed time and resets _enterTime so the next checkpoint/flush won't double-count.
 function _checkpointTopicTime() {
   if (_trackingTopicID == null || _enterTime == null) return;
   var elapsed = (Date.now() - _enterTime) / 1000;
@@ -140,7 +153,7 @@ function _flushTopicTime() {
 
 function _setupScrollTracking(topicID) {
   if (_scrollHandler) { window.removeEventListener('scroll', _scrollHandler); _scrollHandler = null; }
-  if (S.data.progress.read_to_bottom[topicID]) return; // already reached bottom before
+  if (S.data.progress.read_to_bottom[topicID]) return;
   _scrollHandler = function() {
     if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 100) {
       S.data.progress.read_to_bottom[topicID] = true;
@@ -153,7 +166,7 @@ function _setupScrollTracking(topicID) {
   window.addEventListener('scroll', _scrollHandler);
 }
 
-// ── Debug panel ───────────────────────────────────────────────────────────────
+// ── Debug panel (opt-in via Runtime.showDebugPanel) ───────────────────────────
 function _injectDebugPanel() {
   if (_debugInterval) clearInterval(_debugInterval);
   if (!document.getElementById('static-debug-panel')) {
@@ -170,7 +183,7 @@ function _getTopicLiveTime(topicID) {
   var stored = S.data.progress.time_spent[topicID] || 0;
   var live   = (_enterTime && _trackingTopicID === topicID) ? (Date.now() - _enterTime) / 1000 : 0;
   return stored + live;
-};
+}
 
 var _rulesDisplayTick = 0;
 function _updateDebugPanel() {
@@ -183,7 +196,6 @@ function _updateDebugPanel() {
     'time_spent: <b style="color:#e2e8f0">'      + (stored + live).toFixed(1) + 's</b><br>' +
     'read_to_bottom: <b style="color:#e2e8f0">'  + (!!S.data.progress.read_to_bottom[id])  + '</b><br>' +
     'marked_manually: <b style="color:#e2e8f0">' + (!!S.data.progress.marked_manually[id]) + '</b>';
-  // Re-render completion rules display every ~1s, but not while the tooltip is open
   _rulesDisplayTick++;
   if (_rulesDisplayTick % 10 === 0 && S.ui.currentTopic) {
     var rulesEl = document.getElementById('topic-completion-rules-display');
@@ -193,27 +205,10 @@ function _updateDebugPanel() {
   }
 }
 
-// Wrap navigation functions to flush time_spent before leaving a topic.
-// Uses variable assignment (not function declarations) to avoid hoisting conflicts.
-(function() {
-  var _navGoTopic   = goTopic;
-  var _navGoTopics  = goTopics;
-  var _navGoModules = goModules;
-  goTopic = async function(topic) {
-    _flushTopicTime();
-    return _navGoTopic(topic);
-  };
-  goTopics = async function(module) {
-    _flushTopicTime();
-    return _navGoTopics(module);
-  };
-  // goModules is also called by goCourses/goHome/goMarket/goSettings overrides above,
-  // so wrapping it here covers all navigation away from a topic.
-  goModules = async function(course, editMode) {
-    _flushTopicTime();
-    return _navGoModules(course, editMode);
-  };
-})();
+// ── Register navigation hook — flush time before any route change ─────────────
+// Replaces monkey-patching: navigation.js calls _navHooks.onBeforeNavigate()
+// on every go* call, so all navigation paths are covered without wrapping.
+_navHooks.onBeforeNavigate = _flushTopicTime;
 
 // ── Manual completion ─────────────────────────────────────────────────────────
 function toggleTopicCompleted() {
@@ -266,6 +261,7 @@ if (_ED) {
   };
 }
 
+// ── Back button ───────────────────────────────────────────────────────────────
 (function() {
   var from = new URLSearchParams(location.search).get('from');
   var destinations = {
@@ -282,14 +278,12 @@ if (_ED) {
     btn.style.cssText = 'width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500';
     btn.onmouseover = function() { this.style.background = 'var(--accent)'; this.style.color = 'var(--bg)'; };
     btn.onmouseout  = function() { this.style.background = 'transparent'; this.style.color = 'var(--accent)'; };
-    btn.onclick = function() { window.location.href = 'http://localhost:3334/' + dest[0]; };
+    btn.onclick = function() { window.location.href = Config.appBase + '/' + dest[0]; };
     container.appendChild(btn);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertBackBtn);
   else insertBackBtn();
 })();
-
-
 
 (async function() {
   if (location.hash && location.hash !== '#' && location.hash !== '#courses') {

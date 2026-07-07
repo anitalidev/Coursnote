@@ -1,9 +1,13 @@
 'use strict';
 
+// ── Course viewer ─────────────────────────────────────────────────────────────
+
 function openCourseViewer(contentId) {
   const uid = S.data.user?.id ? '&userID=' + encodeURIComponent(S.data.user.id) : '';
-  window.location.href = 'http://localhost:8081/api/staticcontent?id=' + contentId + '&from=' + S.ui.view + uid;
+  window.location.href = Config.apiBase + '/staticcontent?id=' + contentId + '&from=' + S.ui.view + uid;
 }
+
+// ── User menu ─────────────────────────────────────────────────────────────────
 
 function toggleUserMenu(e) {
   if (!Runtime.showUserMenu) return;
@@ -20,6 +24,8 @@ function toggleUserMenu(e) {
   document.addEventListener('click', close);
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
 async function handleLogin(username) {
   username = username.trim();
   if (!username) return;
@@ -34,6 +40,8 @@ async function handleLogin(username) {
   Storage.saveUser(S.data.user);
   await goCourses();
 }
+
+// ── Course/module/topic CRUD ──────────────────────────────────────────────────
 
 async function createCourse(name, desc) {
   await POST('/course', { name, description: desc, userID: S.data.user.id });
@@ -59,6 +67,36 @@ async function createTopic(name, desc) {
   toast('Topic created');
 }
 
+async function deleteCourse(id) {
+  if (!confirm('Delete this course and all its contents?')) return;
+  await DEL('/course?id=' + id);
+  const full = await GET('/user?id=' + S.data.user.id);
+  S.data.user.courseIDs = full.courseIDs || [];
+  S.data.courses = await loadCourses();
+  render();
+  toast('Course deleted', 'err');
+}
+
+async function deleteModule(id) {
+  if (!confirm('Delete this module and all its topics?')) return;
+  await DEL('/module?id=' + id);
+  delete S.data.moduleTopics[id];
+  await reloadCurrentCourse();
+  render();
+  toast('Module deleted', 'err');
+}
+
+async function deleteTopic(id) {
+  if (!confirm('Delete this topic?')) return;
+  await DEL('/topic?id=' + id);
+  await reloadCurrentModule();
+  await reloadCurrentCourse();
+  render();
+  toast('Topic deleted', 'err');
+}
+
+// ── Course search (client-side, courses page) ─────────────────────────────────
+
 function filterCourseCards() {
   const q = (document.getElementById('cc2-search')?.value || '').toLowerCase();
   document.querySelectorAll('.course-card2').forEach(el => {
@@ -67,6 +105,8 @@ function filterCourseCards() {
     el.style.display = (!q || name.includes(q) || desc.includes(q)) ? '' : 'none';
   });
 }
+
+// ── Context menus ─────────────────────────────────────────────────────────────
 
 function openModuleMenu(moduleID, btn) {
   const existing = btn.querySelector('.cc2-dropdown');
@@ -102,142 +142,7 @@ function openCourseMenu(courseID, course, btn) {
   wrap.addEventListener('mouseleave', removeOnLeave);
 }
 
-async function publishCourse(id) {
-  const course = S.data.courses.find(c => c.courseID === id);
-  if (!course) return;
-
-  const modules = await loadAll('/module?id=', course.moduleIDs || []);
-  const allTopics = await loadAllTopicsFromModulesWithCompleted(modules);
-  const topicMap = {};
-  const privateNotes = {};
-  await Promise.all(allTopics.map(async t => {
-    topicMap[t.topicID] = t;
-    if (t.privateNoteID) {
-      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
-      if (pn) privateNotes[t.privateNoteID] = pn;
-    }
-  }));
-  const courseData = { course, modules, topics: topicMap, privateNotes };
-
-  const updated = await POST('/course/publish?id=' + id, { courseData });
-  S.data.courses = S.data.courses.map(c => c.courseID === id ? updated : c);
-  render();
-  toast('Course published!');
-}
-
-async function downloadCourse(id) {
-  const course = S.data.courses.find(c => c.courseID === id);
-  if (!course) return;
-
-  const modules = await loadAll('/module?id=', course.moduleIDs || []);
-  const allTopics = await loadAllTopicsFromModulesWithCompleted(modules);
-
-  // Keyed maps for COURSE_DATA
-  const topicMap = {};
-  const privateNotes = {};
-  await Promise.all(allTopics.map(async t => {
-    topicMap[t.topicID] = t;
-    if (t.privateNoteID) {
-      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
-      if (pn) privateNotes[t.privateNoteID] = pn;
-    }
-  }));
-
-  const courseData = { course, modules, topics: topicMap, privateNotes };
-
-  const assetFiles = [
-    'styles.css', 'toolbar.css',
-    'state.js', 'api.js', 'utils.js', 'data.js',
-    'notebook.js', 'views.js', 'render.js',
-    'navigation.js', 'static-init.js', 'static-main.js',
-  ];
-  // CSS is fetched from the Go backend (/static/assets/) which serves raw files,
-  // bypassing Vite's HMR transform that wraps CSS in a JS module.
-  const fetchURL = f => (f.endsWith('.css') ? `http://localhost:8081/static/assets/${f}` : `/assets/${f}`);
-  const fetched = await Promise.all(assetFiles.map(f => fetch(fetchURL(f)).then(r => r.text())));
-  const fileMap = Object.fromEntries(assetFiles.map((f, i) => [f, fetched[i]]));
-
-  const zip = new window.JSZip();
-  const folder = zip.folder(course.name.replace(/[^a-z0-9]/gi, '_'));
-  const assets = folder.folder('assets');
-  folder.file('index.html',     buildStaticIndex(course, courseData, fileMap));
-  assets.file('styles.css',     fileMap['styles.css']);
-  assets.file('toolbar.css',    fileMap['toolbar.css']);
-  assets.file('state.js',       fileMap['state.js']);
-  assets.file('api.js',         fileMap['api.js']);
-  assets.file('utils.js',       fileMap['utils.js']);
-  assets.file('data.js',        fileMap['data.js']);
-  assets.file('notebook.js',    fileMap['notebook.js']);
-  assets.file('views.js',       fileMap['views.js']);
-  assets.file('render.js',      fileMap['render.js']);
-  assets.file('navigation.js',  fileMap['navigation.js']);
-  assets.file('static-init.js', fileMap['static-init.js']);
-
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${course.name.replace(/[^a-z0-9]/gi, '_')}.zip`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-
-function buildStaticIndex(course, courseData, fileMap) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${esc(course.name)}</title>
-<link rel="stylesheet" href="assets/styles.css">
-<link rel="stylesheet" href="assets/toolbar.css">
-</head>
-<body>
-<nav id="sidebar">
-  <div id="sidebar-header">
-    <h2>Coursnote</h2>
-    <p>Your course notes</p>
-  </div>
-  <div id="sidebar-nav"></div>
-  <div id="sidebar-footer"></div>
-</nav>
-<main id="main"></main>
-<div id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"><\/script>
-<script>
-  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
-  require(['vs/editor/editor.main'], function() { window.dispatchEvent(new Event('monaco-ready')); });
-<\/script>
-<script type="module">${fileMap['static-main.js']}<\/script>
-<script>window.COURSE_DATA = ${JSON.stringify(courseData)};<\/script>
-<script src="assets/state.js"><\/script>
-<script src="assets/api.js"><\/script>
-<script src="assets/utils.js"><\/script>
-<script src="assets/data.js"><\/script>
-<script src="assets/notebook.js"><\/script>
-<script src="assets/views.js"><\/script>
-<script src="assets/render.js"><\/script>
-<script src="assets/navigation.js"><\/script>
-<script src="assets/static-init.js"><\/script>
-</body>
-</html>`;
-}
-
-
-async function enrollInCourse(staticCourseID) {
-  await POST('/course/enroll', { userID: S.data.user.id, staticCourseID });
-  await loadMarketCourses();
-  S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
-  render();
-}
-
-async function updateEnrollment(staticCourseID) {
-  await POST('/course/update-enroll', { userID: S.data.user.id, staticCourseID });
-  await loadMarketCourses();
-  S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
-  render();
-}
+// ── Published versions modal ──────────────────────────────────────────────────
 
 async function viewPublishedVersions(courseID) {
   const versions = await GET('/course/versions?id=' + courseID);
@@ -253,318 +158,14 @@ async function viewPublishedVersions(courseID) {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${v.isActive ? '#d1fae5' : '#fee2e2'};color:${v.isActive ? '#065f46' : '#991b1b'}">${v.isActive ? 'Active' : 'Inactive'}</span>
-          <a href="http://localhost:8081/api/staticcontent?id=${v.contentId}" target="_blank" style="font-size:13px;color:var(--accent)">View</a>
+          <a href="${Config.apiBase}/staticcontent?id=${v.contentId}" target="_blank" style="font-size:13px;color:var(--accent)">View</a>
         </div>
       </div>`).join('');
   }
   openModal('modal-versions', 'Published Versions');
 }
 
-async function deleteCourse(id) {
-  if (!confirm('Delete this course and all its contents?')) return;
-  await DEL('/course?id=' + id);
-  const full = await GET('/user?id=' + S.data.user.id);
-  S.data.user.courseIDs = full.courseIDs || [];
-  S.data.courses = await loadCourses();
-  render();
-  toast('Course deleted', 'err');
-}
-
-async function deleteModule(id) {
-  if (!confirm('Delete this module and all its topics?')) return;
-  await DEL('/module?id=' + id);
-  delete S.data.moduleTopics[id];
-  await reloadCurrentCourse();
-  render();
-  toast('Module deleted', 'err');
-}
-
-async function deleteTopic(id) {
-  if (!confirm('Delete this topic?')) return;
-  await DEL('/topic?id=' + id);
-  await reloadCurrentModule();
-  await reloadCurrentCourse();
-  render();
-  toast('Topic deleted', 'err');
-}
-
-// ── Reusable custom dropdown ──────────────────────────────────────────────────
-// opts: [{ val, label }], currentVal: string, onchangeFn: string (JS expression called with val)
-function buildCustomDropdown(id, opts, currentVal, onchangeFn) {
-  const label = opts.find(o => o.val === currentVal)?.label || opts[0]?.label || '';
-  const chevron = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-  const check   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-  const items = opts.map(o => {
-    const active = o.val === currentVal;
-    return `<div class="mkt-custom-opt${active ? ' mkt-custom-opt-active' : ''}"
-      onclick="event.stopPropagation();toggleCustomDropdown('${id}');(${onchangeFn})('${o.val}')">
-      ${o.label}${active ? check : ''}
-    </div>`;
-  }).join('');
-  return `<div id="${id}" class="mkt-custom-select" onclick="toggleCustomDropdown('${id}')">
-    <span>${label}</span>${chevron}
-    <div class="mkt-custom-opts" style="display:none">${items}</div>
-  </div>`;
-}
-
-function toggleCustomDropdown(id) {
-  const el   = document.getElementById(id);
-  const opts = el?.querySelector('.mkt-custom-opts');
-  if (!opts) return;
-  opts.style.display = opts.style.display === 'none' ? '' : 'none';
-}
-
-// ── Market filter/sort (server-side; see GET /api/market) ────────────────────
-
-// Build the /market query string from the current filter state.
-function marketQueryString() {
-  const f = S.ui.marketFilter;
-  const p = new URLSearchParams();
-  p.set('userID', S.data.user.id);
-  if (f.search)           p.set('search', f.search);
-  if (f.author)           p.set('author', f.author);
-  if (f.status)           p.set('status', f.status);
-  if (f.sizeMin !== '')   p.set('modSizeMin', f.sizeMin);
-  if (f.sizeMax !== '')   p.set('modSizeMax', f.sizeMax);
-  if (f.topicsMin !== '') p.set('topSizeMin', f.topicsMin);
-  if (f.topicsMax !== '') p.set('topSizeMax', f.topicsMax);
-  if ((f.sorts || []).length) {
-    p.set('sortBy', f.sorts.map(s => (s.dir === 'desc' ? '-' : '') + s.key).join(','));
-  }
-  return '/market?' + p.toString();
-}
-
-// Fields counted as "active filters" for the badge on the filter button.
-function marketActiveFilterCount() {
-  const f = S.ui.marketFilter;
-  return [f.sizeMin, f.sizeMax, f.topicsMin, f.topicsMax, f.author, f.status].filter(v => v !== '').length;
-}
-
-async function loadMarketCourses() {
-  const res = await GET(marketQueryString());
-  S.data.marketCourses = res?.courses || [];
-  S.data.marketTotal   = res?.total ?? S.data.marketCourses.length;
-}
-
-function marketSetSearch(val) {
-  S.ui.marketFilter.search = val;
-  marketRerender();
-}
-
-// From a home-page "Update available" link: open the market pre-filtered so
-// the course's newer published version is what shows.
-async function goMarketForUpdate(courseName) {
-  const f = S.ui.marketFilter;
-  f.search = courseName;
-  f.status = 'update';
-  f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = '';
-  await goMarket();
-}
-
-// Debounced so typing in the search/filter inputs doesn't fire a request per
-// keystroke; the server does the filtering and sorting.
-let _mktFetchTimer = null;
-function marketRerender() {
-  clearTimeout(_mktFetchTimer);
-  _mktFetchTimer = setTimeout(async () => {
-    await loadMarketCourses();
-    const grid = document.getElementById('mkt-grid');
-    if (grid) grid.innerHTML = S.data.marketCourses.map(marketCardHTML).join('');
-    const countEl = document.querySelector('.mkt-count');
-    if (countEl) countEl.textContent = S.data.marketCourses.length === S.data.marketTotal
-      ? `${S.data.marketTotal} course${S.data.marketTotal !== 1 ? 's' : ''}`
-      : `${S.data.marketCourses.length} of ${S.data.marketTotal} courses`;
-  }, 250);
-}
-
-function marketSetSort(key) {
-  const f = S.ui.marketFilter;
-  const sorts = f.sorts || [];
-  const idx = sorts.findIndex(s => s.key === key);
-  if (idx === -1) {
-    // add with default direction
-    const defaultDir = 'desc';
-    f.sorts = [...sorts, { key, dir: defaultDir }];
-  } else if (sorts[idx].dir === 'desc') {
-    // flip to asc
-    f.sorts = sorts.map((s, i) => i === idx ? { key, dir: 'asc' } : s);
-  } else if (sorts[idx].dir === 'asc') {
-    // remove
-    f.sorts = sorts.filter((_, i) => i !== idx);
-  }
-  const panel = document.getElementById('mkt-sort-panel');
-  if (panel) panel.innerHTML = marketBuildSortPanelHTML();
-  marketUpdateSortBtn();
-  marketRerender();
-}
-
-function marketUpdateSortBtn() {
-  const btn = document.getElementById('mkt-sort-btn');
-  if (!btn) return;
-  const sorts = S.ui.marketFilter.sorts || [];
-  const sortIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>`;
-  if (sorts.length === 0) {
-    btn.innerHTML = `${sortIcon}<span>Sort</span>`;
-    btn.classList.remove('mkt-icon-btn-active');
-  } else {
-    const labelMap = { publishDate: 'Newest', AtoZ: 'Title', modules: 'Modules', topics: 'Topics', owner: 'Author', status: 'Status' };
-    const label = sorts.length === 1 ? labelMap[sorts[0].key] : `${sorts.length} sorts`;
-    btn.innerHTML = `${sortIcon}<span>${label}</span>`;
-    btn.classList.add('mkt-icon-btn-active');
-  }
-}
-
-function marketClosePanels() {
-  document.getElementById('mkt-sort-panel')?.remove();
-  document.getElementById('mkt-filter-panel')?.remove();
-}
-
-const MKT_SORT_OPTIONS = [
-  { key: 'publishDate', label: 'Newest'        },
-  { key: 'AtoZ',        label: 'Title'         },
-  { key: 'modules',     label: 'Modules'       },
-  { key: 'topics',      label: 'Topics'        },
-  { key: 'owner',       label: 'Author'        },
-  { key: 'status',      label: 'Status'        },
-];
-
-function marketBuildSortPanelHTML() {
-  const sorts = S.ui.marketFilter.sorts || [];
-  const upArrow   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>`;
-  const downArrow = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-  return MKT_SORT_OPTIONS.map(o => {
-    const idx    = sorts.findIndex(s => s.key === o.key);
-    const active = idx !== -1;
-    const entry  = active ? sorts[idx] : null;
-    const badge  = active ? `<span class="mkt-sort-badge">${idx + 1}</span>` : '';
-    const arrow  = active ? (entry.dir === 'asc' ? upArrow : downArrow) : '';
-    return `<div class="mkt-drop-item${active ? ' mkt-drop-item-active' : ''}" onclick="marketSetSort('${o.key}')">
-      <span>${o.label}</span>
-      <span class="mkt-sort-meta">${badge}<span class="mkt-sort-arrow">${arrow}</span></span>
-    </div>`;
-  }).join('');
-}
-
-function marketToggleSort(btn) {
-  if (document.getElementById('mkt-sort-panel')) { marketClosePanels(); return; }
-  marketClosePanels();
-
-  const panel = document.createElement('div');
-  panel.id = 'mkt-sort-panel';
-  panel.className = 'mkt-drop-panel';
-  panel.innerHTML = marketBuildSortPanelHTML();
-
-  document.body.appendChild(panel);
-  const rect = btn.getBoundingClientRect();
-  panel.style.top  = (rect.bottom + 6) + 'px';
-  panel.style.left = rect.left + 'px';
-
-  setTimeout(() => {
-    document.addEventListener('mousedown', function _(e) {
-      if (!e.target.closest('#mkt-sort-panel') && !btn.contains(e.target)) {
-        panel.remove(); document.removeEventListener('mousedown', _);
-      }
-    });
-  }, 0);
-}
-
-function marketBuildFilterPanelHTML() {
-  const f = S.ui.marketFilter;
-  return `
-    <div class="mkt-fp-header">
-      <span>Filters</span>
-      <button class="mkt-fp-reset" onclick="marketClearFilters()">Reset</button>
-    </div>
-    <div class="mkt-fp-row">
-      <span class="mkt-fp-label">Modules</span>
-      <div class="mkt-range-wrap">
-        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Min"
-          value="${esc(String(f.sizeMin))}" oninput="marketSetFilter('sizeMin',this.value)" />
-        <span class="mkt-range-sep">–</span>
-        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Max"
-          value="${esc(String(f.sizeMax))}" oninput="marketSetFilter('sizeMax',this.value)" />
-      </div>
-    </div>
-    <div class="mkt-fp-row">
-      <span class="mkt-fp-label">Topics</span>
-      <div class="mkt-range-wrap">
-        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Min"
-          value="${esc(String(f.topicsMin))}" oninput="marketSetFilter('topicsMin',this.value)" />
-        <span class="mkt-range-sep">–</span>
-        <input class="mkt-fp-input mkt-range-input" type="number" min="0" placeholder="Max"
-          value="${esc(String(f.topicsMax))}" oninput="marketSetFilter('topicsMax',this.value)" />
-      </div>
-    </div>
-    <div class="mkt-fp-row">
-      <span class="mkt-fp-label">Author</span>
-      <input class="mkt-fp-input" placeholder="Search author…" value="${esc(f.author)}" oninput="marketSetFilter('author',this.value)" />
-    </div>
-    <div class="mkt-fp-row">
-      <span class="mkt-fp-label">Status</span>
-      <select class="mkt-fp-input" onchange="marketSetFilter('status',this.value)">
-        <option value=""${f.status === '' ? ' selected' : ''}>Any</option>
-        <option value="enrolled"${f.status === 'enrolled' ? ' selected' : ''}>Enrolled</option>
-        <option value="update"${f.status === 'update' ? ' selected' : ''}>Update available</option>
-        <option value="not enrolled"${f.status === 'not enrolled' ? ' selected' : ''}>Not enrolled</option>
-      </select>
-    </div>`;
-}
-
-function marketToggleFilter(btn) {
-  if (document.getElementById('mkt-filter-panel')) { marketClosePanels(); return; }
-  marketClosePanels();
-
-  const panel = document.createElement('div');
-  panel.id = 'mkt-filter-panel';
-  panel.className = 'mkt-drop-panel mkt-filter-panel';
-  panel.innerHTML = marketBuildFilterPanelHTML();
-
-  document.body.appendChild(panel);
-  const rect = btn.getBoundingClientRect();
-  panel.style.top  = (rect.bottom + 6) + 'px';
-  panel.style.left = rect.left + 'px';
-
-  setTimeout(() => {
-    document.addEventListener('mousedown', function _(e) {
-      if (!e.target.closest('#mkt-filter-panel') && !btn.contains(e.target)) {
-        panel.remove(); document.removeEventListener('mousedown', _);
-      }
-    });
-  }, 0);
-}
-
-
-
-function marketSetFilter(key, val) {
-  S.ui.marketFilter[key] = val;
-  // text inputs: don't rebuild panel (would steal focus), just update results
-  marketUpdateFilterBadge();
-  marketRerender();
-}
-
-function marketUpdateFilterBadge() {
-  const filterCount = marketActiveFilterCount();
-  const filterBtn = document.getElementById('mkt-filter-btn');
-  if (!filterBtn) return;
-  filterBtn.classList.toggle('mkt-icon-btn-active', filterCount > 0);
-  const badge = filterBtn.querySelector('.mkt-filter-badge');
-  if (filterCount && !badge) {
-    const b = document.createElement('span'); b.className = 'mkt-filter-badge'; b.textContent = filterCount; filterBtn.appendChild(b);
-  } else if (filterCount && badge) {
-    badge.textContent = filterCount;
-  } else if (!filterCount && badge) {
-    badge.remove();
-  }
-}
-
-function marketClearFilters() {
-  const f = S.ui.marketFilter;
-  f.search = ''; f.sizeMin = ''; f.sizeMax = ''; f.topicsMin = ''; f.topicsMax = ''; f.author = ''; f.status = '';
-  const panel = document.getElementById('mkt-filter-panel');
-  if (panel) panel.innerHTML = marketBuildFilterPanelHTML();
-  marketUpdateFilterBadge();
-  marketRerender();
-}
+// ── Avatar ────────────────────────────────────────────────────────────────────
 
 async function uploadAvatar(input) {
   const file = input.files[0];
@@ -575,7 +176,7 @@ async function uploadAvatar(input) {
   const form = new FormData();
   form.append('avatar', file);
   try {
-    const res = await fetch(`http://localhost:8081/api/user/avatar?userID=${S.data.user.id}`, { method: 'POST', body: form });
+    const res = await fetch(`${Config.apiBase}/user/avatar?userID=${S.data.user.id}`, { method: 'POST', body: form });
     if (!res.ok) {
       let msg = 'Upload failed';
       try { const d = await res.json(); msg = d.error || msg; } catch {}
@@ -592,9 +193,14 @@ async function uploadAvatar(input) {
   }
 }
 
-function removeAvatar() {
+async function removeAvatar() {
   S.data.user.avatarURL = '';
   Storage.saveUser(S.data.user);
-  fetch(`http://localhost:8081/api/user/avatar?userID=${S.data.user.id}`, { method: 'DELETE' }).catch(() => {});
   render();
+  try {
+    const res = await fetch(`${Config.apiBase}/user/avatar?userID=${S.data.user.id}`, { method: 'DELETE' });
+    if (!res.ok) toast('Failed to remove avatar from server', 'err');
+  } catch {
+    toast('Failed to remove avatar from server', 'err');
+  }
 }

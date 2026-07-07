@@ -41,6 +41,32 @@ function autoResize(ta) {
   ta.style.height = ta.scrollHeight + 'px';
 }
 
+// ── Reusable custom dropdown ──────────────────────────────────────────────────
+// opts: [{ val, label }], currentVal: string, onchangeFn: string (JS expression called with val)
+function buildCustomDropdown(id, opts, currentVal, onchangeFn) {
+  const label = opts.find(o => o.val === currentVal)?.label || opts[0]?.label || '';
+  const chevron = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const check   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const items = opts.map(o => {
+    const active = o.val === currentVal;
+    return `<div class="mkt-custom-opt${active ? ' mkt-custom-opt-active' : ''}"
+      onclick="event.stopPropagation();toggleCustomDropdown('${id}');(${onchangeFn})('${o.val}')">
+      ${o.label}${active ? check : ''}
+    </div>`;
+  }).join('');
+  return `<div id="${id}" class="mkt-custom-select" onclick="toggleCustomDropdown('${id}')">
+    <span>${label}</span>${chevron}
+    <div class="mkt-custom-opts" style="display:none">${items}</div>
+  </div>`;
+}
+
+function toggleCustomDropdown(id) {
+  const el   = document.getElementById(id);
+  const opts = el?.querySelector('.mkt-custom-opts');
+  if (!opts) return;
+  opts.style.display = opts.style.display === 'none' ? '' : 'none';
+}
+
 let toastTimer;
 function toast(msg, type = 'ok') {
   const el = document.getElementById('toast');

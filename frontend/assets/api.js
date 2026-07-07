@@ -3,9 +3,10 @@
 async function req(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(API + path, opts);
+  const r = await fetch(Config.apiBase + path, opts);
   if (r.status === 204) return null;
-  const data = await r.json();
+  let data;
+  try { data = await r.json(); } catch { throw new Error(`${r.status} ${r.statusText}`); }
   if (!r.ok) throw new Error(data.error || r.statusText);
   return data;
 }

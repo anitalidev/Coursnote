@@ -1,7 +1,5 @@
 'use strict';
 
-const API = 'http://localhost:8081/api';
-
 const Editors = {
   notebook: {},
   monaco: {},

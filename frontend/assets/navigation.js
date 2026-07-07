@@ -1,14 +1,28 @@
 'use strict';
 
+// Registered by static-init.js in static/enrolled mode to flush time-tracking
+// before any navigation. Calling code stays unaware of tracking details.
+const _navHooks = { onBeforeNavigate: null };
+
 function pushHash(hash) {
   history.pushState(null, '', hash);
 }
 
 async function goLogin() {
   if (!Runtime.canLogin) return;
+  _navHooks.onBeforeNavigate?.();
   Storage.clearUser();
-  Object.assign(S.data, { user: null, courses: [], modules: [], moduleTopics: {}, topics: [] });
-  Object.assign(S.ui, { currentCourse: null, currentModule: null, currentTopic: null, view: 'login' });
+  Object.assign(S.data, {
+    user: null, courses: [], modules: [], moduleTopics: {}, topics: [],
+    enrolledCourses: [], marketCourses: [], marketTotal: 0,
+    progress: { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
+  });
+  Object.assign(S.ui, {
+    view: 'login', editMode: false, notesTab: 'cp',
+    currentCourse: null, currentModule: null, currentTopic: null,
+    marketFilter: { search: '', sorts: [], sizeMin: '', sizeMax: '', topicsMin: '', topicsMax: '', author: '', status: '' },
+    courseProgress: {},
+  });
   Object.assign(S.editor, { cells: [], privateNote: null });
   pushHash('#');
   render();
@@ -16,6 +30,7 @@ async function goLogin() {
 
 async function goHome() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
+  _navHooks.onBeforeNavigate?.();
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
@@ -26,6 +41,7 @@ async function goHome() {
 
 async function goCourses() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
+  _navHooks.onBeforeNavigate?.();
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.data.courses = await loadCourses();
@@ -44,6 +60,7 @@ async function goCourses() {
 
 async function goModules(course, editMode = false) {
   try {
+    _navHooks.onBeforeNavigate?.();
     destroyPNEditor();
     S.ui.currentCourse = course; S.ui.currentModule = null; S.ui.currentTopic = null;
     S.ui.editMode = editMode;
@@ -57,6 +74,7 @@ async function goModules(course, editMode = false) {
 
 async function goTopics(module) {
   try {
+    _navHooks.onBeforeNavigate?.();
     destroyPNEditor();
     S.ui.currentModule = module; S.ui.currentTopic = null;
     S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
@@ -69,6 +87,7 @@ async function goTopics(module) {
 
 async function goTopic(topic) {
   try {
+    _navHooks.onBeforeNavigate?.();
     destroyPNEditor();
     if (!S.ui.currentModule || S.ui.currentModule.moduleID !== topic.moduleID) {
       S.ui.currentModule = await GET('/module?id=' + topic.moduleID);
@@ -89,6 +108,7 @@ async function goTopic(topic) {
 
 async function goMarket() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
+  _navHooks.onBeforeNavigate?.();
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   await loadMarketCourses();
@@ -99,6 +119,7 @@ async function goMarket() {
 
 async function goSettings() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
+  _navHooks.onBeforeNavigate?.();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.ui.view = 'settings';
   pushHash('#settings');

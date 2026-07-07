@@ -8,6 +8,7 @@ const Runtime = {
   showUserMenu: true,
   hasPrivateNotes: true,
   trackProgress: false,
+  showDebugPanel: false,
   navigateFallback: null,
 };
 
