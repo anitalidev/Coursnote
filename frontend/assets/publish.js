@@ -12,11 +12,12 @@ async function publishCourse(id) {
   const topicMap = {};
   const privateNotes = {};
   await Promise.all(allTopics.map(async t => {
-    topicMap[t.topicID] = t;
-    if (t.privateNoteID) {
-      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
-      if (pn) privateNotes[t.privateNoteID] = pn;
-    }
+    const [cp, pn] = await Promise.all([
+      t.coursePageID ? GET('/coursepages?id=' + t.coursePageID) : null,
+      t.privateNoteID ? GET('/privatenotes?id=' + t.privateNoteID) : null,
+    ]);
+    topicMap[t.topicID] = { ...t, rawElements: cp?.rawElements ?? null };
+    if (pn) privateNotes[t.privateNoteID] = pn;
   }));
   const courseData = { course, modules, topics: topicMap, privateNotes };
 
@@ -36,11 +37,12 @@ async function downloadCourse(id) {
   const topicMap = {};
   const privateNotes = {};
   await Promise.all(allTopics.map(async t => {
-    topicMap[t.topicID] = t;
-    if (t.privateNoteID) {
-      const pn = await GET('/privatenotes?id=' + t.privateNoteID);
-      if (pn) privateNotes[t.privateNoteID] = pn;
-    }
+    const [cp, pn] = await Promise.all([
+      t.coursePageID ? GET('/coursepages?id=' + t.coursePageID) : null,
+      t.privateNoteID ? GET('/privatenotes?id=' + t.privateNoteID) : null,
+    ]);
+    topicMap[t.topicID] = { ...t, rawElements: cp?.rawElements ?? null };
+    if (pn) privateNotes[t.privateNoteID] = pn;
   }));
 
   const courseData = { course, modules, topics: topicMap, privateNotes };

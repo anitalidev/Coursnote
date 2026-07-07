@@ -8,10 +8,8 @@ function scheduleElementsSave(topic = S.ui.currentTopic) {
   setStatus('cp', 'saving...');
   elemSaveTimer = setTimeout(async () => {
     try {
-      await PUT('/topic', {
-        id: topic.topicID,
-        name: topic.name,
-        description: topic.description,
+      await PUT('/coursepages', {
+        id: topic.coursePageID,
         elements: nbCellsToElements(),
       });
       setStatus('cp', 'Saved');

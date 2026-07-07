@@ -34,6 +34,7 @@ const staticShell = `<!DOCTYPE html>
 <script type="module" src="/static/assets/static-main.js"></script>
 <script>window.COURSE_DATA = %s;</script>
 <script>window.ENROLLMENT_DATA = %s;</script>
+<script src="/static/assets/config.js"></script>
 <script src="/static/assets/storage.js"></script>
 <script src="/static/assets/runtime.js"></script>
 <script src="/static/assets/state.js"></script>
@@ -41,6 +42,7 @@ const staticShell = `<!DOCTYPE html>
 <script src="/static/assets/utils.js"></script>
 <script src="/static/assets/data.js"></script>
 <script src="/static/assets/notebook.js"></script>
+<script src="/static/assets/completion.js"></script>
 <script src="/static/assets/views.js"></script>
 <script src="/static/assets/render.js"></script>
 <script src="/static/assets/navigation.js"></script>

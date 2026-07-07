@@ -418,7 +418,7 @@ function modulesHTML() {
     const menuHTML = S.ui.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>` : '';
-    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, isModuleComplete(m) ? ' mod2-done' : '');
+    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, !S.ui.editMode && isModuleComplete(m) ? ' mod2-done' : '');
   }).join('');
 
   return `<div class="course-page">
@@ -528,7 +528,7 @@ function topicsHTML() {
               <span class="info-icon">(i)</span>
               <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
             </div>`;
-        const done = isTopicComplete(t);
+        const done = !S.ui.editMode && isTopicComplete(t);
         return `
       <div class="item-card${done ? ' completed' : ''}" onclick="goTopic(${jsonAttr(t)})">
         <div class="item-icon topic">
@@ -537,9 +537,9 @@ function topicsHTML() {
         <div class="item-body">
           <div class="item-title">${esc(t.name)}</div>
           <div class="item-desc" style="display:flex;gap:8px;margin-bottom:4px">Open to add notes</div>
-          <div class="item-status">${done ? '✓ Completed' : 'Not Completed'}</div>
+          ${!S.ui.editMode ? `<div class="item-status">${done ? '✓ Completed' : 'Not Completed'}</div>` : ''}
         </div>
-        <div style="display:flex;align-items:center;gap:4px">${rulesHTML}</div>
+        <div style="display:flex;align-items:center;gap:4px">${!S.ui.editMode ? rulesHTML : ''}</div>
         ${S.ui.editMode ? `<div class="item-actions">
           <button class="btn btn-ghost" onclick="event.stopPropagation();openTopicEdit('${t.topicID}')">Edit</button>
           <button class="btn btn-danger" onclick="event.stopPropagation();deleteTopic('${t.topicID}')">Delete</button>
@@ -553,7 +553,7 @@ function topicsHTML() {
 
   return `<div class="section">
     <div class="breadcrumb">
-      ${Runtime.editable ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
+      <span onclick="${Runtime.editable ? 'goCourses()' : 'goHome()'}">All Courses</span><span class="sep">›</span>
       <span onclick="goModules(${jsonAttr(S.ui.currentCourse)},${S.ui.editMode})">${esc(S.ui.currentCourse.name)}</span>
     </div>
     <div class="page-hero" id="module-view-header">
@@ -612,6 +612,7 @@ function topicEditFormHTML() {
 function renderTopicRulesDisplay(topic) {
   const container = document.getElementById('topic-completion-rules-display');
   if (!container) return;
+  if (S.ui.editMode) { container.innerHTML = ''; return; }
 
   const rules = topic.compTypes || [];
   const ruleMap = {};
@@ -718,7 +719,7 @@ function topicHTML() {
   const t = S.ui.currentTopic;
   return `<div class="section topic-section">
     <div class="breadcrumb">
-      ${Runtime.editable ? `<span onclick="goCourses()">All Courses</span><span class="sep">›</span>` : ''}
+      <span onclick="${Runtime.editable ? 'goCourses()' : 'goHome()'}">All Courses</span><span class="sep">›</span>
       <span onclick="goModules(${jsonAttr(S.ui.currentCourse)},${S.ui.editMode})">${esc(S.ui.currentCourse.name)}</span>
       <span class="sep">›</span>
       <span onclick="goTopics(${jsonAttr(S.ui.currentModule)})">${esc(S.ui.currentModule.name)}</span>

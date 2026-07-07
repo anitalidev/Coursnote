@@ -95,8 +95,12 @@ async function goTopic(topic) {
       S.data.moduleTopics[S.ui.currentModule.moduleID] = S.data.topics;
     }
     S.ui.currentTopic = topic;
-    S.editor.cells = parseRawElements(topic.rawElements);
-    S.editor.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
+    const [cp, pn] = await Promise.all([
+      topic.coursePageID ? GET('/coursepages?id=' + topic.coursePageID) : null,
+      topic.privateNoteID ? GET('/privatenotes?id=' + topic.privateNoteID) : null,
+    ]);
+    S.editor.cells = parseRawElements(cp?.rawElements);
+    S.editor.privateNote = pn;
     S.ui.view = 'topic';
     pushHash('#course/' + S.ui.currentCourse.courseID + '/module/' + S.ui.currentModule.moduleID + '/topic/' + topic.topicID + '/' + S.ui.notesTab + (S.ui.editMode ? '/edit' : ''));
     render();
@@ -149,11 +153,15 @@ async function restoreFromHash(hash) {
       S.ui.notesTab = m.topic[4] || 'cp';
       S.ui.editMode = !!m.topic[5];
       const [course, module, topic] = await Promise.all([GET('/course?id=' + courseID), GET('/module?id=' + moduleID), GET('/topic?id=' + topicID)]);
-      S.editor.privateNote = topic.privateNoteID ? await GET('/privatenotes?id=' + topic.privateNoteID) : null;
+      const [cp, pn] = await Promise.all([
+        topic.coursePageID ? GET('/coursepages?id=' + topic.coursePageID) : null,
+        topic.privateNoteID ? GET('/privatenotes?id=' + topic.privateNoteID) : null,
+      ]);
+      S.editor.privateNote = pn;
       S.data.courses = await loadCourses();
       S.ui.currentCourse = course; S.data.modules = await loadAll('/module?id=', course.moduleIDs || []);
       S.ui.currentModule = module; S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
-      S.ui.currentTopic = topic; S.editor.cells = parseRawElements(topic.rawElements);
+      S.ui.currentTopic = topic; S.editor.cells = parseRawElements(cp?.rawElements);
       S.data.moduleTopics = await loadAllTopics(S.data.modules);
       S.data.moduleTopics[module.moduleID] = S.data.topics;
       S.ui.view = 'topic';

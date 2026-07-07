@@ -11,12 +11,3 @@ type PrivateNote struct {
 	Description json.RawMessage `json:"description"` // (Is actually content)
 	TopicID     string          `json:"topicID"`     // owner
 }
-
-func newPrivateNote(privNoteID string, name string, desc json.RawMessage, topicID string) *PrivateNote {
-	return &PrivateNote{
-		PrivateNoteID: privNoteID,
-		Name:          name,
-		Description:   desc,
-		TopicID:       topicID,
-	}
-}

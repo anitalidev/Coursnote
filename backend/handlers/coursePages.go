@@ -3,13 +3,16 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/anitalidev/Coursnote/backend/models/elements"
 )
 
 type CoursePageDTO struct {
-	CoursePageID string `json:"coursePageID"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	TopicID      string `json:"topicID"`
+	CoursePageID string          `json:"coursePageID"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	TopicID      string          `json:"topicID"`
+	RawElements  json.RawMessage `json:"rawElements"`
 }
 
 func CoursePageHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,12 +36,14 @@ func CoursePageHandler(w http.ResponseWriter, r *http.Request) {
 			Name:         page.Name,
 			Description:  page.Description,
 			TopicID:      page.TopicID,
+			RawElements:  page.RawElements,
 		})
 
 	case http.MethodPut:
 		var body struct {
-			ID          string `json:"id"`
-			Description string `json:"description"`
+			ID          string          `json:"id"`
+			Description string          `json:"description"`
+			RawElements json.RawMessage `json:"elements"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" {
 			writeError(w, http.StatusBadRequest, "id required")
@@ -51,11 +56,24 @@ func CoursePageHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
+		if len(body.RawElements) > 0 {
+			elems, err := elements.UnmarshalElements(body.RawElements)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid elements: "+err.Error())
+				return
+			}
+			if err := store.repos.CoursePages.SaveCourseElements(body.ID, elems); err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
 		page, _ := store.repos.CoursePages.GetCoursePageByID(body.ID)
 		writeJSON(w, http.StatusOK, CoursePageDTO{
 			CoursePageID: page.CoursePageID,
 			Name:         page.Name,
 			Description:  page.Description,
+			RawElements:  page.RawElements,
 			TopicID:      page.TopicID,
 		})
 

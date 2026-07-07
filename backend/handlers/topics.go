@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/anitalidev/Coursnote/backend/models"
-	"github.com/anitalidev/Coursnote/backend/models/elements"
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
@@ -16,7 +15,6 @@ type TopicDTO struct {
 	ModuleID      string                  `json:"moduleID"`
 	PrivateNoteID string                  `json:"privateNoteID"`
 	CoursePageID  string                  `json:"coursePageID"`
-	RawElements   json.RawMessage         `json:"rawElements"`
 	CompRules     []models.CompletionRule `json:"compTypes"`
 }
 
@@ -43,7 +41,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			RawElements:   topic.RawElements,
 			CompRules:     topic.CompRules,
 		})
 
@@ -99,7 +96,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			RawElements:   topic.RawElements,
 			CompRules:     topic.CompRules,
 		})
 
@@ -108,7 +104,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ID          string                  `json:"id"`
 			Name        string                  `json:"name"`
 			Description string                  `json:"description"`
-			RawElements json.RawMessage         `json:"elements"`
 			CompRules   []models.CompletionRule `json:"compRules"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" || body.Name == "" {
@@ -122,17 +117,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if len(body.RawElements) > 0 {
-			elems, err := elements.UnmarshalElements(body.RawElements)
-			if err != nil {
-				writeError(w, http.StatusBadRequest, "invalid elements: "+err.Error())
-				return
-			}
-			if err := store.repos.Topics.SaveTopicElements(body.ID, elems); err != nil {
-				writeError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-		}
+
 		topic, _ := store.repos.Topics.GetTopicByID(body.ID)
 		writeJSON(w, http.StatusOK, TopicDTO{
 			TopicID:       topic.TopicID,
@@ -141,7 +126,6 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			ModuleID:      topic.ModuleID,
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
-			RawElements:   topic.RawElements,
 			CompRules:     topic.CompRules,
 		})
 

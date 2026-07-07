@@ -18,7 +18,13 @@ _CD.courseMap = { [_CD.course.courseID]: _CD.course };
 _CD.moduleMap = {};
 _CD.topicMap  = {};
 (_CD.modules || []).forEach(function(m) { _CD.moduleMap[m.moduleID] = m; });
-Object.values(_CD.topics || {}).forEach(function(t) { _CD.topicMap[t.topicID] = t; });
+_CD.coursePageMap = {};
+Object.values(_CD.topics || {}).forEach(function(t) {
+  _CD.topicMap[t.topicID] = t;
+  if (t.coursePageID) {
+    _CD.coursePageMap[t.coursePageID] = { coursePageID: t.coursePageID, topicID: t.topicID, rawElements: t.rawElements ?? null };
+  }
+});
 
 Runtime.navigateFallback = function() { goModules(_CD.course); };
 
@@ -278,7 +284,7 @@ if (_ED) {
     btn.style.cssText = 'width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500';
     btn.onmouseover = function() { this.style.background = 'var(--accent)'; this.style.color = 'var(--bg)'; };
     btn.onmouseout  = function() { this.style.background = 'transparent'; this.style.color = 'var(--accent)'; };
-    btn.onclick = function() { window.location.href = Config.appBase + '/' + dest[0]; };
+    btn.onclick = function() { window.location.href = window.location.origin + '/' + dest[0]; };
     container.appendChild(btn);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertBackBtn);

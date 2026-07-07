@@ -29,19 +29,5 @@ type Topic struct {
 	CoursePageID  string             `json:"coursePageID"`  // owns
 	ModuleID      string             `json:"moduleID"`      // owner
 	Elements      []elements.Element `json:"-"`
-	RawElements   json.RawMessage    `json:"rawElements"`
 	CompRules     []CompletionRule   `json:"compTypes"`
-}
-
-func newTopic(topicID string, name string, desc string, moduleID string,
-	privateNoteID string, coursePageID string, elementsJSON json.RawMessage) *Topic {
-	return &Topic{
-		TopicID:       topicID,
-		Name:          name,
-		Description:   desc,
-		ModuleID:      moduleID,
-		PrivateNoteID: privateNoteID,
-		CoursePageID:  coursePageID,
-		RawElements:   elementsJSON,
-	}
 }

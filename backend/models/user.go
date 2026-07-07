@@ -8,14 +8,6 @@ type User struct {
 	CourseIDs []string `json:"courseIDs"` // owns
 }
 
-func newUser(userID string, username string) *User {
-	return &User{
-		Username:  username,
-		UserID:    userID,
-		CourseIDs: make([]string, 0, 15),
-	}
-}
-
 func (user *User) addCourse(courseID string) {
 	user.CourseIDs = append(user.CourseIDs, courseID)
 }

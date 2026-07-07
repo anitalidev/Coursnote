@@ -14,18 +14,6 @@ type Course struct {
 	RightColour string `json:"rightColour"`
 }
 
-/*
-func newCourse(courseID string, name string, desc string, userID string) *Course {
-	return &Course{
-		CourseID:    courseID,
-		Name:        name,
-		Description: desc,
-		ModuleIDs:   make([]string, 0, 15),
-		UserID:      userID,
-	}
-}
-*/
-
 func (course *Course) addModule(moduleID string) {
 	course.ModuleIDs = append(course.ModuleIDs, moduleID)
 }
