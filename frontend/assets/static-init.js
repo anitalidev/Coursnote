@@ -291,7 +291,9 @@ if (_ED) {
     var k = _answerKey(cellIdx, qi);
     if (k == null) return;
     S.data.progress.lastAnswered[k] = Number(chosen);
+    _pctDirty = true;
     _persistProgress();
+    if (S.ui.currentTopic) renderTopicRulesDisplay(S.ui.currentTopic);
   };
   cvQLoad = function(cellIdx, qi, topicID) {
     var k = _answerKey(cellIdx, qi, topicID);
@@ -304,6 +306,7 @@ if (_ED) {
     S.data.progress.correctlyAnswered[k] = Number(score);
     _pctDirty = true;
     _persistProgress();
+    if (S.ui.currentTopic) renderTopicRulesDisplay(S.ui.currentTopic);
   };
   cvQsBestLoad = function(cellIdx) {
     var k = _answerKey(cellIdx, null);
@@ -329,7 +332,10 @@ if (_ED) {
     btn.style.cssText = 'width:100%;padding:11px 8px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s;font-weight:500';
     btn.onmouseover = function() { this.style.background = 'var(--accent)'; this.style.color = 'var(--bg)'; };
     btn.onmouseout  = function() { this.style.background = 'transparent'; this.style.color = 'var(--accent)'; };
-    btn.onclick = function() { window.location.href = window.location.origin + '/' + dest[0]; };
+    btn.onclick = function() {
+      var fe = new URLSearchParams(location.search).get('frontend') || window.location.origin;
+      window.location.href = fe + '/' + dest[0];
+    };
     container.appendChild(btn);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertBackBtn);

@@ -658,8 +658,6 @@ function topicEditFormHTML() {
 function renderTopicRulesDisplay(topic) {
   const container = document.getElementById('topic-completion-rules-display');
   if (!container) return;
-  if (S.ui.editMode) { container.innerHTML = ''; return; }
-
   const rules = topic.compTypes || [];
   const ruleMap = {};
   rules.forEach(r => { ruleMap[r.type] = r.config; });

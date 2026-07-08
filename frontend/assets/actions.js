@@ -4,7 +4,8 @@
 
 function openCourseViewer(contentId) {
   const uid = S.data.user?.id ? '&userID=' + encodeURIComponent(S.data.user.id) : '';
-  window.location.href = Config.apiBase + '/staticcontent?id=' + contentId + '&from=' + S.ui.view + uid;
+  const fe = '&frontend=' + encodeURIComponent(window.location.origin);
+  window.location.href = Config.apiBase + '/staticcontent?id=' + contentId + '&from=' + S.ui.view + uid + fe;
 }
 
 // ── User menu ─────────────────────────────────────────────────────────────────
