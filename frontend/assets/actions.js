@@ -36,7 +36,18 @@ async function handleLogin(username) {
     user = await POST('/user', { username });
   }
   const full = await GET('/user?id=' + user.id);
-  S.data.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [] };
+  S.data.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [], settings: full.settings || user.settings || null };
+  const activeSettings = full.settings || user.settings;
+  if (activeSettings) {
+    const r = document.documentElement;
+    const bg  = _hexToRGB(activeSettings.backgroundColour);
+    const bl  = _hexToRGB(activeSettings.primaryColour);
+    const pur = _hexToRGB(activeSettings.gradientColour);
+    if (bg)  r.style.setProperty('--col-bg',       bg);
+    if (bl)  r.style.setProperty('--col-blue',     bl);
+    if (pur) r.style.setProperty('--col-purple',   pur);
+    if (activeSettings.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(activeSettings.primaryColour));
+  }
   Storage.saveUser(S.data.user);
   await goCourses();
 }
@@ -202,5 +213,81 @@ async function removeAvatar() {
     if (!res.ok) toast('Failed to remove avatar from server', 'err');
   } catch {
     toast('Failed to remove avatar from server', 'err');
+  }
+}
+
+// ── Colour settings ───────────────────────────────────────────────────────────
+
+const _colourPalettes = [
+  { name: 'Default',  bg: '#0f1117', primary: '#6c8ef7', gradient: '#a78bfa' },
+  { name: 'Midnight', bg: '#0d1117', primary: '#58a6ff', gradient: '#bc8cff' },
+  { name: 'Ocean',    bg: '#0a1628', primary: '#06b6d4', gradient: '#3b82f6' },
+  { name: 'Forest',   bg: '#0b1a0e', primary: '#4ade80', gradient: '#86efac' },
+  { name: 'Sunset',   bg: '#1a0f0a', primary: '#f97316', gradient: '#ec4899' },
+  { name: 'Rose',     bg: '#1a0a0f', primary: '#f43f5e', gradient: '#fb923c' },
+  { name: 'Slate',    bg: '#0f172a', primary: '#94a3b8', gradient: '#cbd5e1' },
+];
+
+const _colourCSSKeys = {
+  backgroundColour: '--col-bg',
+  primaryColour:    '--col-blue',
+  gradientColour:   '--col-purple',
+};
+
+function _hexToRGB(hex) {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+function _darkenHex(hex, factor = 0.82) {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * factor).toString(16).padStart(2, '0');
+  const g = Math.round(((n >> 8)  & 255) * factor).toString(16).padStart(2, '0');
+  const b = Math.round((n & 255)         * factor).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
+}
+
+function applyPalette(index) {
+  const p = _colourPalettes[index];
+  if (!p) return;
+  const keys = { backgroundColour: p.bg, primaryColour: p.primary, gradientColour: p.gradient };
+  for (const [key, hex] of Object.entries(keys)) {
+    const input = document.querySelector(`input[data-colour-key="${key}"]`);
+    if (input) input.value = hex;
+    previewColour(key, hex);
+  }
+}
+
+function previewColour(key, hex) {
+  const el = document.getElementById('colour-hex-' + key);
+  if (el) el.textContent = hex;
+  if (S.data.user.settings) S.data.user.settings[key] = hex;
+}
+
+async function saveColours() {
+  const s = S.data.user.settings;
+  if (!s) return;
+  const status = document.getElementById('colour-save-status');
+  try {
+    const res = await fetch(
+      `${Config.apiBase}/usersettings?id=${encodeURIComponent(S.data.user.settings.settingsID)}`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backgroundColour: s.backgroundColour, primaryColour: s.primaryColour, gradientColour: s.gradientColour }) }
+    );
+    if (!res.ok) throw new Error();
+    const r = document.documentElement;
+    const bg  = _hexToRGB(s.backgroundColour);
+    const bl  = _hexToRGB(s.primaryColour);
+    const pur = _hexToRGB(s.gradientColour);
+    if (bg)  r.style.setProperty('--col-bg',       bg);
+    if (bl)  r.style.setProperty('--col-blue',     bl);
+    if (pur) r.style.setProperty('--col-purple',   pur);
+    if (s.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(s.primaryColour));
+    Storage.saveUser(S.data.user);
+    if (status) { status.textContent = 'Saved'; status.style.color = 'var(--accent3)'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
+  } catch {
+    if (status) { status.textContent = 'Failed to save'; status.style.color = 'var(--danger)'; }
   }
 }

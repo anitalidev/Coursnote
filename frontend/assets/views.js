@@ -2,6 +2,12 @@
 
 function settingsHTML() {
   const avatarSrc = S.data.user.avatarURL;
+  const s = S.data.user.settings || {};
+  const colours = [
+    { key: 'backgroundColour', value: s.backgroundColour || '#0f1117', label: 'Background',  tip: 'The deepest background colour used across the entire app.' },
+    { key: 'primaryColour',    value: s.primaryColour    || '#6c8ef7', label: 'Primary',     tip: 'The main accent colour — buttons, active states, links, and progress bars.' },
+    { key: 'gradientColour',   value: s.gradientColour   || '#a78bfa', label: 'Gradient',    tip: 'The secondary accent colour — the end of gradients on headings and progress bars.' },
+  ];
   return `<div class="section">
     <h1 style="margin-bottom:24px">Settings</h1>
     <div class="settings-card">
@@ -19,6 +25,47 @@ function settingsHTML() {
           ${avatarSrc ? `<button class="btn btn-danger" style="margin-top:6px" onclick="removeAvatar()">Remove Photo</button>` : ''}
           <p class="settings-hint" id="avatar-status"></p>
         </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h2 class="settings-section-title">Colours</h2>
+      <button onclick="var d=this.nextElementSibling,open=d.style.display==='flex';d.style.display=open?'none':'flex';this.querySelector('.palette-chevron').style.transform=open?'':'rotate(180deg)'"
+        style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:8px">
+        <span class="palette-chevron" style="transition:transform .15s;display:inline-block">▾</span> Presets
+      </button>
+      <div style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+        ${_colourPalettes.map((p, i) => `
+          <button onclick="applyPalette(${i})" title="${esc(p.name)}"
+            style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;min-width:80px">
+            <div style="display:flex;gap:3px">
+              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.bg)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.primary)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.gradient)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+            </div>
+            <span style="font-size:11px;color:var(--text2);white-space:nowrap">${esc(p.name)}</span>
+          </button>`).join('')}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        ${colours.map(c => `
+          <div style="display:flex;align-items:center;gap:14px">
+            <input type="color" value="${esc(c.value)}" data-colour-key="${esc(c.key)}"
+              style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.2);padding:2px;background:var(--bg2);cursor:pointer;flex-shrink:0"
+              oninput="previewColour('${esc(c.key)}', this.value)">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(c.label)}</span>
+                <span class="tooltip-trigger" style="position:relative">
+                  <span style="font-size:11px;color:var(--text3);cursor:default">?</span>
+                  <span class="tooltip-content" style="min-width:220px;white-space:normal">${esc(c.tip)}</span>
+                </span>
+              </div>
+              <span id="colour-hex-${esc(c.key)}" style="font-size:12px;color:var(--text3);font-family:monospace">${esc(c.value)}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+        <button class="btn btn-primary btn-sm" onclick="saveColours()">Save</button>
+        <span id="colour-save-status" style="font-size:11px;min-height:16px"></span>
       </div>
     </div>
   </div>`;

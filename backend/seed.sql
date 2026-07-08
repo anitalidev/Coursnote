@@ -1,11 +1,18 @@
 USE coursnote;
 
--- Users
-INSERT INTO users (username) VALUES
-    ('alice'),
-    ('bob'),
-    ('carol'),
-    ('dave');
+-- Settings (one row per user, explicit IDs so they match user_id after insert)
+INSERT INTO user_settings (background_colour, primary_colour, gradient_colour) VALUES
+    ('#0f1117', '#6c8ef7', '#a78bfa'),
+    ('#0f1117', '#6c8ef7', '#a78bfa'),
+    ('#0f1117', '#6c8ef7', '#a78bfa'),
+    ('#0f1117', '#6c8ef7', '#a78bfa');
+
+-- Users (settings_id 1–4 correspond to the rows inserted above)
+INSERT INTO users (username, settings_id) VALUES
+    ('alice', 1),
+    ('bob',   2),
+    ('carol', 3),
+    ('dave',  4);
 
 -- Courses (owned by alice = user_id 1, bob = user_id 2)
 INSERT INTO courses (name, description, user_id, left_colour, right_colour) VALUES

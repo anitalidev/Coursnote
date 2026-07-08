@@ -19,7 +19,8 @@ func NewSQLUserRepository(db *sql.DB) *SQLUserRepository {
 func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
 	user := &models.User{UserID: id}
 	var avatarURL sql.NullString
-	err := r.db.QueryRow(`SELECT username, avatar_url FROM users WHERE user_id = ?`, id).Scan(&user.Username, &avatarURL)
+	var settingsID int64
+	err := r.db.QueryRow(`SELECT username, avatar_url, settings_id FROM users WHERE user_id = ?`, id).Scan(&user.Username, &avatarURL, &settingsID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -29,6 +30,7 @@ func (r *SQLUserRepository) GetUserByID(id string) (*models.User, error) {
 	if avatarURL.Valid {
 		user.AvatarURL = avatarURL.String
 	}
+	user.SettingsID = fmt.Sprintf("%d", settingsID)
 	user.CourseIDs, err = r.courseIDsForUser(id)
 	return user, err
 }
@@ -50,7 +52,8 @@ func (r *SQLUserRepository) GetUsernameByID(id string) (string, error) {
 func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{Username: username}
 	var avatarURL sql.NullString
-	err := r.db.QueryRow(`SELECT user_id, avatar_url FROM users WHERE username = ?`, username).Scan(&user.UserID, &avatarURL)
+	var settingsID int64
+	err := r.db.QueryRow(`SELECT user_id, avatar_url, settings_id FROM users WHERE username = ?`, username).Scan(&user.UserID, &avatarURL, &settingsID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("username does not exist")
 	}
@@ -60,20 +63,27 @@ func (r *SQLUserRepository) GetUserByUsername(username string) (*models.User, er
 	if avatarURL.Valid {
 		user.AvatarURL = avatarURL.String
 	}
+	user.SettingsID = fmt.Sprintf("%d", settingsID)
 	user.CourseIDs, err = r.courseIDsForUser(user.UserID)
 	return user, err
 }
 
 func (r *SQLUserRepository) CreateUser(info *UserInfo) (*models.User, error) {
-	res, err := r.db.Exec(`INSERT INTO users (username) VALUES (?)`, info.Username)
+	settingsRepo := NewSQLSettingsRepository(r.db)
+	settings, err := settingsRepo.Create()
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.db.Exec(`INSERT INTO users (username, settings_id) VALUES (?, ?)`, info.Username, settings.ID)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
 	return &models.User{
-		UserID:    fmt.Sprintf("%d", id),
-		Username:  info.Username,
-		CourseIDs: []string{},
+		UserID:     fmt.Sprintf("%d", id),
+		Username:   info.Username,
+		CourseIDs:  []string{},
+		SettingsID: settings.ID,
 	}, nil
 }
 

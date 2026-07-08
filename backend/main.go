@@ -70,6 +70,8 @@ func main() {
 	mux.HandleFunc("/api/topic", handlers.TopicHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
 	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
+	mux.HandleFunc("/api/usersettings", handlers.UserSettingsHandler)
+
 	// SPA fallback: serve index.html for any non-API, non-asset route
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		indexPath := filepath.Join(frontendDist, "index.html")

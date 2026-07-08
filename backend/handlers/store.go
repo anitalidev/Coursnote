@@ -8,6 +8,7 @@ import (
 )
 
 type repositories struct {
+	Settings       persistence.SettingsRepository
 	Users          persistence.UserRepository
 	Enrollments    persistence.EnrollmentRepository
 	Courses        persistence.CourseRepository
@@ -27,6 +28,7 @@ type Store struct {
 func newStore(db *sql.DB) *Store {
 	return &Store{
 		repos: repositories{
+			Settings:       persistence.NewSQLSettingsRepository(db),
 			Users:          persistence.NewSQLUserRepository(db),
 			Enrollments:    persistence.NewSQLEnrollmentRepository(db),
 			Courses:        persistence.NewSQLCourseRepository(db),

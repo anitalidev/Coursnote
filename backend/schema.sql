@@ -1,10 +1,19 @@
 CREATE DATABASE IF NOT EXISTS coursnote;
 USE coursnote;
 
+CREATE TABLE IF NOT EXISTS user_settings (
+    settings_id       INT AUTO_INCREMENT PRIMARY KEY,
+    background_colour VARCHAR(7)  NOT NULL DEFAULT '#0f1117',
+    primary_colour    VARCHAR(7)  NOT NULL DEFAULT '#6c8ef7',
+    gradient_colour   VARCHAR(7)  NOT NULL DEFAULT '#a78bfa'
+);
+
 CREATE TABLE IF NOT EXISTS users (
-    user_id    INT AUTO_INCREMENT PRIMARY KEY,
-    username   VARCHAR(255) NOT NULL UNIQUE,
-    avatar_url VARCHAR(512)
+    user_id     INT AUTO_INCREMENT PRIMARY KEY,
+    username    VARCHAR(255) NOT NULL UNIQUE,
+    avatar_url  VARCHAR(512),
+    settings_id INT NOT NULL,
+    FOREIGN KEY (settings_id) REFERENCES user_settings(settings_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS courses (

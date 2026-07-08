@@ -23,8 +23,8 @@
 .nb-tt-btn i { font-style: italic; }
 .nb-tt-btn u, .nb-tt-btn s { font-size: 13px; }
 .nb-tt-btn:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
-.nb-tt-btn-active { background: rgba(108,142,247,.25); color: var(--accent); font-weight: 600; }
-.nb-tt-btn-active:hover { background: rgba(108,142,247,.38); }
+.nb-tt-btn-active { background: rgba(var(--col-blue),.25); color: var(--accent); font-weight: 600; }
+.nb-tt-btn-active:hover { background: rgba(var(--col-blue),.38); }
 .nb-tt-disabled { opacity: 0.3; cursor: not-allowed !important; }
 .nb-tt-split { gap: 3px; }
 

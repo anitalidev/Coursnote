@@ -80,6 +80,12 @@ type PrivateNoteInfo struct {
 	TopicID     string
 }
 
+type SettingsRepository interface {
+	Create() (*models.UserWebSettings, error)
+	GetByID(id string) (*models.UserWebSettings, error)
+	UpdateSettingsByID(id string, backgroundColour string, primaryColour string, gradientColour string) error
+}
+
 type UserRepository interface {
 	GetUserByID(id string) (*models.User, error)
 	GetUsernameByID(id string) (string, error)
