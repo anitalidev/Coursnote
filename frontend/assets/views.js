@@ -7,6 +7,8 @@ function settingsHTML() {
     { key: 'backgroundColour', value: s.backgroundColour || '#0f1117', label: 'Background',  tip: 'The deepest background colour used across the entire app.' },
     { key: 'primaryColour',    value: s.primaryColour    || '#6c8ef7', label: 'Primary',     tip: 'The main accent colour — buttons, active states, links, and progress bars.' },
     { key: 'gradientColour',   value: s.gradientColour   || '#a78bfa', label: 'Gradient',    tip: 'The secondary accent colour — the end of gradients on headings and progress bars.' },
+    { key: 'navColour',        value: s.navColour        || '#1a1d27', label: 'Sidebar',     tip: 'Background colour of the left navigation sidebar.' },
+    { key: 'cardColour',       value: s.cardColour       || '#1e2235', label: 'Cards',       tip: 'Background colour of cards and content panels (course cards, note panes, etc.).' },
   ];
   return `<div class="section">
     <h1 style="margin-bottom:24px">Settings</h1>
@@ -28,18 +30,18 @@ function settingsHTML() {
       </div>
     </div>
     <div class="settings-card" style="padding:14px 20px">
-      <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"
+        onclick="var d=document.getElementById('colours-card-body'),open=d.style.display!=='none';d.style.display=open?'none':'block';this.querySelector('.colours-chevron').style.transform=open?'rotate(-90deg)':'';d.style.marginTop=open?'':'14px'"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
         <h2 class="settings-section-title" style="margin-bottom:0;font-size:14px">Colours</h2>
-        <button onclick="var b=this,d=document.getElementById('colours-card-body'),open=d.style.display!=='none';d.style.display=open?'none':'block';b.querySelector('.colours-chevron').style.transform=open?'rotate(-90deg)':'';d.style.marginTop=open?'':'14px'"
-          style="display:flex;align-items:center;background:none;border:none;padding:2px 4px;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;border-radius:6px"
-          onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
+        <span style="color:var(--text2);font-size:20px;line-height:1">
           <span class="colours-chevron" style="transition:transform .15s;display:inline-block;transform:rotate(-90deg)">▾</span>
-        </button>
+        </span>
       </div>
       <div id="colours-card-body" style="display:none">
-      <button onclick="var d=this.nextElementSibling,open=d.style.display==='flex';d.style.display=open?'none':'flex';this.querySelector('.palette-chevron').style.transform=open?'':'rotate(180deg)'"
+      <button onclick="var d=this.nextElementSibling,open=d.style.display==='flex';d.style.display=open?'none':'flex';this.querySelector('.palette-chevron').style.transform=open?'rotate(-90deg)':'rotate(0deg)'"
         style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:8px">
-        <span class="palette-chevron" style="transition:transform .15s;display:inline-block">▾</span> Presets
+        <span class="palette-chevron" style="transition:transform .15s;display:inline-block;transform:rotate(-90deg)">▾</span> Presets
       </button>
       <div style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:20px">
         ${_colourPalettes.map((p, i) => `
@@ -49,6 +51,8 @@ function settingsHTML() {
               <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.bg)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
               <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.primary)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
               <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.gradient)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.nav)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.card)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
             </div>
             <span style="font-size:11px;color:var(--text2);white-space:nowrap">${esc(p.name)}</span>
           </button>`).join('')}
@@ -243,7 +247,7 @@ function homeHTML() {
               <svg class="cc2-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <div class="cc2-stat-lines">
                 <span class="cc2-stat-main">By ${esc(c.courseOwner || 'Unknown')}</span>
-                <span class="cc2-stat-sub">${ccFormatDate(c.publishDate)}</span>
+                <span class="cc2-stat-sub">${c.enrolledAt ? 'Enrolled ' + ccFormatDate(c.enrolledAt) : ccFormatDate(c.publishDate)}</span>
               </div>
             </div>
           </div>

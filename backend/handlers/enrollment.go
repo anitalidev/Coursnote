@@ -94,6 +94,7 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			continue
 		}
+		enrolledAt := e.EnrolledAt
 		dtos = append(dtos, MarketCourseDTO{
 			ID:                  sc.ID,
 			CourseID:            sc.CourseID,
@@ -109,6 +110,7 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 			IsActive:            sc.IsActive,
 			Progress:            &e.Progress,
 			CompletedPercentage: e.CompletedPercentage,
+			EnrolledAt:          &enrolledAt,
 		})
 	}
 	writeJSON(w, http.StatusOK, dtos)

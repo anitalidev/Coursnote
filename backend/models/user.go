@@ -19,4 +19,6 @@ type UserWebSettings struct {
 	BackgroundColour string `json:"backgroundColour"`
 	PrimaryColour    string `json:"primaryColour"`
 	GradientColour   string `json:"gradientColour"`
+	NavColour        string `json:"navColour"`
+	CardColour       string `json:"cardColour"`
 }

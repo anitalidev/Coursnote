@@ -39,16 +39,7 @@ async function handleLogin(username) {
   const full = await GET('/user?id=' + user.id);
   S.data.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [], settings: full.settings || user.settings || null };
   const activeSettings = full.settings || user.settings;
-  if (activeSettings) {
-    const r = document.documentElement;
-    const bg  = _hexToRGB(activeSettings.backgroundColour);
-    const bl  = _hexToRGB(activeSettings.primaryColour);
-    const pur = _hexToRGB(activeSettings.gradientColour);
-    if (bg)  r.style.setProperty('--col-bg',       bg);
-    if (bl)  r.style.setProperty('--col-blue',     bl);
-    if (pur) r.style.setProperty('--col-purple',   pur);
-    if (activeSettings.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(activeSettings.primaryColour));
-  }
+  if (activeSettings) applyAllColours(activeSettings);
   Storage.saveUser(S.data.user);
   await goCourses();
 }
@@ -240,22 +231,24 @@ async function removeAvatar() {
 // ── Colour settings ───────────────────────────────────────────────────────────
 
 const _colourPalettes = [
-  { name: 'Default',  bg: '#0f1117', primary: '#6c8ef7', gradient: '#a78bfa' },
-  { name: 'Midnight', bg: '#0d1117', primary: '#58a6ff', gradient: '#bc8cff' },
-  { name: 'Ocean',    bg: '#0a1628', primary: '#06b6d4', gradient: '#3b82f6' },
-  { name: 'Forest',   bg: '#0b1a0e', primary: '#4ade80', gradient: '#86efac' },
-  { name: 'Sunset',   bg: '#1a0f0a', primary: '#f97316', gradient: '#ec4899' },
-  { name: 'Rose',     bg: '#1a0a0f', primary: '#f43f5e', gradient: '#fb923c' },
-  { name: 'Slate',    bg: '#0f172a', primary: '#94a3b8', gradient: '#cbd5e1' },
-  { name: 'Ember',   bg: '#1a0d00', primary: '#f59e0b', gradient: '#ef4444' },
-  { name: 'Aurora',  bg: '#080d1a', primary: '#34d399', gradient: '#818cf8' },
-  { name: 'Sakura',  bg: '#1a0f14', primary: '#f472b6', gradient: '#c084fc' },
+  { name: 'Default',  bg: '#0f1117', primary: '#6c8ef7', gradient: '#a78bfa', nav: '#1a1d27', card: '#1e2235' },
+  { name: 'Midnight', bg: '#0d1117', primary: '#58a6ff', gradient: '#bc8cff', nav: '#111623', card: '#141a2a' },
+  { name: 'Ocean',    bg: '#0a1628', primary: '#06b6d4', gradient: '#3b82f6', nav: '#0d1d35', card: '#102240' },
+  { name: 'Forest',   bg: '#0b1a0e', primary: '#4ade80', gradient: '#86efac', nav: '#0e2212', card: '#112916' },
+  { name: 'Sunset',   bg: '#1a0f0a', primary: '#f97316', gradient: '#ec4899', nav: '#1f130c', card: '#241710' },
+  { name: 'Rose',     bg: '#1a0a0f', primary: '#f43f5e', gradient: '#fb923c', nav: '#1f0d13', card: '#241018' },
+  { name: 'Slate',    bg: '#0f172a', primary: '#94a3b8', gradient: '#cbd5e1', nav: '#131e35', card: '#16233e' },
+  { name: 'Ember',    bg: '#1a0d00', primary: '#f59e0b', gradient: '#ef4444', nav: '#1f1100', card: '#241500' },
+  { name: 'Aurora',   bg: '#080d1a', primary: '#34d399', gradient: '#818cf8', nav: '#0b1120', card: '#0e1626' },
+  { name: 'Sakura',   bg: '#1a0f14', primary: '#f472b6', gradient: '#c084fc', nav: '#1f1219', card: '#24151e' },
 ];
 
 const _colourCSSKeys = {
   backgroundColour: '--col-bg',
   primaryColour:    '--col-blue',
   gradientColour:   '--col-purple',
+  navColour:        '--col-nav',
+  cardColour:       '--col-card',
 };
 
 function _hexToRGB(hex) {
@@ -276,7 +269,10 @@ function _darkenHex(hex, factor = 0.82) {
 function applyPalette(index) {
   const p = _colourPalettes[index];
   if (!p) return;
-  const keys = { backgroundColour: p.bg, primaryColour: p.primary, gradientColour: p.gradient };
+  const keys = {
+    backgroundColour: p.bg, primaryColour: p.primary, gradientColour: p.gradient,
+    navColour: p.nav, cardColour: p.card,
+  };
   for (const [key, hex] of Object.entries(keys)) {
     const swatch = document.getElementById('colour-swatch-' + key);
     if (swatch) swatch.style.background = hex;
@@ -292,6 +288,25 @@ function previewColour(key, hex) {
   if (S.data.user.settings) S.data.user.settings[key] = hex;
 }
 
+function _applyColourVar(key, hex) {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+  const r = document.documentElement;
+  if (key === 'backgroundColour') { const rgb = _hexToRGB(hex); if (rgb) r.style.setProperty('--col-bg', rgb); }
+  else if (key === 'primaryColour')  { const rgb = _hexToRGB(hex); if (rgb) { r.style.setProperty('--col-blue', rgb); r.style.setProperty('--accent-hover', _darkenHex(hex)); } }
+  else if (key === 'gradientColour') { const rgb = _hexToRGB(hex); if (rgb) r.style.setProperty('--col-purple', rgb); }
+  else if (key === 'navColour')  r.style.setProperty('--col-nav',  hex);
+  else if (key === 'cardColour') r.style.setProperty('--col-card', hex);
+}
+
+function applyAllColours(s) {
+  if (!s) return;
+  _applyColourVar('backgroundColour', s.backgroundColour);
+  _applyColourVar('primaryColour',    s.primaryColour);
+  _applyColourVar('gradientColour',   s.gradientColour);
+  _applyColourVar('navColour',        s.navColour);
+  _applyColourVar('cardColour',       s.cardColour);
+}
+
 async function saveColours() {
   const s = S.data.user.settings;
   if (!s) return;
@@ -300,17 +315,16 @@ async function saveColours() {
     const res = await fetch(
       `${Config.apiBase}/usersettings?id=${encodeURIComponent(S.data.user.settings.settingsID)}`,
       { method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backgroundColour: s.backgroundColour, primaryColour: s.primaryColour, gradientColour: s.gradientColour }) }
+        body: JSON.stringify({
+          backgroundColour: s.backgroundColour,
+          primaryColour:    s.primaryColour,
+          gradientColour:   s.gradientColour,
+          navColour:        s.navColour,
+          cardColour:       s.cardColour,
+        }) }
     );
     if (!res.ok) throw new Error();
-    const r = document.documentElement;
-    const bg  = _hexToRGB(s.backgroundColour);
-    const bl  = _hexToRGB(s.primaryColour);
-    const pur = _hexToRGB(s.gradientColour);
-    if (bg)  r.style.setProperty('--col-bg',       bg);
-    if (bl)  r.style.setProperty('--col-blue',     bl);
-    if (pur) r.style.setProperty('--col-purple',   pur);
-    if (s.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(s.primaryColour));
+    applyAllColours(s);
     Storage.saveUser(S.data.user);
     if (status) { status.textContent = 'Saved'; status.style.color = 'var(--accent3)'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
   } catch {

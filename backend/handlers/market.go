@@ -40,8 +40,9 @@ type MarketCourseDTO struct {
 	Status              string    `json:"status"` // Status is either "enrolled", "", or "update"
 	CompletedPercentage int       `json:"completedPercentage"`
 
-	// Progress is only set on enrolled-course listings.
-	Progress *models.EnrollmentProgress `json:"progress,omitempty"`
+	// Progress and EnrolledAt are only set on enrolled-course listings.
+	Progress   *models.EnrollmentProgress `json:"progress,omitempty"`
+	EnrolledAt *time.Time                 `json:"enrolledAt,omitempty"`
 }
 
 func MarketHandler(w http.ResponseWriter, r *http.Request) {

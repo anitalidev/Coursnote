@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
     settings_id       INT AUTO_INCREMENT PRIMARY KEY,
     background_colour VARCHAR(7)  NOT NULL DEFAULT '#0f1117',
     primary_colour    VARCHAR(7)  NOT NULL DEFAULT '#6c8ef7',
-    gradient_colour   VARCHAR(7)  NOT NULL DEFAULT '#a78bfa'
+    gradient_colour   VARCHAR(7)  NOT NULL DEFAULT '#a78bfa',
+    nav_colour        VARCHAR(7)  NOT NULL DEFAULT '#1a1d27',
+    card_colour       VARCHAR(7)  NOT NULL DEFAULT '#1e2235'
 );
 
 CREATE TABLE IF NOT EXISTS users (
