@@ -27,8 +27,16 @@ function settingsHTML() {
         </div>
       </div>
     </div>
-    <div class="settings-card">
-      <h2 class="settings-section-title">Colours</h2>
+    <div class="settings-card" style="padding:14px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h2 class="settings-section-title" style="margin-bottom:0;font-size:14px">Colours</h2>
+        <button onclick="var b=this,d=document.getElementById('colours-card-body'),open=d.style.display!=='none';d.style.display=open?'none':'block';b.querySelector('.colours-chevron').style.transform=open?'rotate(-90deg)':'';d.style.marginTop=open?'':'14px'"
+          style="display:flex;align-items:center;background:none;border:none;padding:2px 4px;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;border-radius:6px"
+          onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
+          <span class="colours-chevron" style="transition:transform .15s;display:inline-block;transform:rotate(-90deg)">▾</span>
+        </button>
+      </div>
+      <div id="colours-card-body" style="display:none">
       <button onclick="var d=this.nextElementSibling,open=d.style.display==='flex';d.style.display=open?'none':'flex';this.querySelector('.palette-chevron').style.transform=open?'':'rotate(180deg)'"
         style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:8px">
         <span class="palette-chevron" style="transition:transform .15s;display:inline-block">▾</span> Presets
@@ -45,27 +53,36 @@ function settingsHTML() {
             <span style="font-size:11px;color:var(--text2);white-space:nowrap">${esc(p.name)}</span>
           </button>`).join('')}
       </div>
-      <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;flex-direction:column;gap:10px">
         ${colours.map(c => `
-          <div style="display:flex;align-items:center;gap:14px">
-            <input type="color" value="${esc(c.value)}" data-colour-key="${esc(c.key)}"
-              style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.2);padding:2px;background:var(--bg2);cursor:pointer;flex-shrink:0"
-              oninput="previewColour('${esc(c.key)}', this.value)">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:var(--bg2);border:1px solid var(--border)">
+            <div style="position:relative;flex-shrink:0">
+              <div id="colour-swatch-${esc(c.key)}" onclick="openColourPicker('${esc(c.key)}', this)"
+                style="width:34px;height:34px;border-radius:8px;background:${esc(c.value)};cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.4);transition:box-shadow .15s"
+                onmouseover="this.style.boxShadow='0 0 0 2px var(--accent),0 2px 6px rgba(0,0,0,.4)'"
+                onmouseout="this.style.boxShadow='0 0 0 1px rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.4)'">
+              </div>
+            </div>
             <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                 <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(c.label)}</span>
                 <span class="tooltip-trigger" style="position:relative">
                   <span style="font-size:11px;color:var(--text3);cursor:default">?</span>
                   <span class="tooltip-content" style="min-width:220px;white-space:normal">${esc(c.tip)}</span>
                 </span>
               </div>
-              <span id="colour-hex-${esc(c.key)}" style="font-size:12px;color:var(--text3);font-family:monospace">${esc(c.value)}</span>
+              <input id="colour-hex-input-${esc(c.key)}" type="text" value="${esc(c.value)}" maxlength="7" spellcheck="false"
+                style="font-size:12px;font-family:monospace;color:var(--text2);background:var(--bg3,var(--bg));border:1px solid var(--border);border-radius:5px;padding:2px 6px;width:80px;outline:none"
+                oninput="(function(el){var v=el.value;if(/^#[0-9a-fA-F]{6}$/.test(v)){document.getElementById('colour-swatch-${esc(c.key)}').style.background=v;previewColour('${esc(c.key)}',v);}})(this)"
+                onfocus="this.select()">
             </div>
+            <span id="colour-hex-${esc(c.key)}" style="display:none">${esc(c.value)}</span>
           </div>`).join('')}
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
         <button class="btn btn-primary btn-sm" onclick="saveColours()">Save</button>
         <span id="colour-save-status" style="font-size:11px;min-height:16px"></span>
+      </div>
       </div>
     </div>
   </div>`;
@@ -641,7 +658,7 @@ function topicEditFormHTML() {
         <h3>Edit Topic</h3>
         <div class="form-row">
           <div class="field"><label>Name</label><input id="te-name" /></div>
-          <div class="field"><label>Description</label><textarea id="te-desc" class="desc-ta" rows="1" placeholder="What's this topic about?" oninput="autoResize(this)"></textarea></div>
+          <div class="field"><label style="display:flex;justify-content:space-between">Description <span id="te-desc-count" style="font-weight:400;color:var(--text3);font-size:11px;margin-left:16px">0/100</span></label><textarea id="te-desc" class="desc-ta" rows="1" maxlength="100" placeholder="What's this topic about?" oninput="autoResize(this);document.getElementById('te-desc-count').textContent=this.value.length+'/100'"></textarea></div>
         </div>
         <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <label style="display:block;margin-bottom:12px;font-weight:500">Completion Rules</label>
@@ -673,7 +690,7 @@ function renderTopicRulesDisplay(topic) {
   if (rules.length === 0) {
     tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
     container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
-    <span style="font-size:12px;color:var(--text3)"><span style="color:#22c55e;font-size:11px;font-weight:600;margin-right:4px">●</span>Completion Rules <span class="info-icon">(i)</span></span>
+    <span style="font-size:12px;color:var(--text3)">${S.ui.editMode ? '' : '<span style="color:#22c55e;font-size:11px;font-weight:600;margin-right:4px">●</span>'}Completion Rules <span class="info-icon">(i)</span></span>
     <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:220px">${tooltipContent}</div>
   </div>`;
     return;
@@ -686,7 +703,7 @@ function renderTopicRulesDisplay(topic) {
         if (type === 'percentage_questions_correct') label += ` (${config}%)`;
       }
       const met = isRuleMet(type, config, topic.topicID);
-      const color = met === true ? '#22c55e' : met === false ? '#ef4444' : 'var(--text3)';
+      const color = S.ui.editMode ? 'var(--text3)' : (met === true ? '#22c55e' : met === false ? '#ef4444' : 'var(--text3)');
       return `<div style="color:${color}">• ${label}</div>`;
     });
     tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleItems.join('')}`;
@@ -698,7 +715,7 @@ function renderTopicRulesDisplay(topic) {
     const allMet = statuses.every(s => s === true);
     const anyUnmet = statuses.some(s => s === false);
     const color = allMet ? '#22c55e' : (anyUnmet ? '#ef4444' : 'var(--text3)');
-    overallIndicator = `<span style="color:${color};font-size:11px;font-weight:600;margin-right:4px">●</span>`;
+    overallIndicator = S.ui.editMode ? '' : `<span style="color:${color};font-size:11px;font-weight:600;margin-right:4px">●</span>`;
   }
 
   container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
@@ -781,29 +798,36 @@ function topicHTML() {
         </button>` : ''}
         ${Runtime.trackProgress && (t.compTypes || []).some(r => r.type === 'self_reported') ? `<button id="mark-completed-btn" class="mark-completed-btn${S.data.progress?.marked_manually?.[t.topicID] ? ' mark-completed-done' : ''}" onclick="toggleTopicCompleted()">${S.data.progress?.marked_manually?.[t.topicID] ? '✓ Completed' : 'Mark Complete'}</button>` : ''}
       <div class="notes-tab-group">
-        ${Runtime.editable ? `<button class="notes-tab ${S.ui.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
-        <button class="notes-tab ${Runtime.trackProgress || S.ui.notesTab === 'cp' ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
+        ${Runtime.editable ? `<button class="notes-tab ${!S.ui.splitPane && S.ui.notesTab === 'pn' ? 'notes-tab-active' : ''}" id="tab-pn" onclick="switchNotesTab('pn')">Private Notes</button>` : ''}
+        <button class="notes-tab ${!S.ui.splitPane && (Runtime.trackProgress || S.ui.notesTab === 'cp') ? 'notes-tab-active' : ''}" id="tab-cp" onclick="switchNotesTab('cp')">Course View</button>
+        ${Runtime.editable ? `<button class="notes-tab${S.ui.splitPane ? ' notes-tab-active' : ''}" id="tab-split" onclick="toggleSplitPane()" title="Split view">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        </button>` : ''}
       </div>
       </div>
     </div>
     ${S.ui.editMode ? topicEditFormHTML() : ''}
-    ${Runtime.editable ? `<div id="pane-pn" class="note-pane" style="${S.ui.notesTab === 'pn' ? '' : 'display:none'}">
-      <div class="note-pane-header">
-        <span class="note-pane-title private">Private Notes</span>
-        <span class="save-indicator" id="status-pn"></span>
-      </div>
-      <div class="note-pane-body nb-pane-body">
-        ${nbTtToolbarHTML('pn')}
-        <div id="tiptap-pn" class="nb-tiptap" onclick="_nbEditors['pn']?.commands.focus()"></div>
-      </div>
-    </div>` : ''}
-    <div id="pane-cp" class="note-pane" style="${Runtime.editable && S.ui.notesTab !== 'cp' ? 'display:none' : ''}">
-      <div class="note-pane-header">
-        <span class="note-pane-title course">Course View</span>
-        ${Runtime.editable ? `<span class="save-indicator" id="status-cp"></span>` : ''}
-      </div>
-      <div class="note-pane-body nb-pane-body">
-        <div class="notebook" id="notebook"></div>
+    <div id="panes-container" class="panes-container${S.ui.splitPane ? ' panes-split' : ''}">
+      ${Runtime.editable ? `<div id="pane-pn" class="note-pane" style="${!S.ui.splitPane && S.ui.notesTab !== 'pn' ? 'display:none' : ''}">
+        <div class="note-pane-header">
+          <span class="note-pane-title private">Private Notes</span>
+          <span class="save-indicator" id="status-pn"></span>
+          ${Runtime.canSave ? `<button id="save-btn-pn" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;opacity:0.5" disabled onclick="savePN()">Saved</button>` : ''}
+        </div>
+        <div class="note-pane-body nb-pane-body">
+          ${nbTtToolbarHTML('pn')}
+          <div id="tiptap-pn" class="nb-tiptap" onclick="_nbEditors['pn']?.commands.focus()"></div>
+        </div>
+      </div>` : ''}
+      ${S.ui.splitPane ? `<div id="pane-divider" class="pane-divider" onmousedown="startPaneDrag(event)"></div>` : ''}
+      <div id="pane-cp" class="note-pane" style="${Runtime.editable && !S.ui.splitPane && S.ui.notesTab !== 'cp' ? 'display:none' : ''}">
+        <div class="note-pane-header">
+          <span class="note-pane-title course">Course View</span>
+          ${Runtime.editable ? `<span class="save-indicator" id="status-cp"></span>${Runtime.canSave ? `<button id="save-btn-cp" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;opacity:0.5" disabled onclick="saveCP()">Saved</button>` : ''}` : ''}
+        </div>
+        <div class="note-pane-body nb-pane-body">
+          <div class="notebook" id="notebook"></div>
+        </div>
       </div>
     </div>
   </div>`;

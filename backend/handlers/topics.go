@@ -110,6 +110,10 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "id and name required")
 			return
 		}
+		if len([]rune(body.Description)) > 100 {
+			writeError(w, http.StatusBadRequest, "description must be 100 characters or fewer")
+			return
+		}
 		store.mu.Lock()
 		defer store.mu.Unlock()
 

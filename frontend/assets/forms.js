@@ -172,7 +172,9 @@ function openTopicEdit(topicID) {
     || (S.ui.currentTopic?.topicID === topicID ? S.ui.currentTopic : null);
   if (!t) return;
   document.getElementById('te-name').value = t.name;
-  document.getElementById('te-desc').value = t.description || '';
+  document.getElementById('te-desc').value = (t.description || '').slice(0, 100);
+  const counter = document.getElementById('te-desc-count');
+  if (counter) counter.textContent = (t.description || '').length + '/100';
   document.getElementById('te-save').dataset.id = t.topicID;
   // On the topic page, the edit box replaces the header; the topics
   // list has no per-topic header, so there is nothing to hide there.

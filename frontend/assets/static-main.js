@@ -7,6 +7,19 @@ import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@3.27.1';
 import TextAlign from 'https://esm.sh/@tiptap/extension-text-align@3.27.1';
 import Image from 'https://esm.sh/@tiptap/extension-image@3.27.1';
 
+let _imgResize = null;
+document.addEventListener('pointermove', e => {
+  if (!_imgResize) return;
+  _imgResize.img.style.width = Math.max(40, _imgResize.startW + e.clientX - _imgResize.startX) + 'px';
+}, true);
+document.addEventListener('pointerup', e => {
+  if (!_imgResize) return;
+  _imgResize.update(_imgResize.img.style.width);
+  _imgResize = null;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+}, true);
+
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
@@ -31,23 +44,13 @@ const ResizableImage = Image.extend({
 
       const handle = document.createElement('span');
       handle.style.cssText = 'position:absolute;bottom:3px;right:3px;width:10px;height:10px;background:#4f8ef7;border-radius:2px;cursor:se-resize;opacity:0.85';
-      handle.addEventListener('mousedown', e => {
+      handle.addEventListener('pointerdown', e => {
         e.preventDefault();
         e.stopPropagation();
-        const startX = e.clientX;
-        const startW = img.offsetWidth;
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;cursor:se-resize';
-        document.body.appendChild(overlay);
-        const onMove = e => { img.style.width = Math.max(40, startW + e.clientX - startX) + 'px'; };
-        const onUp = () => {
-          updateAttributes({ width: img.style.width });
-          overlay.remove();
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('mouseup', onUp);
-        };
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
+        _imgResize = { img, startX: e.clientX, startW: img.offsetWidth, update: updateAttributes.bind(null, { width: undefined }) };
+        _imgResize.update = w => updateAttributes({ width: w });
+        document.body.style.cursor = 'se-resize';
+        document.body.style.userSelect = 'none';
       });
 
       wrapper.appendChild(img);

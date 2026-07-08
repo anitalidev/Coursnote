@@ -24,6 +24,7 @@ const S = {
     view: 'login',
     editMode: false,
     notesTab: 'cp',
+    splitPane: false,
     currentCourse: null,
     currentModule: null,
     currentTopic: null,

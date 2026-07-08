@@ -109,7 +109,7 @@ function renderSidebar() {
     const mTopics = (S.data.moduleTopics || {})[m.moduleID] || [];
     const topicItems = mTopics.map(t => {
       const tActive = S.ui.currentTopic?.topicID === t.topicID ? ' nav-sub-active' : '';
-      const tDone   = !S.ui.editMode && isTopicComplete(t) && !tActive ? ' nav-sub-done' : '';
+      const tDone   = !S.ui.editMode && isTopicComplete(t) ? ' nav-sub-done' : '';
       return `<div class="nav-sub-item${tActive}${tDone}" onclick="event.stopPropagation();goTopic(${jsonAttr(t)})">
         <span class="nav-sub-dot"></span><span>${esc(t.name)}</span>
       </div>`;
@@ -168,10 +168,46 @@ function renderMain() {
 
 function switchNotesTab(tab) {
   S.ui.notesTab = tab;
-  document.getElementById('pane-pn').style.display = tab === 'pn' ? '' : 'none';
-  document.getElementById('pane-cp').style.display = tab === 'cp' ? '' : 'none';
-  document.getElementById('tab-pn').classList.toggle('notes-tab-active', tab === 'pn');
-  document.getElementById('tab-cp').classList.toggle('notes-tab-active', tab === 'cp');
+  S.ui.splitPane = false;
+  const pn = document.getElementById('pane-pn');
+  const cp = document.getElementById('pane-cp');
+  const container = document.getElementById('panes-container');
+  if (pn) pn.style.display = tab === 'pn' ? '' : 'none';
+  if (cp) cp.style.display = tab === 'cp' ? '' : 'none';
+  if (container) container.classList.remove('panes-split');
+  document.getElementById('tab-pn')?.classList.toggle('notes-tab-active', tab === 'pn');
+  document.getElementById('tab-cp')?.classList.toggle('notes-tab-active', tab === 'cp');
+  document.getElementById('tab-split')?.classList.remove('notes-tab-active');
   if (tab === 'pn') mountPNEditor();
   if (S.ui.currentTopic) pushHash('#course/' + S.ui.currentCourse.courseID + '/module/' + S.ui.currentModule.moduleID + '/topic/' + S.ui.currentTopic.topicID + '/' + tab + (S.ui.editMode ? '/edit' : ''));
+}
+
+function toggleSplitPane() {
+  S.ui.splitPane = !S.ui.splitPane;
+  const pn = document.getElementById('pane-pn');
+  const cp = document.getElementById('pane-cp');
+  const container = document.getElementById('panes-container');
+  if (S.ui.splitPane) {
+    if (pn) pn.style.display = '';
+    if (cp) cp.style.display = '';
+    if (container) {
+      container.classList.add('panes-split');
+      // inject divider if not present
+      if (!document.getElementById('pane-divider')) {
+        const div = document.createElement('div');
+        div.id = 'pane-divider';
+        div.className = 'pane-divider';
+        div.onmousedown = startPaneDrag;
+        container.insertBefore(div, cp);
+      }
+    }
+    mountPNEditor();
+    document.getElementById('tab-split')?.classList.add('notes-tab-active');
+    document.getElementById('tab-pn')?.classList.remove('notes-tab-active');
+    document.getElementById('tab-cp')?.classList.remove('notes-tab-active');
+  } else {
+    document.getElementById('pane-divider')?.remove();
+    container?.classList.remove('panes-split');
+    switchNotesTab(S.ui.notesTab || 'cp');
+  }
 }

@@ -48,7 +48,7 @@ function nbMountMonacoEditors() {
     if (S.ui.editMode) {
       editor.onDidChangeModelContent(() => {
         c.code = editor.getValue();
-        scheduleElementsSave();
+        markDirty('cp');
       });
       editor.onDidContentSizeChange(e => {
         const maxH = c.maxLines > 0 ? c.maxLines * 19 + 20 : 600;
@@ -109,7 +109,7 @@ function nbChangeCodeLanguage(id, lang) {
   c.language = lang;
   const editor = Editors.monaco[id];
   if (editor) monaco.editor.setModelLanguage(editor.getModel(), lang);
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbChangeCodeMaxLines(id, val) {
@@ -117,7 +117,7 @@ function nbChangeCodeMaxLines(id, val) {
   if (!c) return;
   c.maxLines = parseInt(val) || 0;
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbCodeCellHTML(c) {
@@ -206,7 +206,7 @@ function nbAddCell(type, insertIdx) {
   if (type === 'table') base.cells = [[null, null], [null, null]];
   S.editor.cells.splice(insertIdx, 0, base);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
   setTimeout(() => {
     const el = document.querySelector(`[data-id="${cell.id}"] textarea, [data-id="${cell.id}"] input`);
     if (el) el.focus();
@@ -312,7 +312,7 @@ function nbChangeCellType(id, type) {
   if (!c.language) c.language = 'javascript';
   if (c.maxLines == null) c.maxLines = 0;
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 // ── Drag-to-reorder via the grip handle in each cell's left column ───────────
@@ -397,7 +397,7 @@ function nbDropCell(dragId, targetId, below) {
   const [moved] = cells.splice(from, 1);
   cells.splice(to, 0, moved);
   renderNotebook();
-  if (from !== to) scheduleElementsSave();
+  if (from !== to) markDirty('cp');
 }
 
 function nbDeleteCell(id) {
@@ -410,7 +410,7 @@ function nbDeleteCell(id) {
 function _doDeleteCell(id) {
   S.editor.cells = S.editor.cells.filter(c => c.id !== id);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbMountEditor(key, content, setter, hasToolbar, placeholder) {
@@ -423,7 +423,7 @@ function nbMountEditor(key, content, setter, hasToolbar, placeholder) {
     content: content ?? '',
     onUpdate({ editor }) {
       setter(editor.getJSON());
-      scheduleElementsSave();
+      markDirty('cp');
       if (hasToolbar) nbTipTapUpdateToolbar(key);
     },
     onSelectionUpdate() { if (hasToolbar) nbTipTapUpdateToolbar(key); },
@@ -487,7 +487,7 @@ function nbAddRow(id) {
   const cols = c.cells[0]?.length || 1;
   c.cells.push(Array(cols).fill(null));
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelRow(id) {
@@ -495,7 +495,7 @@ function nbDelRow(id) {
   if (!c || c.cells.length <= 1) return;
   c.cells.pop();
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbAddCol(id) {
@@ -503,7 +503,7 @@ function nbAddCol(id) {
   if (!c || (c.cells[0]?.length ?? 0) >= 10) return;
   c.cells.forEach(row => row.push(null));
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelCol(id) {
@@ -511,7 +511,7 @@ function nbDelCol(id) {
   if (!c || (c.cells[0]?.length ?? 0) <= 1) return;
   c.cells.forEach(row => row.pop());
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbAddZoneHTML(insertIdx) {
@@ -943,7 +943,7 @@ function nbAddQSlideOption(id, qi) {
   if (!c?.questions[qi]) return;
   c.questions[qi].options.push(null);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelQSlideOption(id, qi, i) {
@@ -953,7 +953,7 @@ function nbDelQSlideOption(id, qi, i) {
   if (q.answer >= i && q.answer > 0) q.answer--;
   q.options.splice(i, 1);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbAddQSlideQuestion(id) {
@@ -962,7 +962,7 @@ function nbAddQSlideQuestion(id) {
   c.questions.push({ id: nbGenId(), question: null, options: [null, null], answer: 0 });
   c._slideIdx = c.questions.length - 1;
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelQSlideQuestion(id, qi) {
@@ -971,7 +971,7 @@ function nbDelQSlideQuestion(id, qi) {
   c.questions.splice(qi, 1);
   c._slideIdx = Math.min(c._slideIdx ?? 0, c.questions.length - 1);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbSlideNav(id, listKey, dir) {
@@ -1009,7 +1009,7 @@ function nbAddSlideCard(id) {
   c.cards.push({ header: null, content: null });
   c._slideIdx = c.cards.length - 1;
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelSlideCard(id, i) {
@@ -1018,7 +1018,7 @@ function nbDelSlideCard(id, i) {
   c.cards.splice(i, 1);
   c._slideIdx = Math.min(c._slideIdx ?? 0, c.cards.length - 1);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbUpdateOption(id, i, val) {
@@ -1031,7 +1031,7 @@ function nbAddOption(id) {
   if (!c) return;
   c.options.push(null);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function nbDelOption(id, i) {
@@ -1040,7 +1040,7 @@ function nbDelOption(id, i) {
   if (c.answer >= i && c.answer > 0) c.answer--;
   c.options.splice(i, 1);
   renderNotebook();
-  scheduleElementsSave();
+  markDirty('cp');
 }
 
 function buildNotebookHTML() {
@@ -1284,7 +1284,7 @@ function mountPNEditor() {
     try { content = typeof pn.description === 'string' ? JSON.parse(pn.description) : pn.description; } catch {}
   }
   nbMountEditor(_pnKey, content, v => {
-    schedulePNSave(v);
+    markDirtyPN(v);
   }, true, 'Write your private notes here…');
   nbTipTapUpdateToolbar(_pnKey);
 }

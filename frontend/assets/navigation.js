@@ -4,13 +4,22 @@
 // before any navigation. Calling code stays unaware of tracking details.
 const _navHooks = { onBeforeNavigate: null };
 
+async function _preNav() {
+  _navHooks.onBeforeNavigate?.();
+  if (typeof checkUnsaved === 'function') {
+    const proceed = await checkUnsaved();
+    if (!proceed) return false;
+  }
+  return true;
+}
+
 function pushHash(hash) {
   history.pushState(null, '', hash);
 }
 
 async function goLogin() {
   if (!Runtime.canLogin) return;
-  _navHooks.onBeforeNavigate?.();
+  if (!(await _preNav())) return;
   Storage.clearUser();
   Object.assign(S.data, {
     user: null, courses: [], modules: [], moduleTopics: {}, topics: [],
@@ -30,7 +39,7 @@ async function goLogin() {
 
 async function goHome() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
-  _navHooks.onBeforeNavigate?.();
+  if (!(await _preNav())) return;
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.data.enrolledCourses = await GET('/course/enrolled?userID=' + S.data.user.id) || [];
@@ -41,7 +50,7 @@ async function goHome() {
 
 async function goCourses() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
-  _navHooks.onBeforeNavigate?.();
+  if (!(await _preNav())) return;
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.data.courses = await loadCourses();
@@ -60,7 +69,7 @@ async function goCourses() {
 
 async function goModules(course, editMode = false) {
   try {
-    _navHooks.onBeforeNavigate?.();
+    if (!(await _preNav())) return;
     destroyPNEditor();
     S.ui.currentCourse = course; S.ui.currentModule = null; S.ui.currentTopic = null;
     S.ui.editMode = editMode;
@@ -74,7 +83,7 @@ async function goModules(course, editMode = false) {
 
 async function goTopics(module) {
   try {
-    _navHooks.onBeforeNavigate?.();
+    if (!(await _preNav())) return;
     destroyPNEditor();
     S.ui.currentModule = module; S.ui.currentTopic = null;
     S.data.topics = await loadAllTopicsWithCompleted(module.topicIDs || []);
@@ -87,7 +96,7 @@ async function goTopics(module) {
 
 async function goTopic(topic) {
   try {
-    _navHooks.onBeforeNavigate?.();
+    if (!(await _preNav())) return;
     destroyPNEditor();
     if (!S.ui.currentModule || S.ui.currentModule.moduleID !== topic.moduleID) {
       S.ui.currentModule = await GET('/module?id=' + topic.moduleID);
@@ -112,7 +121,7 @@ async function goTopic(topic) {
 
 async function goMarket() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
-  _navHooks.onBeforeNavigate?.();
+  if (!(await _preNav())) return;
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   await loadMarketCourses();
@@ -123,7 +132,7 @@ async function goMarket() {
 
 async function goSettings() {
   if (!Runtime.canNavigateApp) { Runtime.navigateFallback?.(); return; }
-  _navHooks.onBeforeNavigate?.();
+  if (!(await _preNav())) return;
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
   S.ui.view = 'settings';
   pushHash('#settings');
