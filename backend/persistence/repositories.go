@@ -134,6 +134,7 @@ type CoursePageRepository interface {
 
 type StaticCourseRepository interface {
 	GetByID(id string) (*market.StaticCourse, error)
+	GetByIDs(ids []string) ([]*market.StaticCourse, error)
 	GetByContentID(contentID string) (*market.StaticCourse, error)
 	GetPublishDateByID(id string) (time.Time, error)
 	Create(info *StaticCourseInfo) (*market.StaticCourse, error)

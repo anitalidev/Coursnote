@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/anitalidev/Coursnote/backend/models"
+	"github.com/anitalidev/Coursnote/backend/models/market"
 )
 
 func UpdateEnrollHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,10 +71,27 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	scIDs := make([]string, 0, len(enrollments))
+
+	for _, e := range enrollments {
+		scIDs = append(scIDs, e.StaticCourseID)
+	}
+
+	scs, err := store.repos.StaticCourses.GetByIDs(scIDs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	scMap := make(map[string]*market.StaticCourse, len(scs))
+	for _, sc := range scs {
+		scMap[sc.ID] = sc
+	}
+
 	dtos := make([]MarketCourseDTO, 0, len(enrollments))
 	for _, e := range enrollments {
-		sc, err := store.repos.StaticCourses.GetByID(e.StaticCourseID)
-		if err != nil {
+		sc, ok := scMap[e.StaticCourseID]
+		if !ok {
 			continue
 		}
 		dtos = append(dtos, MarketCourseDTO{

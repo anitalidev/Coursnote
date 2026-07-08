@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/anitalidev/Coursnote/backend/models/market"
@@ -29,6 +30,40 @@ func (r *SQLStaticCourseRepository) GetByID(id string) (*market.StaticCourse, er
 		return nil, err
 	}
 	return sc, nil
+}
+
+// GetByIDs fetches multiple static courses in a single query. Returns only
+// the courses that exist; order is not guaranteed.
+func (r *SQLStaticCourseRepository) GetByIDs(ids []string) ([]*market.StaticCourse, error) {
+	if len(ids) == 0 {
+		return []*market.StaticCourse{}, nil
+	}
+	placeholders := strings.Repeat("?,", len(ids))
+	placeholders = placeholders[:len(placeholders)-1]
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := r.db.Query(
+		`SELECT static_course_id, course_id, content_id, name, description, left_colour, right_colour, num_modules, num_topics, course_owner, publish_date, is_active FROM static_courses WHERE static_course_id IN (`+placeholders+`)`,
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []*market.StaticCourse
+	for rows.Next() {
+		sc := &market.StaticCourse{}
+		if err := rows.Scan(&sc.ID, &sc.CourseID, &sc.ContentID, &sc.Name, &sc.Description, &sc.LeftColour, &sc.RightColour, &sc.NumModules, &sc.NumTopics, &sc.CourseOwner, &sc.PublishDate, &sc.IsActive); err != nil {
+			return nil, err
+		}
+		results = append(results, sc)
+	}
+	if results == nil {
+		results = []*market.StaticCourse{}
+	}
+	return results, rows.Err()
 }
 
 // GetByContentID returns the static course owning the given content blob
