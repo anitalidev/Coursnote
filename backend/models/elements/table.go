@@ -5,8 +5,9 @@ func init() {
 }
 
 type Table struct {
-	ID    string   `json:"id,omitempty"`
-	Cells [][]Text `json:"cells"`
+	ID      string   `json:"id,omitempty"`
+	Subtype string   `json:"subtype,omitempty"`
+	Cells   [][]Text `json:"cells"`
 }
 
 func (t *Table) ElementType() string { return "table" }

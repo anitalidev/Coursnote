@@ -166,7 +166,7 @@ function nbCodeCellHTML(c) {
     `<option value="${l}"${c.language === l ? ' selected' : ''}>${l}</option>`
   ).join('');
   return `<div class="nb-cell nb-code-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div class="nb-code-header">
         <select class="nb-code-lang" onchange="nbChangeCodeLanguage('${c.id}',this.value)">${langOpts}</select>
@@ -178,7 +178,6 @@ function nbCodeCellHTML(c) {
       </div>
       <div id="monaco-${c.id}" class="nb-monaco-wrap" style="height:${c.maxLines > 0 ? c.maxLines * 19 + 20 : 200}px"></div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -226,14 +225,15 @@ function parseRawElements(raw) {
     code: e.code || '',
     language: e.language || 'javascript',
     maxLines: e.maxLines || 0,
+    subtype: e.subtype || null,
   }));
 }
 
 function nbCellsToElements() {
   const wrap = v => ({ content: v });
   return S.editor.cells.map(c => {
-    if (c.type === 'table')     return { id: c.id, type: 'table', cells: c.cells.map(row => row.map(wrap)) };
-    if (c.type === 'card')      return { id: c.id, type: 'card', header: wrap(c.header), content: wrap(c.content) };
+    if (c.type === 'table')     return { id: c.id, type: 'table', subtype: c.subtype || null, cells: c.cells.map(row => row.map(wrap)) };
+    if (c.type === 'card')      return { id: c.id, type: 'card',  subtype: c.subtype || null, header: wrap(c.header), content: wrap(c.content) };
     if (c.type === 'cardSlide') return { id: c.id, type: 'cardSlide', cards: c.cards.map(card => ({ header: wrap(card.header), content: wrap(card.content) })) };
     if (c.type === 'question')  return { id: c.id, type: 'question', question: wrap(c.question), options: c.options.map(wrap), answer: c.answer };
     if (c.type === 'questionSlide') return { id: c.id, type: 'questionSlide', questions: c.questions.map(q => ({ id: q.id, question: wrap(q.question), options: q.options.map(wrap), answer: q.answer })) };
@@ -272,9 +272,41 @@ const NB_TYPE_META = {
   codeEditor:    { label: 'Code',    pill: 'code-pill' },
 };
 
+const NB_SUBTYPES = {
+  card: [
+    { id: 'note',      label: 'Note',      color: '#6c8ef7', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
+    { id: 'tip',       label: 'Tip',       color: '#34d399', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 4 12.9V17H8v-2.1A7 7 0 0 1 12 2z"/></svg>' },
+    { id: 'important', label: 'Important', color: '#f59e0b', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { id: 'summary',   label: 'Summary',   color: '#a78bfa', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10"/></svg>' },
+  ],
+  table: [
+    { id: 'standard',  label: 'Standard' },
+    { id: 'compare',   label: 'Compare / Contrast' },
+    { id: 'pros-cons', label: 'Pros & Cons' },
+    { id: 'cheat',     label: 'Cheat Sheet' },
+  ],
+};
+
 function nbTypePillHTML(c) {
   const m = NB_TYPE_META[c.type] || NB_TYPE_META.text;
   return `<button class="nb-type-pill nb-type-pill-btn ${m.pill}" onclick="nbTypeMenu(event,'${c.id}')" title="Change element type">${m.label} ▾</button>`;
+}
+
+function nbSubtypePillHTML(c) {
+  const subs = NB_SUBTYPES[c.type];
+  if (!subs) return '';
+  const sub = c.subtype ? subs.find(s => s.id === c.subtype) : null;
+  const label = sub ? sub.label : '—';
+  return `<button class="nb-type-pill nb-subtype-pill-btn${sub ? '' : ' nb-subtype-empty'}" onclick="nbSubtypeMenu(event,'${c.id}')" title="Change subtype">${esc(label)} ▾</button>`;
+}
+
+function nbCellTopHTML(c) {
+  return `<div class="nb-cell-top">
+    ${nbDragHandleHTML(c)}
+    ${nbTypePillHTML(c)}
+    ${nbSubtypePillHTML(c)}
+    <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete" style="margin-left:auto">✕</button>
+  </div>`;
 }
 
 function nbTypeMenu(e, id) {
@@ -308,6 +340,37 @@ function nbTypeMenu(e, id) {
   }, 0);
 }
 
+function nbSubtypeMenu(e, id) {
+  e.stopPropagation();
+  const existing = document.getElementById('nb-subtype-menu');
+  if (existing) { existing.remove(); return; }
+  const c = S.editor.cells.find(c => c.id === id);
+  if (!c) return;
+  const subs = NB_SUBTYPES[c.type];
+  if (!subs) return;
+  const panel = document.createElement('div');
+  panel.id = 'nb-subtype-menu';
+  panel.className = 'nb-type-menu';
+  panel.innerHTML = subs.map(s =>
+    `<div class="nb-type-menu-item${c.subtype === s.id ? ' nb-type-menu-active' : ''}" onclick="nbSetSubtype('${id}','${c.type}','${s.id}')">
+      <span>${esc(s.label)}</span>
+      ${c.subtype === s.id ? '<span class="nb-type-menu-check">✓</span>' : ''}
+    </div>`).join('');
+  document.body.appendChild(panel);
+  const btn = e.currentTarget;
+  const r = btn.getBoundingClientRect();
+  panel.style.top = (r.bottom + 6) + 'px';
+  panel.style.left = r.left + 'px';
+  setTimeout(() => {
+    document.addEventListener('mousedown', function _(ev) {
+      if (!ev.target.closest('#nb-subtype-menu') && !btn.contains(ev.target)) {
+        panel.remove();
+        document.removeEventListener('mousedown', _);
+      }
+    });
+  }, 0);
+}
+
 function nbCellHasContent(c) {
   if (!c) return false;
   switch (c.type) {
@@ -316,11 +379,11 @@ function nbCellHasContent(c) {
     case 'table':
       return c.cells && c.cells.some(row => row.some(cell => cell));
     case 'card':
-      return c.cards && c.cards.some(card => card.header || card.content);
+      return !!(c.header || c.content);
     case 'cardSlide':
       return c.cards && c.cards.some(card => card.header || card.content);
     case 'question':
-      return (c.question && c.question.trim()) || (c.options && c.options.some(opt => opt)) || (c.answer !== 0);
+      return !!(c.question || (c.options && c.options.some(opt => opt)) || c.answer !== 0);
     case 'questionSlide':
       return c.questions && c.questions.length > 1;
     case 'codeEditor':
@@ -342,8 +405,7 @@ function nbChangeCellType(id, type) {
   }
 
   c.type = type;
-  // Backfill structures the new type renders/serializes (cells created as one
-  // type may lack the defaults of another).
+  c.subtype = null;
   if (!c.cells || !c.cells.length) c.cells = [[null, null], [null, null]];
   if (!c.cards || !c.cards.length) c.cards = [{ header: null, content: null }];
   if (!c.options || !c.options.length) c.options = [null, null];
@@ -352,6 +414,30 @@ function nbChangeCellType(id, type) {
   if (c.code == null) c.code = '';
   if (!c.language) c.language = 'javascript';
   if (c.maxLines == null) c.maxLines = 0;
+  renderNotebook();
+  markDirty('cp');
+}
+
+function nbSetSubtype(id, type, subtype) {
+  document.getElementById('nb-type-menu')?.remove();
+  document.getElementById('nb-subtype-menu')?.remove();
+  const c = S.editor.cells.find(c => c.id === id);
+  if (!c) return;
+  if (c.type !== type) {
+    if (nbCellHasContent(c)) {
+      if (!confirm(`Changing type will discard ${NB_TYPE_META[c.type].label} content. Continue?`)) return;
+    }
+    c.type = type;
+    if (!c.cells || !c.cells.length) c.cells = [[null, null], [null, null]];
+    if (!c.cards || !c.cards.length) c.cards = [{ header: null, content: null }];
+    if (!c.options || !c.options.length) c.options = [null, null];
+    if (!c.questions || !c.questions.length) c.questions = [{ id: nbGenId(), question: null, options: [null, null], answer: 0 }];
+    if (c.answer == null) c.answer = 0;
+    if (c.code == null) c.code = '';
+    if (!c.language) c.language = 'javascript';
+    if (c.maxLines == null) c.maxLines = 0;
+  }
+  c.subtype = subtype;
   renderNotebook();
   markDirty('cp');
 }
@@ -681,12 +767,11 @@ function nbTtInlineHTML(key) {
 
 function nbTextCellHTML(c) {
   return `<div class="nb-cell nb-text-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       ${nbTtToolbarHTML(c.id)}
       <div id="tiptap-${c.id}" class="nb-tiptap" onclick="Editors.notebook['${c.id}']?.commands.focus()"></div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -856,7 +941,7 @@ function nbTableCellHTML(c) {
   });
   tbl += '</table>';
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div class="nb-table-controls">
         <button class="nb-ctrl-btn" onclick="nbAddRow('${c.id}')">+ Row</button>
@@ -866,21 +951,19 @@ function nbTableCellHTML(c) {
       </div>
       <div class="nb-table-wrap">${tbl}</div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
 function nbCardCellHTML(c) {
   const hKey = `${c.id}-hdr`, cKey = `${c.id}-cnt`;
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div class="nb-tiptap-label">Header</div>
       <div id="tiptap-${hKey}" class="nb-tiptap nb-tiptap-inline nb-card-hdr-wrap" onclick="Editors.notebook['${hKey}']?.commands.focus()"></div>
       ${nbTtToolbarHTML(cKey)}
       <div id="tiptap-${cKey}" class="nb-tiptap" onclick="Editors.notebook['${cKey}']?.commands.focus()"></div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -898,7 +981,7 @@ function nbCardSlideCellHTML(c) {
   const total = c.cards.length;
   const tabs = nbCardSlideTabs(c, c.id, 'cards');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div class="slide-tabs-row">${tabs}</div>
       <div class="nb-slide-edit-nav">
@@ -913,7 +996,6 @@ function nbCardSlideCellHTML(c) {
       ${nbTtToolbarHTML(`${c.id}-${idx}-cnt`)}
       <div id="tiptap-${c.id}-${idx}-cnt" class="nb-tiptap" onclick="Editors.notebook['${c.id}-${idx}-cnt']?.commands.focus()"></div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -926,14 +1008,13 @@ function nbQuestionCellHTML(c) {
       <button class="nb-ctrl-btn" onclick="nbDelOption('${c.id}',${i})" ${c.options.length <= 2 ? 'disabled' : ''}>−</button>
     </div>`).join('');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div id="tiptap-${c.id}-q" class="nb-tiptap nb-tiptap-inline nb-q-stem-wrap" onclick="Editors.notebook['${c.id}-q']?.commands.focus()"></div>
       <div class="nb-q-options">${optsHTML}</div>
       <button class="nb-ctrl-btn" onclick="nbAddOption('${c.id}')">＋ Add option</button>
       <div class="nb-q-hint">Select the correct answer with the radio button.</div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -949,7 +1030,7 @@ function nbQSlideCellHTML(c) {
       <button class="nb-ctrl-btn" onclick="nbDelQSlideOption('${c.id}',${idx},${i})" ${q.options.length <= 2 ? 'disabled' : ''}>−</button>
     </div>`).join('');
   return `<div class="nb-cell" data-id="${c.id}">
-    <div class="nb-cell-left">${nbDragHandleHTML(c)}${nbTypePillHTML(c)}</div>
+    ${nbCellTopHTML(c)}
     <div class="nb-cell-body">
       <div class="nb-slide-edit-nav">
         <button type="button" class="cv-slide-btn" onclick="nbSlideNav('${c.id}','questions',-1)">‹</button>
@@ -965,7 +1046,6 @@ function nbQSlideCellHTML(c) {
       </div>
       <div class="nb-q-hint">Select the correct answer with the radio button.</div>
     </div>
-    ${nbCellControlsHTML(c)}
   </div>`;
 }
 
@@ -1116,14 +1196,20 @@ function buildCourseViewHTML(cells) {
       </div>`;
     }
     if (c.type === 'table') {
+      const sub = NB_SUBTYPES.table?.find(s => s.id === c.subtype);
       const tbl = c.cells.map(row =>
         '<tr>' + row.map(val => `<td>${ttHtml(val)}</td>`).join('') + '</tr>'
       ).join('');
-      return `<div class="cv-table-wrap"><table class="cv-table">${tbl}</table></div>`;
+      return `<div class="cv-table-wrap">
+        ${sub && sub.id !== 'standard' ? `<div class="cv-table-subtype-label">${esc(sub.label)}</div>` : ''}
+        <table class="cv-table">${tbl}</table>
+      </div>`;
     }
     if (c.type === 'card') {
       const hdr = ttHtml(c.header);
-      return `<div class="cv-card">
+      const sub = NB_SUBTYPES.card?.find(s => s.id === c.subtype);
+      return `<div class="cv-card${sub ? ' cv-card-'+sub.id : ''}">
+        ${sub ? `<div class="cv-card-subtype-label" style="color:${sub.color}">${sub.icon}${esc(sub.label)}</div>` : ''}
         ${hdr ? `<div class="cv-card-header">${hdr}</div>` : ''}
         <div class="cv-card-content">${ttHtml(c.content)}</div>
       </div>`;

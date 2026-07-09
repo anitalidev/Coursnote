@@ -791,12 +791,6 @@ function hideTooltip(element) {
 function topicHTML() {
   const t = S.ui.currentTopic;
   return `<div class="section topic-section">
-    <div class="breadcrumb">
-      <span onclick="${Runtime.editable ? 'goCourses()' : 'goHome()'}">All Courses</span><span class="sep">›</span>
-      <span onclick="goModules(${jsonAttr(S.ui.currentCourse)},${S.ui.editMode})">${esc(S.ui.currentCourse.name)}</span>
-      <span class="sep">›</span>
-      <span onclick="goTopics(${jsonAttr(S.ui.currentModule)})">${esc(S.ui.currentModule.name)}</span>
-    </div>
     <div class="topic-header" id="topic-view-header">
       <div>
         <h1><span>${esc(t.name)}</span></h1>

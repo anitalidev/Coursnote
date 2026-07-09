@@ -22,7 +22,7 @@
 .nb-tt-btn b { font-weight: 900; font-size: 13px; }
 .nb-tt-btn i { font-style: italic; }
 .nb-tt-btn u, .nb-tt-btn s { font-size: 13px; }
-.nb-tt-btn:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
+.nb-tt-btn:hover:not(:disabled) { background: rgba(128,128,128,0.15); color: var(--text); }
 .nb-tt-btn-active { background: rgba(var(--col-blue),.25); color: var(--accent); font-weight: 600; }
 .nb-tt-btn-active:hover { background: rgba(var(--col-blue),.38); }
 .nb-tt-disabled { opacity: 0.3; cursor: not-allowed !important; }
@@ -39,17 +39,17 @@
   background: none; color: var(--text2); font-size: 14px; font-weight: 600;
   cursor: pointer; line-height: 1; transition: background .12s, color .12s;
 }
-.nb-tt-size-btn:hover { background: var(--bg3); color: var(--text); }
+.nb-tt-size-btn:hover { background: rgba(128,128,128,0.15); color: var(--text); }
 
 .nb-tt-select {
   height: 28px; padding: 0 6px;
   border: none; border-radius: 6px;
-  background: var(--bg3); color: var(--text2);
+  background: transparent; color: var(--text2);
   font-size: 12px; cursor: pointer;
   transition: background .12s, color .12s;
 }
-.nb-tt-select:hover { background: var(--bg3); color: var(--text); }
-.nb-tt-select option { background: var(--bg3); color: var(--text); }
+.nb-tt-select:hover { background: rgba(128,128,128,0.15); color: var(--text); }
+.nb-tt-select option { background: var(--card); color: var(--text); }
 
 /* ── Color picker ────────────────────────────────────────────── */
 .nb-cp-wrap { position: relative; display: inline-flex; }
@@ -94,7 +94,7 @@
 .nb-tiptap ul, .nb-tiptap ol { padding-left: 20px; margin: 0 0 4px; }
 .nb-tiptap strong { font-weight: 800; }
 .nb-tiptap em { font-style: italic; }
-.nb-tiptap code { background: var(--bg3); border-radius: 3px; padding: 1px 4px; font-size: 13px; }
+.nb-tiptap code { background: var(--col-code-bg, rgba(128,128,128,0.15)); color: var(--col-code-text, inherit); border-radius: 3px; padding: 1px 4px; font-size: 13px; font-family: monospace; }
 .nb-tiptap h1, .nb-tiptap h2, .nb-tiptap h3 { font-weight: 600; margin: 8px 0 2px; }
 .nb-tiptap-inline { color: var(--text); font-size: 14px; line-height: 1.5; cursor: text; min-height: 28px; border-bottom: 1px solid var(--border); margin-bottom: 6px; padding-bottom: 2px; }
 .nb-tiptap-inline .tiptap { outline: none; min-height: 24px; tab-size: 4 !important; }

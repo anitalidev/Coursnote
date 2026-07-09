@@ -6,6 +6,7 @@ func init() {
 
 type Card struct {
 	ID      string `json:"id,omitempty"`
+	Subtype string `json:"subtype,omitempty"`
 	Header  Text   `json:"header"`
 	Content Text   `json:"content"`
 }
