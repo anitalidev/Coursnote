@@ -7,15 +7,16 @@
   --bg: rgb(var(--col-bg));
   --bg2: var(--col-nav, #1a1d27);
   --bg3: #22263a;
-  --border: #2e3352;
+  --col-border: #2e3352;
+  --border: var(--col-border);
   --accent: rgb(var(--col-blue));
-  --accent-hover: #5a7ef5;    /* --accent darkened ~10% for hover states */
+  --accent-hover: #5a7ef5;
   --accent2: rgb(var(--col-purple));
   --accent3: #34d399;
   --accent4: #fb923c;
   --accent5: #f472b6;
-  --text: #e2e8f0;
-  --text2: #94a3b8;
+  --text: var(--col-text, #e2e8f0);
+  --text2: var(--col-text2, #94a3b8);
   --text3: #64748b;
   --card: var(--col-card, #1e2235);
   --danger: #f87171;
@@ -331,8 +332,8 @@ input[type="checkbox"]:checked::after {
 .cc2-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
 .cc2-stats-row {
   display: flex; align-items: stretch; gap: 0;
-  background: var(--bg3); border-radius: 10px; overflow: hidden;
-  border: 1px solid var(--border);
+  background: rgba(100,100,100,.08); border-radius: 10px; overflow: hidden;
+  border: 1px solid rgba(100,100,100,.15);
 }
 .cc2-stat {
   display: flex; align-items: center; gap: 10px; flex: 1; padding: 10px 12px;
@@ -341,10 +342,10 @@ input[type="checkbox"]:checked::after {
 .cc2-stat-lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .cc2-stat-main { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
 .cc2-stat-sub { font-size: 11px; font-weight: 500; color: var(--text2); white-space: nowrap; }
-.cc2-stat-div { width: 1px; background: var(--border); flex-shrink: 0; }
+.cc2-stat-div { width: 1px; background: rgba(100,100,100,.2); flex-shrink: 0; }
 .cc2-progress-section { display: flex; flex-direction: column; gap: 6px; }
 .cc2-progress-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: .08em; }
-.cc2-progress-bar { width: 100%; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+.cc2-progress-bar { width: 100%; height: 8px; background: color-mix(in srgb, var(--bg3) 10%, transparent); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
 .cc2-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width .4s ease; }
 .cc2-progress-pct { color: var(--accent); font-weight: 800; }
 .cc2-course-title-block { display: flex; flex-direction: column; gap: 3px; }
@@ -366,7 +367,7 @@ input[type="checkbox"]:checked::after {
   cursor: pointer; transition: border-color .15s, background .15s;
 }
 .cc2-continue-btn:hover { border-color: var(--accent); background: rgba(var(--col-blue),.08); }
-.cc2-continue-btn svg { color: #fff; flex-shrink: 0; }
+.cc2-continue-btn svg { color: var(--text); flex-shrink: 0; }
 .cc2-continue-btn svg:last-child { margin-left: auto; color: var(--text3); }
 .cc2-edit-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -374,6 +375,7 @@ input[type="checkbox"]:checked::after {
   background: var(--bg2); color: var(--text); font-size: 13px; font-weight: 600;
   cursor: pointer; transition: border-color .15s, color .15s, background .15s; flex-shrink: 0;
 }
+.cc2-edit-btn svg { color: var(--text); flex-shrink: 0; }
 .cc2-edit-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(var(--col-blue),.08); }
 .cc2-publish-status {
   display: flex; align-items: center; gap: 6px;
@@ -607,8 +609,8 @@ input[type="checkbox"]:checked::after {
   width: 56px; padding: 8px 4px; border-radius: 12px; cursor: pointer;
   color: var(--text3); transition: background .15s, color .15s; user-select: none;
 }
-.icon-nav-item:hover { background: var(--bg3); color: var(--text2); }
-.icon-nav-item.active { background: var(--bg3); color: var(--accent); }
+.icon-nav-item:hover { background: rgba(100,100,100,.08); color: var(--text2); }
+.icon-nav-item.active { background: rgba(100,100,100,.08); color: var(--accent); }
 .icon-nav-item span { font-size: 10px; font-weight: 500; }
 .icon-nav-avatar {
   width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
@@ -896,7 +898,7 @@ input[type="checkbox"]:checked::after {
 .mkt-icon-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 500;
-  border: 1px solid var(--border); background: var(--bg2); color: var(--text2);
+  border: 1px solid var(--border); background: var(--bg2); color: var(--accent);
   cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
 }
 .mkt-icon-btn:hover { border-color: var(--accent); color: var(--accent); }

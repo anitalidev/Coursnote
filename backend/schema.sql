@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
     primary_colour    VARCHAR(7)  NOT NULL DEFAULT '#6c8ef7',
     gradient_colour   VARCHAR(7)  NOT NULL DEFAULT '#a78bfa',
     nav_colour        VARCHAR(7)  NOT NULL DEFAULT '#1a1d27',
-    card_colour       VARCHAR(7)  NOT NULL DEFAULT '#1e2235'
+    card_colour       VARCHAR(7)  NOT NULL DEFAULT '#1e2235',
+    accent_colour     VARCHAR(7)  NOT NULL DEFAULT '#2e3352'
 );
 
 CREATE TABLE IF NOT EXISTS users (

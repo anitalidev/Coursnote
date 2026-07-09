@@ -9,6 +9,9 @@ function settingsHTML() {
     { key: 'gradientColour',   value: s.gradientColour   || '#a78bfa', label: 'Gradient',    tip: 'The secondary accent colour — the end of gradients on headings and progress bars.' },
     { key: 'navColour',        value: s.navColour        || '#1a1d27', label: 'Sidebar',     tip: 'Background colour of the left navigation sidebar.' },
     { key: 'cardColour',       value: s.cardColour       || '#1e2235', label: 'Cards',       tip: 'Background colour of cards and content panels (course cards, note panes, etc.).' },
+    { key: 'textColour',       value: s.textColour       || '#e2e8f0', label: 'Text',        tip: 'Primary text colour used for headings, labels, and body text across the app.' },
+    { key: 'accentColour',          value: s.accentColour          || '#2e3352', label: 'Accent',         tip: 'Colour used for borders and dividers across the app.' },
+    { key: 'secondaryTextColour',   value: s.secondaryTextColour   || '#94a3b8', label: 'Secondary Text',  tip: 'Colour used for subtitles, descriptions, and secondary labels.' },
   ];
   return `<div class="section">
     <h1 style="margin-bottom:24px">Settings</h1>
@@ -29,8 +32,8 @@ function settingsHTML() {
         </div>
       </div>
     </div>
-    <div class="settings-card" style="padding:14px 20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"
+    <div class="settings-card" style="padding:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:14px 20px"
         onclick="var d=document.getElementById('colours-card-body'),open=d.style.display!=='none';d.style.display=open?'none':'block';this.querySelector('.colours-chevron').style.transform=open?'rotate(-90deg)':'';d.style.marginTop=open?'':'14px'"
         onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
         <h2 class="settings-section-title" style="margin-bottom:0;font-size:14px">Colours</h2>
@@ -38,54 +41,59 @@ function settingsHTML() {
           <span class="colours-chevron" style="transition:transform .15s;display:inline-block;transform:rotate(-90deg)">▾</span>
         </span>
       </div>
-      <div id="colours-card-body" style="display:none">
-      <button onclick="var d=this.nextElementSibling,open=d.style.display==='flex';d.style.display=open?'none':'flex';this.querySelector('.palette-chevron').style.transform=open?'rotate(-90deg)':'rotate(0deg)'"
-        style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:8px">
-        <span class="palette-chevron" style="transition:transform .15s;display:inline-block;transform:rotate(-90deg)">▾</span> Presets
-      </button>
-      <div style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+      <div id="colours-card-body" style="display:none;padding:0 20px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative">
+        <button onclick="togglePresetsPopup(this)" id="presets-btn"
+          style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--text2);font-size:12px;position:relative">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Presets
+        </button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-primary btn-sm" onclick="saveColours()">Save</button>
+          <span id="colour-save-status" style="font-size:11px;min-height:16px"></span>
+        </div>
+      </div>
+      <div id="presets-popup" style="display:none;position:fixed;z-index:200;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);width:420px;max-height:181px;overflow-y:auto;flex-wrap:wrap;gap:8px">
         ${_colourPalettes.map((p, i) => `
-          <button onclick="applyPalette(${i})" title="${esc(p.name)}"
-            style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;min-width:80px">
+          <button onclick="applyPalette(${i});closePresetsPopup()" title="${esc(p.name)}"
+            style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;width:calc(33.33% - 6px)">
             <div style="display:flex;gap:3px">
-              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.bg)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
-              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.primary)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
-              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.gradient)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
-              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.nav)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
-              <span style="width:14px;height:14px;border-radius:3px;background:${esc(p.card)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.bg)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.primary)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.gradient)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.nav)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.card)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
+              <span style="width:12px;height:12px;border-radius:2px;background:${esc(p.text)};box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)"></span>
             </div>
-            <span style="font-size:11px;color:var(--text2);white-space:nowrap">${esc(p.name)}</span>
+            <span style="font-size:11px;color:var(--text2);white-space:nowrap;display:flex;align-items:center;gap:3px">${p.light
+              ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+              : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+            }${esc(p.name)}</span>
           </button>`).join('')}
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         ${colours.map(c => `
-          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:var(--bg2);border:1px solid var(--border)">
-            <div style="position:relative;flex-shrink:0">
-              <div id="colour-swatch-${esc(c.key)}" onclick="openColourPicker('${esc(c.key)}', this)"
-                style="width:34px;height:34px;border-radius:8px;background:${esc(c.value)};cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.4);transition:box-shadow .15s"
-                onmouseover="this.style.boxShadow='0 0 0 2px var(--accent),0 2px 6px rgba(0,0,0,.4)'"
-                onmouseout="this.style.boxShadow='0 0 0 1px rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.4)'">
-              </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--border)">
+            <div id="colour-swatch-${esc(c.key)}" onclick="openColourPicker('${esc(c.key)}', this)"
+              style="width:28px;height:28px;border-radius:6px;background:${esc(c.value)};cursor:pointer;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.12);transition:box-shadow .15s"
+              onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
+              onmouseout="this.style.boxShadow='0 0 0 1px rgba(255,255,255,.12)'">
             </div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-                <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(c.label)}</span>
+            <div style="min-width:0;flex:1">
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+                <span style="font-size:12px;font-weight:600;color:var(--text)">${esc(c.label)}</span>
                 <span class="tooltip-trigger" style="position:relative">
-                  <span style="font-size:11px;color:var(--text3);cursor:default">?</span>
-                  <span class="tooltip-content" style="min-width:220px;white-space:normal">${esc(c.tip)}</span>
+                  <span style="font-size:10px;color:var(--text3);cursor:default">?</span>
+                  <span class="tooltip-content" style="min-width:200px;white-space:normal">${esc(c.tip)}</span>
                 </span>
               </div>
               <input id="colour-hex-input-${esc(c.key)}" type="text" value="${esc(c.value)}" maxlength="7" spellcheck="false"
-                style="font-size:12px;font-family:monospace;color:var(--text2);background:var(--bg3,var(--bg));border:1px solid var(--border);border-radius:5px;padding:2px 6px;width:80px;outline:none"
+                style="font-size:11px;font-family:monospace;color:var(--text2);background:transparent;border:none;padding:0;width:68px;outline:none"
                 oninput="(function(el){var v=el.value;if(/^#[0-9a-fA-F]{6}$/.test(v)){document.getElementById('colour-swatch-${esc(c.key)}').style.background=v;previewColour('${esc(c.key)}',v);}})(this)"
                 onfocus="this.select()">
             </div>
             <span id="colour-hex-${esc(c.key)}" style="display:none">${esc(c.value)}</span>
           </div>`).join('')}
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
-        <button class="btn btn-primary btn-sm" onclick="saveColours()">Save</button>
-        <span id="colour-save-status" style="font-size:11px;min-height:16px"></span>
       </div>
       </div>
     </div>
@@ -283,7 +291,7 @@ function homeHTML() {
         <p class="subtitle" style="margin-bottom:0">Pick up where you left off — head to <a class="sb-link" onclick="goCourses()">Courses</a> to work on your own, or visit the <a class="sb-link" onclick="goMarket()">Marketplace</a> to see what's available.</p>
       </div>
     </div>
-    <h2 style="margin-bottom:16px">Enrolled Courses</h2>
+    <h2 style="margin-bottom:16px;color:var(--text)">Enrolled Courses</h2>
     <div class="course-grid2">${enrolledCards}</div>
   </div>`;
 }

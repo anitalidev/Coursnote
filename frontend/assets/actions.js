@@ -41,7 +41,11 @@ async function handleLogin(username) {
   const activeSettings = full.settings || user.settings;
   if (activeSettings) applyAllColours(activeSettings);
   Storage.saveUser(S.data.user);
-  await goCourses();
+  if (location.hash && location.hash !== '#' && location.hash !== '#courses') {
+    await restoreFromHash(location.hash);
+  } else {
+    await goCourses();
+  }
 }
 
 // ── Course/module/topic CRUD ──────────────────────────────────────────────────
@@ -231,16 +235,29 @@ async function removeAvatar() {
 // ── Colour settings ───────────────────────────────────────────────────────────
 
 const _colourPalettes = [
-  { name: 'Default',  bg: '#0f1117', primary: '#6c8ef7', gradient: '#a78bfa', nav: '#1a1d27', card: '#1e2235' },
-  { name: 'Midnight', bg: '#0d1117', primary: '#58a6ff', gradient: '#bc8cff', nav: '#111623', card: '#141a2a' },
-  { name: 'Ocean',    bg: '#0a1628', primary: '#06b6d4', gradient: '#3b82f6', nav: '#0d1d35', card: '#102240' },
-  { name: 'Forest',   bg: '#0b1a0e', primary: '#4ade80', gradient: '#86efac', nav: '#0e2212', card: '#112916' },
-  { name: 'Sunset',   bg: '#1a0f0a', primary: '#f97316', gradient: '#ec4899', nav: '#1f130c', card: '#241710' },
-  { name: 'Rose',     bg: '#1a0a0f', primary: '#f43f5e', gradient: '#fb923c', nav: '#1f0d13', card: '#241018' },
-  { name: 'Slate',    bg: '#0f172a', primary: '#94a3b8', gradient: '#cbd5e1', nav: '#131e35', card: '#16233e' },
-  { name: 'Ember',    bg: '#1a0d00', primary: '#f59e0b', gradient: '#ef4444', nav: '#1f1100', card: '#241500' },
-  { name: 'Aurora',   bg: '#080d1a', primary: '#34d399', gradient: '#818cf8', nav: '#0b1120', card: '#0e1626' },
-  { name: 'Sakura',   bg: '#1a0f14', primary: '#f472b6', gradient: '#c084fc', nav: '#1f1219', card: '#24151e' },
+  // ── Dark ────────────────────────────────────────────────────────────────────
+  { name: 'Dark',     bg: '#0f1117', primary: '#6c8ef7', gradient: '#a78bfa', nav: '#1a1d27', card: '#1e2235', text: '#e2e8f0', text2: '#94a3b8', accent: '#2e3352' },
+  { name: 'Midnight', bg: '#0d1117', primary: '#58a6ff', gradient: '#bc8cff', nav: '#111623', card: '#141a2a', text: '#e2e8f0', text2: '#8896b0', accent: '#1e2a45' },
+  { name: 'Ocean',    bg: '#0a1628', primary: '#06b6d4', gradient: '#3b82f6', nav: '#0d1d35', card: '#102240', text: '#e2e8f0', text2: '#7a9ab8', accent: '#1a3050' },
+  { name: 'Forest',   bg: '#0b1a0e', primary: '#4ade80', gradient: '#86efac', nav: '#0e2212', card: '#112916', text: '#e2e8f0', text2: '#7aaa88', accent: '#1a3a20' },
+  { name: 'Sunset',   bg: '#1a0f0a', primary: '#f97316', gradient: '#ec4899', nav: '#1f130c', card: '#241710', text: '#e2e8f0', text2: '#b0887a', accent: '#3a2010' },
+  { name: 'Rose',     bg: '#1a0a0f', primary: '#f43f5e', gradient: '#fb923c', nav: '#1f0d13', card: '#241018', text: '#e2e8f0', text2: '#b07a88', accent: '#3a1525' },
+  { name: 'Slate',    bg: '#0f172a', primary: '#94a3b8', gradient: '#cbd5e1', nav: '#131e35', card: '#16233e', text: '#e2e8f0', text2: '#8896b0', accent: '#243050' },
+  { name: 'Ember',    bg: '#1a0d00', primary: '#f59e0b', gradient: '#ef4444', nav: '#1f1100', card: '#241500', text: '#e2e8f0', text2: '#b09060', accent: '#3a2200' },
+  { name: 'Aurora',   bg: '#080d1a', primary: '#34d399', gradient: '#818cf8', nav: '#0b1120', card: '#0e1626', text: '#e2e8f0', text2: '#7aaa99', accent: '#152535' },
+  { name: 'Sakura',   bg: '#1a0f14', primary: '#f472b6', gradient: '#c084fc', nav: '#1f1219', card: '#24151e', text: '#e2e8f0', text2: '#b07898', accent: '#3a1a2e' },
+  { name: 'Void',     bg: '#050508', primary: '#7c3aed', gradient: '#4f46e5', nav: '#0a0a10', card: '#0f0f18', text: '#e2e8f0', text2: '#8878b8', accent: '#1a1025' },
+  { name: 'Nord',     bg: '#1a1f2e', primary: '#88c0d0', gradient: '#81a1c1', nav: '#1e2433', card: '#22293a', text: '#e2e8f0', text2: '#8899aa', accent: '#2e3a50' },
+  { name: 'Copper',   bg: '#160e08', primary: '#cd7c3b', gradient: '#e8a96e', nav: '#1c130b', card: '#21180d', text: '#e2e8f0', text2: '#a08060', accent: '#352010' },
+  // ── Light ───────────────────────────────────────────────────────────────────
+  { name: 'Light',    bg: '#f0f2f7', primary: '#4f6ef7', gradient: '#7c3aed', nav: '#e4e7f0', card: '#ffffff', text: '#0f172a', text2: '#64748b', accent: '#c5cce0', light: true },
+  { name: 'Paper',    bg: '#faf7f2', primary: '#b45309', gradient: '#7c3aed', nav: '#f0ece4', card: '#ffffff', text: '#1c1917', text2: '#78706a', accent: '#ddd5c5', light: true },
+  { name: 'Petal',    bg: '#fdf2f8', primary: '#db2777', gradient: '#9333ea', nav: '#f9e8f4', card: '#ffffff', text: '#1e0a1b', text2: '#8a5070', accent: '#f0c5e0', light: true },
+  { name: 'Sage',     bg: '#f0faf4', primary: '#16a34a', gradient: '#0891b2', nav: '#e4f4ea', card: '#ffffff', text: '#0a1f12', text2: '#4a7a5a', accent: '#b5dfc5', light: true },
+  { name: 'Sky',      bg: '#f0f8ff', primary: '#0284c7', gradient: '#7c3aed', nav: '#e0f0fb', card: '#ffffff', text: '#0c1a2e', text2: '#4a6a88', accent: '#b5d5f0', light: true },
+  { name: 'Cream',    bg: '#fffbeb', primary: '#d97706', gradient: '#dc2626', nav: '#fef3c7', card: '#ffffff', text: '#1c1200', text2: '#786030', accent: '#f0dfa0', light: true },
+  { name: 'Lavender', bg: '#f5f3ff', primary: '#7c3aed', gradient: '#ec4899', nav: '#ede9fe', card: '#ffffff', text: '#1e1040', text2: '#6050a0', accent: '#d5c5f5', light: true },
+  { name: 'Mint',     bg: '#f0fdfa', primary: '#0d9488', gradient: '#6366f1', nav: '#ccfbf1', card: '#ffffff', text: '#042f2e', text2: '#2a7068', accent: '#a5e5da', light: true },
 ];
 
 const _colourCSSKeys = {
@@ -257,21 +274,13 @@ function _hexToRGB(hex) {
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
 }
 
-function _darkenHex(hex, factor = 0.82) {
-  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.round(((n >> 16) & 255) * factor).toString(16).padStart(2, '0');
-  const g = Math.round(((n >> 8)  & 255) * factor).toString(16).padStart(2, '0');
-  const b = Math.round((n & 255)         * factor).toString(16).padStart(2, '0');
-  return `#${r}${g}${b}`;
-}
 
 function applyPalette(index) {
   const p = _colourPalettes[index];
   if (!p) return;
   const keys = {
     backgroundColour: p.bg, primaryColour: p.primary, gradientColour: p.gradient,
-    navColour: p.nav, cardColour: p.card,
+    navColour: p.nav, cardColour: p.card, textColour: p.text, accentColour: p.accent, secondaryTextColour: p.text2,
   };
   for (const [key, hex] of Object.entries(keys)) {
     const swatch = document.getElementById('colour-swatch-' + key);
@@ -280,6 +289,26 @@ function applyPalette(index) {
     if (hexInput) hexInput.value = hex;
     previewColour(key, hex);
   }
+}
+
+function togglePresetsPopup(btn) {
+  const popup = document.getElementById('presets-popup');
+  if (!popup) return;
+  const open = popup.style.display === 'flex';
+  if (open) { popup.style.display = 'none'; return; }
+  const rect = btn.getBoundingClientRect();
+  popup.style.display = 'flex';
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = rect.left + 'px';
+  setTimeout(() => {
+    function outside(e) { if (!popup.contains(e.target) && e.target !== btn) { popup.style.display = 'none'; document.removeEventListener('mousedown', outside, true); } }
+    document.addEventListener('mousedown', outside, true);
+  }, 150);
+}
+
+function closePresetsPopup() {
+  const popup = document.getElementById('presets-popup');
+  if (popup) popup.style.display = 'none';
 }
 
 function previewColour(key, hex) {
@@ -292,10 +321,13 @@ function _applyColourVar(key, hex) {
   if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
   const r = document.documentElement;
   if (key === 'backgroundColour') { const rgb = _hexToRGB(hex); if (rgb) r.style.setProperty('--col-bg', rgb); }
-  else if (key === 'primaryColour')  { const rgb = _hexToRGB(hex); if (rgb) { r.style.setProperty('--col-blue', rgb); r.style.setProperty('--accent-hover', _darkenHex(hex)); } }
+  else if (key === 'primaryColour')  { const rgb = _hexToRGB(hex); if (rgb) r.style.setProperty('--col-blue', rgb); }
   else if (key === 'gradientColour') { const rgb = _hexToRGB(hex); if (rgb) r.style.setProperty('--col-purple', rgb); }
   else if (key === 'navColour')  r.style.setProperty('--col-nav',  hex);
   else if (key === 'cardColour') r.style.setProperty('--col-card', hex);
+  else if (key === 'textColour')   r.style.setProperty('--col-text',   hex);
+  else if (key === 'accentColour')        r.style.setProperty('--col-border', hex);
+  else if (key === 'secondaryTextColour') r.style.setProperty('--col-text2',  hex);
 }
 
 function applyAllColours(s) {
@@ -305,6 +337,9 @@ function applyAllColours(s) {
   _applyColourVar('gradientColour',   s.gradientColour);
   _applyColourVar('navColour',        s.navColour);
   _applyColourVar('cardColour',       s.cardColour);
+  _applyColourVar('textColour',       s.textColour);
+  _applyColourVar('accentColour',          s.accentColour);
+  _applyColourVar('secondaryTextColour',   s.secondaryTextColour);
 }
 
 async function saveColours() {
@@ -321,6 +356,9 @@ async function saveColours() {
           gradientColour:   s.gradientColour,
           navColour:        s.navColour,
           cardColour:       s.cardColour,
+          textColour:       s.textColour,
+          accentColour:          s.accentColour,
+          secondaryTextColour:   s.secondaryTextColour,
         }) }
     );
     if (!res.ok) throw new Error();

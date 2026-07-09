@@ -16,6 +16,8 @@
         if (bl)  r.style.setProperty('--col-blue',     bl);
         if (pur) r.style.setProperty('--col-purple',   pur);
         if (fresh.settings.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(fresh.settings.primaryColour));
+        if (fresh.settings.accentColour)        r.style.setProperty('--col-border', fresh.settings.accentColour);
+        if (fresh.settings.secondaryTextColour) r.style.setProperty('--col-text2',  fresh.settings.secondaryTextColour);
       }
       Storage.saveUser(S.data.user);
       if (location.hash && location.hash !== '#courses') {

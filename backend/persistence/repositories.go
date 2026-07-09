@@ -83,7 +83,7 @@ type PrivateNoteInfo struct {
 type SettingsRepository interface {
 	Create() (*models.UserWebSettings, error)
 	GetByID(id string) (*models.UserWebSettings, error)
-	UpdateSettingsByID(id string, backgroundColour string, primaryColour string, gradientColour string, navColour string, cardColour string) error
+	UpdateSettingsByID(id string, backgroundColour string, primaryColour string, gradientColour string, navColour string, cardColour string, textColour string, accentColour string, secondaryTextColour string) error
 }
 
 type UserRepository interface {
