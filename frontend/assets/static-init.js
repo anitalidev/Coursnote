@@ -343,6 +343,30 @@ if (_ED) {
 })();
 
 (async function() {
+  const _viewerID = (_ED && _ED.userID) || new URLSearchParams(location.search).get('userID');
+  if (_viewerID) {
+    try {
+      const user = await GET('/user?id=' + _viewerID);
+      if (user && user.settings) {
+        const s = user.settings;
+        const r = document.documentElement;
+        const toRGB = hex => {
+          if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+          const n = parseInt(hex.slice(1), 16);
+          return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+        };
+        const rgb = toRGB(s.backgroundColour); if (rgb) r.style.setProperty('--col-bg', rgb);
+        const blue = toRGB(s.primaryColour);   if (blue) r.style.setProperty('--col-blue', blue);
+        const pur = toRGB(s.gradientColour);   if (pur) r.style.setProperty('--col-purple', pur);
+        if (s.navColour)          r.style.setProperty('--col-nav',    s.navColour);
+        if (s.cardColour)         r.style.setProperty('--col-card',   s.cardColour);
+        if (s.textColour)         r.style.setProperty('--col-text',   s.textColour);
+        if (s.accentColour)       r.style.setProperty('--col-border', s.accentColour);
+        if (s.secondaryTextColour) r.style.setProperty('--col-text2', s.secondaryTextColour);
+      }
+    } catch (_) {}
+  }
+
   if (location.hash && location.hash !== '#' && location.hash !== '#courses') {
     await restoreFromHash(location.hash);
   } else {

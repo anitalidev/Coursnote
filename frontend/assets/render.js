@@ -132,7 +132,6 @@ function renderSidebar() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h4"/></svg>
         Overview
       </div>
-      <span class="nav-count">${total}</span>
     </div>
     <div class="nav-section">Content</div>
     ${moduleItems}`;

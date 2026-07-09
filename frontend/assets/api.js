@@ -38,6 +38,7 @@ function GET(path) {
   // Enrolled online: course pages live in the DB — fetch directly rather than
   // relying on rawElements being present in the (potentially old) static bundle.
   if (path.startsWith('/coursepages') && Runtime.enrollmentData) return req('GET', path);
+  if (path.startsWith('/user')) return req('GET', path);
   return staticGet(path);
 }
 const POST = (path, body) => Runtime.trackProgress ? staticReadOnly()          : req('POST',   path, body);

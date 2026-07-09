@@ -17,11 +17,51 @@ const NB_HL_COLORS = [
   '#fffde7','#fff3e0','#fce4ec','#e8f5e9','#e3f2fd','#f3e5f5','#e0f7fa',
 ];
 
+function _monacoThemeBg() {
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:absolute;visibility:hidden;background:var(--card)';
+  document.body.appendChild(tmp);
+  const bg = getComputedStyle(tmp).backgroundColor;
+  document.body.removeChild(tmp);
+  const m = bg.match(/\d+/g);
+  if (m && m.length >= 3) {
+    const hex = n => parseInt(n).toString(16).padStart(2, '0');
+    return '#' + hex(m[0]) + hex(m[1]) + hex(m[2]);
+  }
+  return '#1e2235';
+}
+
+function _defineMonacoTheme() {
+  if (!window.monaco) return;
+  const bg = _monacoThemeBg();
+  monaco.editor.defineTheme('coursnote-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': bg,
+      'editorGutter.background': bg,
+      'editorLineNumber.foreground': '#555e7b',
+    },
+  });
+  monaco.editor.setTheme('coursnote-dark');
+}
+
+function _applyMonacoBg(editor) {
+  const bg = _monacoThemeBg();
+  const el = editor.getContainerDomNode();
+  if (!el) return;
+  el.querySelectorAll('.monaco-editor, .monaco-editor-background, .monaco-editor .margin').forEach(n => {
+    n.style.setProperty('background', bg, 'important');
+  });
+}
+
 function nbMountMonacoEditors() {
   if (!window.monaco) {
     window.addEventListener('monaco-ready', nbMountMonacoEditors, { once: true });
     return;
   }
+  _defineMonacoTheme();
   S.editor.cells.forEach(c => {
     if (c.type !== 'codeEditor') return;
     const el = document.getElementById('monaco-' + c.id);
@@ -29,7 +69,7 @@ function nbMountMonacoEditors() {
     const editor = monaco.editor.create(el, {
       value: c.code || '',
       language: c.language || 'javascript',
-      theme: 'vs-dark',
+      theme: 'coursnote-dark',
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       automaticLayout: true,
@@ -45,6 +85,7 @@ function nbMountMonacoEditors() {
     });
     nbAttachScrollLatch(el, editor);
     Editors.monaco[c.id] = editor;
+    setTimeout(() => _applyMonacoBg(editor), 0);
     if (S.ui.editMode) {
       editor.onDidChangeModelContent(() => {
         c.code = editor.getValue();

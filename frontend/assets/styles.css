@@ -24,6 +24,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 input[type="radio"] { accent-color: var(--accent); appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg2); cursor: pointer; flex-shrink: 0; transition: border-color .15s, background .15s; }
 input[type="radio"]:checked { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--bg3); }
+.cv-q-correct input[type="radio"]:checked { border-color: #34d399; background: #34d399; }
+.cv-q-wrong   input[type="radio"]:checked { border-color: #f87171; background: #f87171; }
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; min-height: 100vh; }
 
 /* ── SIDEBAR ── */
@@ -41,8 +43,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   cursor: pointer; transition: background .15s; font-size: 13px; color: var(--text2);
   border-left: 3px solid transparent; user-select: none;
 }
-.nav-item:hover { background: var(--bg3); color: var(--text); }
-.nav-item.active { background: var(--bg3); color: var(--accent); border-left-color: var(--accent); }
+.nav-item:hover { background: rgba(100, 100, 100, 0.15); color: var(--text); }
+.nav-item.active { background: rgba(100, 100, 100, 0.15); color: #6c8ef7; border-left-color: var(--accent); }
 .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
 .nav-item.active .nav-dot { background: var(--border); }
 .nav-back {
@@ -77,8 +79,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 18px; font-size: 13px; font-weight: 600; color: var(--text2);
   cursor: pointer; transition: background .15s; border-left: 3px solid var(--accent);
-  background: var(--bg3);
 }
+.nav-group-item.active { background: rgba(100, 100, 100, 0.15); }
 .nav-group-item:hover { color: var(--text); }
 .nav-count {
   font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
@@ -91,12 +93,12 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   font-size: 12px; color: var(--text3); cursor: pointer; transition: color .15s;
 }
 .nav-sub-item:hover { color: var(--text2); }
-.nav-sub-active { color: var(--accent) !important; }
-.nav-sub-done { color: var(--accent3); }
+.nav-sub-active { color: #6c8ef7 !important; }
+.nav-sub-done { color: #34d399; }
 .nav-sub-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
 .nav-sub-active .nav-sub-dot { background: var(--border); }
-.nav-sub-done .nav-sub-dot { background: var(--accent3); }
-.nav-sub-active.nav-sub-done .nav-sub-dot { background: var(--accent3); }
+.nav-sub-done .nav-sub-dot { background: #34d399; }
+.nav-sub-active.nav-sub-done .nav-sub-dot { background: #34d399; }
 .logout-btn {
   width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border);
   border-radius: 6px; color: var(--text3); font-size: 12px; cursor: pointer; transition: all .15s;
@@ -232,7 +234,7 @@ input[type="checkbox"]:checked::after {
 .sb-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; overflow: hidden; }
 .sb-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .sb-username { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
-.sb-stats-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-around; }
+.sb-stats-card { background: rgba(100, 100, 100, 0.15); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-around; }
 .sb-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .sb-stat-val { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1; }
 .sb-stat-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
@@ -272,7 +274,7 @@ input[type="checkbox"]:checked::after {
 .ch2-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
 .ch2-stat-div { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
 .ch2-stat-prog { flex: 1; gap: 10px; }
-.ch2-prog-bar { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; min-width: 80px; }
+.ch2-prog-bar { flex: 1; height: 5px; background: rgba(100, 100, 100, 0.15); border-radius: 3px; overflow: hidden; min-width: 80px; }
 .ch2-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width .4s ease; }
 .ch2-stat-pct { font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
 
@@ -443,10 +445,10 @@ input[type="checkbox"]:checked::after {
 .tooltip-content-below::after { top: auto !important; bottom: 100% !important; right: 8px !important; border-top-color: transparent !important; border-bottom-color: var(--bg3) !important; }
 .tooltip-trigger.tooltip-visible .tooltip-content { display: block; opacity: 1; }
 
-.notes-tab-group { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 2px; flex-shrink: 0; margin-top: 6px; }
+.notes-tab-group { display: flex; background: rgba(100, 100, 100, 0.1); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 2px; flex-shrink: 0; margin-top: 6px; }
 .notes-tab { background: transparent; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--text3); cursor: pointer; transition: all .15s; }
 .notes-tab:hover { color: var(--text2); }
-.notes-tab-active { background: var(--card); color: var(--text) !important; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.notes-tab-active { background: rgba(100, 100, 100, 0.2); color: var(--text) !important; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
 .panes-container { display: flex; flex-direction: column; gap: 16px; }
 .panes-container.panes-split { flex-direction: row; align-items: stretch; }
 .panes-container.panes-split .note-pane { flex: 1; min-width: 200px; overflow: auto; }
@@ -571,8 +573,8 @@ input[type="checkbox"]:checked::after {
 /* ── SIDEBAR PROGRESS BAR ── */
 .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width .4s ease; }
-.nav-item.done { color: var(--accent3); }
-.nav-item.done .nav-dot { background: var(--accent3); }
+.nav-item.done { color: #34d399; }
+.nav-item.done .nav-dot { background: #34d399; }
 
 /* ── EMPTY STATE ── */
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
@@ -699,7 +701,7 @@ input[type="checkbox"]:checked::after {
 .cv-slide-body-text { flex: 1; min-width: 0; }
 .cv-slide-nav { display: flex; align-items: center; gap: 12px; padding: 6px 16px; justify-content: center; border-top: 1px solid var(--border); position: relative; }
 .cv-slide-btn {
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(100, 100, 100, 0.15); border: 1px solid var(--border); border-radius: 8px;
   color: var(--text2); font-size: 16px; padding: 2px 12px; cursor: pointer; line-height: 1.5; font-weight: 600;
 }
 .cv-slide-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
@@ -874,7 +876,7 @@ input[type="checkbox"]:checked::after {
 .nb-code-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .nb-code-lang {
   padding: 3px 8px; font-size: 11px; border-radius: 6px;
-  background: var(--bg3); border: 1px solid var(--border);
+  background: rgba(100, 100, 100, 0.15); border: 1px solid var(--border);
   color: var(--text2); cursor: pointer; outline: none;
 }
 .nb-code-maxlines-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); margin-left: 4px; }
@@ -884,12 +886,15 @@ input[type="checkbox"]:checked::after {
   color: var(--text2); outline: none; text-align: center;
 }
 .nb-monaco-wrap { height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.nb-monaco-wrap .monaco-editor,
+.nb-monaco-wrap .monaco-editor-background,
+.nb-monaco-wrap .monaco-editor .margin { background: var(--card) !important; }
 .nb-monaco-view { pointer-events: auto; }
 
 .cv-code-wrap { margin: 8px 18px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
 .cv-code-lang {
   padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .05em;
-  background: var(--bg3); color: #34d399; border-bottom: 1px solid var(--border);
+  background: rgba(100, 100, 100, 0.15); color: #34d399; border-bottom: 1px solid var(--border);
 }
 
 /* ── Market bar ──────────────────────────────────────────────────────────────── */
