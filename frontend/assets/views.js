@@ -621,10 +621,10 @@ function topicsHTML() {
         </div>` : ''}
       </div>`;
       }).join('')
-    : `<div class="empty-state">
+    : S.ui.editMode ? `<div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <p>No topics yet.<br>Add your first topic above.</p>
-      </div>`;
+      </div>` : '';
 
   return `<div class="section">
     <div class="breadcrumb">
