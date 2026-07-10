@@ -226,7 +226,11 @@ async function saveTopicEdit() {
     Object.values(S.data.moduleTopics || {}).forEach(list => (list || []).forEach(apply));
     apply(S.ui.currentTopic);
     render();
-    toast('Topic updated');
+    if (updated.warning) {
+      toast('No completion rules defined. This item will use manual completion.');
+    } else {
+      toast('Topic updated');
+    }
   } catch (e) {
     toast(e.message, 'err');
   }

@@ -816,13 +816,14 @@ input[type="checkbox"]:checked::after {
 }
 .nb-cell-input:focus { background: rgba(var(--col-blue),.06); }
 
-.nb-del-btn {
+.nb-del-btn, .nb-dup-btn {
   width: 26px; height: 26px; border-radius: 6px; font-size: 13px;
   background: transparent; border: 1px solid transparent;
   color: var(--text3); cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all .15s;
 }
 .nb-del-btn:hover { color: var(--danger); border-color: var(--danger); background: rgba(248,113,113,.08); }
+.nb-dup-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(108,142,247,.08); }
 
 .nb-drag-handle {
   display: flex; align-items: center; justify-content: center;

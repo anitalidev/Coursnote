@@ -675,6 +675,7 @@ function topicEditFormHTML() {
         <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <label style="display:block;margin-bottom:12px;font-weight:500">Completion Rules</label>
           <div id="te-rules" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div id="te-rules-hint" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);font-style:italic">No completion rules defined. This item will use manual completion.</div>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="te-save">Save</button>
@@ -773,6 +774,16 @@ function toggleTopicRule(checkbox) {
   const wrap = document.getElementById(`te-rule-input-wrap-${ruleType}`);
   if (wrap) {
     wrap.style.visibility = checkbox.checked ? 'visible' : 'hidden';
+  }
+
+  const anyChecked = Array.from(document.querySelectorAll('[data-rule-type]')).some(cb => cb.checked);
+  const hint = document.getElementById('te-rules-hint');
+  if (!anyChecked) {
+    const manual = document.getElementById('te-rule-self_reported');
+    if (manual && !manual.checked) manual.click();
+    if (hint) hint.style.display = 'block';
+  } else {
+    if (hint) hint.style.display = 'none';
   }
 }
 

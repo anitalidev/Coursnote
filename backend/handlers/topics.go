@@ -16,6 +16,14 @@ type TopicDTO struct {
 	PrivateNoteID string                  `json:"privateNoteID"`
 	CoursePageID  string                  `json:"coursePageID"`
 	CompRules     []models.CompletionRule `json:"compTypes"`
+	Warning       string                  `json:"warning,omitempty"`
+}
+
+func ensureCompRules(rules []models.CompletionRule) ([]models.CompletionRule, string) {
+	if len(rules) == 0 {
+		return []models.CompletionRule{{Type: models.RuleSelfReported}}, "No completion rules provided; manual completion was set automatically."
+	}
+	return rules, ""
 }
 
 func TopicHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,12 +66,13 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
+		compRules, warn := ensureCompRules(body.CompRules)
 		// Topic must be created first so course_page and private_note can reference its ID via FK
 		topic, err := store.repos.Topics.CreateTopic(&persistence.TopicInfo{
 			Name:        body.Name,
 			Description: body.Description,
 			ModuleID:    body.ModuleID,
-			CompRules:   body.CompRules,
+			CompRules:   compRules,
 		})
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -97,6 +106,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
 			CompRules:     topic.CompRules,
+			Warning:       warn,
 		})
 
 	case http.MethodPut:
@@ -117,7 +127,8 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
-		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description, body.CompRules); err != nil {
+		compRules, warn := ensureCompRules(body.CompRules)
+		if err := store.repos.Topics.UpdateTopic(body.ID, body.Name, body.Description, compRules); err != nil {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -131,6 +142,7 @@ func TopicHandler(w http.ResponseWriter, r *http.Request) {
 			PrivateNoteID: topic.PrivateNoteID,
 			CoursePageID:  topic.CoursePageID,
 			CompRules:     topic.CompRules,
+			Warning:       warn,
 		})
 
 	case http.MethodDelete:

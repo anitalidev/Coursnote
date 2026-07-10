@@ -305,8 +305,20 @@ function nbCellTopHTML(c) {
     ${nbDragHandleHTML(c)}
     ${nbTypePillHTML(c)}
     ${nbSubtypePillHTML(c)}
-    <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete" style="margin-left:auto">✕</button>
+    <button class="nb-dup-btn" onclick="nbDuplicateCell('${c.id}')" title="Duplicate" style="margin-left:auto">⎘</button>
+    <button class="nb-del-btn" onclick="nbDeleteCell('${c.id}')" title="Delete">✕</button>
   </div>`;
+}
+
+function nbDuplicateCell(id) {
+  const idx = S.editor.cells.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  const src = S.editor.cells[idx];
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = nbGenId();
+  S.editor.cells.splice(idx + 1, 0, copy);
+  renderNotebook();
+  markDirty('cp');
 }
 
 function nbTypeMenu(e, id) {
