@@ -24,7 +24,7 @@ async function goLogin() {
   Object.assign(S.data, {
     user: null, courses: [], modules: [], moduleTopics: {}, topics: [],
     enrolledCourses: [], marketCourses: [], marketTotal: 0,
-    progress: { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
+    progress: { marked_manually: {}, manually_overridden: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
   });
   Object.assign(S.ui, {
     view: 'login', editMode: false, notesTab: 'cp',

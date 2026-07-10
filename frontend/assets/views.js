@@ -595,13 +595,13 @@ function topicsHTML() {
         });
         let tooltipContent;
         if (rules.length === 0) {
-          tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
+          tooltipContent = '<div class="comp-rules-tooltip-empty">There are no requirements. Topic will always be marked completed.</div>';
         } else {
-          tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div>• ${l}</div>`).join('')}`;
+          tooltipContent = `<div class="comp-rules-tooltip-header">Requirements for topic to be marked complete:</div>${ruleLabels.map(l => `<div class="comp-rules-tooltip-item neutral">• ${l}</div>`).join('')}`;
         }
         const rulesHTML = `<div class="tooltip-trigger" style="display:inline-block;margin-left:8px" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
               <span class="info-icon">(i)</span>
-              <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:200px">${tooltipContent}</div>
+              <div class="tooltip-content tooltip-content-below tooltip-content-primary" style="white-space:normal;width:200px">${tooltipContent}</div>
             </div>`;
         const done = !S.ui.editMode && isTopicComplete(t);
         return `
@@ -701,10 +701,10 @@ function renderTopicRulesDisplay(topic) {
 
   let tooltipContent;
   if (rules.length === 0) {
-    tooltipContent = '<div style="font-style:italic;color:var(--text3)">There are no requirements. Topic will always be marked completed.</div>';
+    tooltipContent = '<div class="comp-rules-tooltip-empty">There are no requirements. Topic will always be marked completed.</div>';
     container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
-    <span style="font-size:12px;color:var(--text3)">${S.ui.editMode ? '' : '<span style="color:#22c55e;font-size:11px;font-weight:600;margin-right:4px">●</span>'}Completion Rules <span class="info-icon">(i)</span></span>
-    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:220px">${tooltipContent}</div>
+    <span style="font-size:12px;color:var(--text3)">${S.ui.editMode ? '' : '<span class="comp-rules-indicator met">●</span>'}Completion Rules <span class="info-icon">(i)</span></span>
+    <div class="tooltip-content tooltip-content-below tooltip-content-primary" style="white-space:normal;width:220px">${tooltipContent}</div>
   </div>`;
     return;
   } else {
@@ -716,10 +716,10 @@ function renderTopicRulesDisplay(topic) {
         if (type === 'percentage_questions_correct') label += ` (${config}%)`;
       }
       const met = isRuleMet(type, config, topic.topicID);
-      const color = S.ui.editMode ? 'var(--text3)' : (met === true ? '#22c55e' : met === false ? '#ef4444' : 'var(--text3)');
-      return `<div style="color:${color}">• ${label}</div>`;
+      const cls = S.ui.editMode ? 'neutral' : (met === true ? 'met' : met === false ? 'unmet' : 'neutral');
+      return `<div class="comp-rules-tooltip-item ${cls}">• ${label}</div>`;
     });
-    tooltipContent = `<div style="font-weight:500;margin-bottom:8px">Requirements for topic to be marked complete:</div>${ruleItems.join('')}`;
+    tooltipContent = `<div class="comp-rules-tooltip-header">Requirements for topic to be marked complete:</div>${ruleItems.join('')}`;
   }
 
   let overallIndicator = '';
@@ -727,13 +727,13 @@ function renderTopicRulesDisplay(topic) {
     const statuses = Object.keys(ruleMap).map(type => isRuleMet(type, ruleMap[type], topic.topicID));
     const allMet = statuses.every(s => s === true);
     const anyUnmet = statuses.some(s => s === false);
-    const color = allMet ? '#22c55e' : (anyUnmet ? '#ef4444' : 'var(--text3)');
-    overallIndicator = S.ui.editMode ? '' : `<span style="color:${color};font-size:11px;font-weight:600;margin-right:4px">●</span>`;
+    const cls = allMet ? 'met' : (anyUnmet ? 'unmet' : 'neutral');
+    overallIndicator = S.ui.editMode ? '' : `<span class="comp-rules-indicator ${cls}">●</span>`;
   }
 
   container.innerHTML = `<div class="tooltip-trigger" style="display:inline-block" onmouseenter="showTooltipAfterDelay(this)" onmouseleave="hideTooltip(this)">
     <span style="font-size:12px;color:var(--text3)">${overallIndicator}Completion Rules <span class="info-icon">(i)</span></span>
-    <div class="tooltip-content tooltip-content-below" style="white-space:normal;width:220px">${tooltipContent}</div>
+    <div class="tooltip-content tooltip-content-below tooltip-content-primary" style="white-space:normal;width:220px">${tooltipContent}</div>
   </div>`;
 }
 
@@ -799,6 +799,43 @@ function hideTooltip(element) {
   element.classList.remove('tooltip-visible');
 }
 
+function renderCpProgressMenu() {
+  const menu = document.getElementById('cp-progress-menu');
+  if (!menu) return;
+  const t = S.ui.currentTopic;
+  if (!t) return;
+  const override = (S.data.progress.manually_overridden || {})[t.topicID] || null;
+  const calculated = isTopicComplete(t);
+  const statusLabel = calculated ? 'Complete' : 'Incomplete';
+  const statusColor = calculated ? 'var(--accent3)' : 'var(--danger)';
+  menu.innerHTML = `
+    <div class="cp-menu-section-title">Progress</div>
+    <div class="cp-menu-row">
+      <span class="cp-menu-label">Current Status</span>
+      <span style="color:${statusColor};font-size:12px;font-weight:600">${statusLabel}</span>
+    </div>
+    <div class="cp-menu-divider"></div>
+    <div class="cp-menu-section-title">Override</div>
+    <label class="cp-menu-radio"><input type="radio" name="cp-override" value="" ${override === null ? 'checked' : ''} onchange="setTopicOverride(null)"> Use calculated progress</label>
+    <label class="cp-menu-radio"><input type="radio" name="cp-override" value="completed" ${override === 'completed' ? 'checked' : ''} onchange="setTopicOverride('completed')"> Always complete</label>
+    <label class="cp-menu-radio"><input type="radio" name="cp-override" value="uncompleted" ${override === 'uncompleted' ? 'checked' : ''} onchange="setTopicOverride('uncompleted')"> Always incomplete</label>
+  `;
+}
+
+function toggleCpProgressMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('cp-progress-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  if (isOpen) { menu.style.display = 'none'; return; }
+  renderCpProgressMenu();
+  menu.style.display = 'block';
+  const close = function(ev) {
+    if (!menu.contains(ev.target)) { menu.style.display = 'none'; document.removeEventListener('click', close); }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
 function topicHTML() {
   const t = S.ui.currentTopic;
   return `<div class="section topic-section">
@@ -840,7 +877,10 @@ function topicHTML() {
       <div id="pane-cp" class="note-pane" style="${Runtime.editable && !S.ui.splitPane && S.ui.notesTab !== 'cp' ? 'display:none' : ''}">
         <div class="note-pane-header">
           <span class="note-pane-title course">Course View</span>
-          ${Runtime.editable ? `<span class="save-indicator" id="status-cp"></span>${Runtime.canSave ? `<button id="save-btn-cp" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;opacity:0.5" disabled onclick="saveCP()">Saved</button>` : ''}` : ''}
+          <div style="display:flex;align-items:center;gap:8px">
+            ${Runtime.editable ? `<span class="save-indicator" id="status-cp"></span>${Runtime.canSave ? `<button id="save-btn-cp" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;opacity:0.5" disabled onclick="saveCP()">Saved</button>` : ''}` : ''}
+            ${Runtime.trackProgress ? `<div class="cp-more" id="cp-more-btn" onclick="toggleCpProgressMenu(event)">⋮<div class="cp-progress-menu" id="cp-progress-menu" style="display:none"></div></div>` : ''}
+          </div>
         </div>
         <div class="note-pane-body nb-pane-body">
           <div class="notebook" id="notebook"></div>

@@ -61,20 +61,22 @@ window.addEventListener('tiptap-ready', function() {
   if (_ED) {
     var srv = _ED.progress || {};
     src = {
-      marked_manually:   srv.marked_manually   || {},
-      time_spent:        srv.time_spent        || {},
-      read_to_bottom:    srv.read_to_bottom    || {},
-      lastAnswered:      srv.lastAnswered      || {},
-      correctlyAnswered: srv.correctlyAnswered || {},
+      marked_manually:    srv.marked_manually    || {},
+      manually_overridden: srv.manually_overridden || {},
+      time_spent:         srv.time_spent         || {},
+      read_to_bottom:     srv.read_to_bottom     || {},
+      lastAnswered:       srv.lastAnswered       || {},
+      correctlyAnswered:  srv.correctlyAnswered  || {},
     };
   } else {
     var stored = Storage.loadDownloadedProgress(_CD.course.courseID) || {};
     src = {
-      marked_manually:   stored.marked_manually   || {},
-      time_spent:        stored.time_spent        || {},
-      read_to_bottom:    stored.read_to_bottom    || {},
-      lastAnswered:      stored.lastAnswered      || {},
-      correctlyAnswered: stored.correctlyAnswered || {},
+      marked_manually:    stored.marked_manually    || {},
+      manually_overridden: stored.manually_overridden || {},
+      time_spent:         stored.time_spent         || {},
+      read_to_bottom:     stored.read_to_bottom     || {},
+      lastAnswered:       stored.lastAnswered       || {},
+      correctlyAnswered:  stored.correctlyAnswered  || {},
     };
   }
   Object.assign(S.data.progress, src);
@@ -268,6 +270,24 @@ function toggleTopicCompleted() {
   _pctDirty = true;
   _persistProgress();
   _updateDebugPanel();
+  render();
+}
+
+// ── Progress override ─────────────────────────────────────────────────────────
+// value: 'completed' | 'uncompleted' | null (removes override)
+function setTopicOverride(value) {
+  var t = S.ui.currentTopic;
+  if (!t) return;
+  if (!S.data.progress.manually_overridden) S.data.progress.manually_overridden = {};
+  if (value == null) {
+    delete S.data.progress.manually_overridden[t.topicID];
+  } else {
+    S.data.progress.manually_overridden[t.topicID] = value;
+  }
+  _pctDirty = true;
+  _persistProgress();
+  _updateDebugPanel();
+  renderCpProgressMenu();
   render();
 }
 

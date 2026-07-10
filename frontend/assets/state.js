@@ -16,7 +16,7 @@ const S = {
     enrolledCourses: [],
     marketCourses: [],
     marketTotal: 0,
-    progress: { marked_manually: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
+    progress: { marked_manually: {}, manually_overridden: {}, time_spent: {}, read_to_bottom: {}, lastAnswered: {}, correctlyAnswered: {} },
   },
 
   // UI / navigation state

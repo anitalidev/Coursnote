@@ -45,9 +45,12 @@ function isModuleComplete(module, progress) {
 
 function isTopicComplete(topic, progress) {
   if (progress === undefined) progress = S.data.progress;
+  if (!progress) return false;
+  const override = (progress.manually_overridden || {})[topic.topicID];
+  if (override === 'completed') return true;
+  if (override === 'uncompleted') return false;
   const rules = topic.compTypes || [];
   if (rules.length === 0) return true;
-  if (!progress) return false;
   const ruleMap = {};
   rules.forEach(r => { ruleMap[r.type] = r.config; });
   return Object.keys(ruleMap).every(type => isRuleMet(type, ruleMap[type], topic.topicID, progress) === true);

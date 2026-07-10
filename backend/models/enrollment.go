@@ -7,11 +7,12 @@ import "time"
 // persistent element IDs from the enrolled StaticCourseContent snapshot.
 // Keys that no longer exist after a republish are kept but ignored.
 type EnrollmentProgress struct {
-	ManuallyMarked    map[string]bool    `json:"marked_manually"`
-	TimeSpent         map[string]float64 `json:"time_spent"`
-	ReadToBottom      map[string]bool    `json:"read_to_bottom"`
-	LastAnswered      map[string]int     `json:"lastAnswered"`
-	CorrectlyAnswered map[string]int     `json:"correctlyAnswered"`
+	ManuallyMarked     map[string]bool    `json:"marked_manually"`
+	ManuallyOverridden map[string]string  `json:"manually_overridden"`
+	TimeSpent          map[string]float64 `json:"time_spent"`
+	ReadToBottom       map[string]bool    `json:"read_to_bottom"`
+	LastAnswered       map[string]int     `json:"lastAnswered"`
+	CorrectlyAnswered  map[string]int     `json:"correctlyAnswered"`
 }
 
 // EnsureMaps replaces nil maps with empty ones so JSON output is always
@@ -19,6 +20,9 @@ type EnrollmentProgress struct {
 func (p *EnrollmentProgress) EnsureMaps() {
 	if p.ManuallyMarked == nil {
 		p.ManuallyMarked = map[string]bool{}
+	}
+	if p.ManuallyOverridden == nil {
+		p.ManuallyOverridden = map[string]string{}
 	}
 	if p.TimeSpent == nil {
 		p.TimeSpent = map[string]float64{}

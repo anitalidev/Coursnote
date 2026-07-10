@@ -435,6 +435,20 @@ input[type="checkbox"]:checked::after {
 .topic-header h1 { margin-bottom: 1px; }
 .topic-header .subtitle { margin-bottom: 0; font-size: 13px; }
 #topic-completion-rules-display { padding: 0; margin-top: 5px; display: flex; flex-direction: column; justify-content: flex-start; }
+.comp-rules-tooltip-header { font-weight: 500; margin-bottom: 8px; color: var(--text); }
+.comp-rules-tooltip-item { }
+.comp-rules-tooltip-item.met { color: var(--accent3); }
+.comp-rules-tooltip-item.unmet { color: var(--danger); }
+.comp-rules-tooltip-item.neutral { color: var(--text2); }
+.comp-rules-tooltip-empty { font-style: italic; color: var(--text3); }
+.comp-rules-indicator { font-size: 11px; font-weight: 600; margin-right: 4px; }
+.comp-rules-indicator.met { color: var(--accent3); }
+.comp-rules-indicator.unmet { color: var(--danger); }
+.comp-rules-indicator.neutral { color: var(--text3); }
+.tooltip-content-primary { background: var(--bg2) !important; border-color: var(--border) !important; color: var(--text) !important; }
+.tooltip-content-primary::after { border-top-color: var(--bg2) !important; }
+.tooltip-content-primary.tooltip-content-below::after { border-bottom-color: var(--bg2) !important; border-top-color: transparent !important; }
+.comp-rules-tooltip-header { font-weight: 600; margin-bottom: 8px; color: var(--text); }
 
 /* ── TOOLTIPS ── */
 .info-icon { color: var(--text3); font-weight: 600; font-size: 12px; position: relative; display: inline-block; }
@@ -459,6 +473,14 @@ input[type="checkbox"]:checked::after {
 .note-pane-title { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .note-pane-title.course { color: var(--accent); }
 .note-pane-title.private { color: var(--accent5); }
+.cp-more { position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; font-size: 16px; color: var(--text3); transition: background .15s, color .15s; user-select: none; }
+.cp-more:hover { background: var(--accent); color: #fff; }
+.cp-progress-menu { position: absolute; top: calc(100% + 4px); right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 210px; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.cp-menu-section-title { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; margin-top: 2px; }
+.cp-menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cp-menu-label { font-size: 12px; color: var(--text2); }
+.cp-menu-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.cp-menu-radio { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); cursor: pointer; padding: 4px 0; }
 .note-pane-body { flex: 1; display: flex; flex-direction: column; padding: 0; }
 .note-pane-body > .nb-tiptap { padding: 8px 20px 16px; }
 .note-pane-body textarea {
