@@ -36,11 +36,26 @@ function calcQuestionPercentage(topicID) {
   return (correct / total) * 100;
 }
 
+function _moduleTopics(module) {
+  // Static viewer exposes _CD.topicMap; editor uses S.data.moduleTopics
+  if (typeof _CD !== 'undefined' && _CD.topicMap) {
+    return (module.topicIDs || []).map(id => _CD.topicMap[id]).filter(Boolean);
+  }
+  return (S.data.moduleTopics || {})[module.moduleID] || [];
+}
+
 function isModuleComplete(module, progress) {
   if (progress === undefined) progress = S.data.progress;
-  const topics = (S.data.moduleTopics || {})[module.moduleID] || [];
+  const topics = _moduleTopics(module);
   if (topics.length === 0) return true;
   return topics.every(t => isTopicComplete(t, progress));
+}
+
+function calcModuleProgress(module) {
+  const topics = _moduleTopics(module);
+  if (topics.length === 0) return 100;
+  const done = topics.filter(t => isTopicComplete(t)).length;
+  return Math.round(done / topics.length * 100);
 }
 
 function isTopicComplete(topic, progress) {

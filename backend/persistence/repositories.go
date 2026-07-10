@@ -103,6 +103,7 @@ type EnrollmentRepository interface {
 	GetByUserAndStaticCourseID(userID string, staticCourseID string) (*models.CourseEnrollment, error)
 	UpdateStaticCourse(enrollmentID string, staticCourseID string) error
 	UpdatePercentageCompleted(userID string, staticCourseID string, percentage int) error
+	UpdateModuleProgress(userID string, staticCourseID string, moduleProgress map[string]int) error
 	UpdateProgress(userID string, staticCourseID string, progress models.EnrollmentProgress) error
 	Delete(enrollmentID string) error
 }

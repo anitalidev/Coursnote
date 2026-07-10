@@ -101,13 +101,24 @@ function _getPercentageCompleted() {
   return _cachedPct;
 }
 
+function _computeModuleProgress() {
+  var result = {};
+  (_CD.modules || []).forEach(function(m) {
+    var topics = (m.topicIDs || []).map(function(id) { return _CD.topicMap[id]; }).filter(Boolean);
+    if (topics.length === 0) { result[m.moduleID] = 100; return; }
+    var done = topics.filter(function(t) { return isTopicComplete(t); }).length;
+    result[m.moduleID] = Math.round(done / topics.length * 100);
+  });
+  return result;
+}
+
 function _sendProgress() {
   _saveTimer = null;
   fetch('/api/course/progress', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,
-    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: S.data.progress, percentageCompleted: _getPercentageCompleted() }),
+    body: JSON.stringify({ userID: _ED.userID, staticCourseID: _ED.staticCourseID, progress: S.data.progress, percentageCompleted: _getPercentageCompleted(), moduleProgress: _computeModuleProgress() }),
   }).catch(function() {});
 }
 

@@ -45,4 +45,5 @@ type CourseEnrollment struct {
 	EnrolledAt          time.Time          `json:"enrolledAt"`
 	Progress            EnrollmentProgress `json:"progress"`
 	CompletedPercentage int                `json:"completedPercentage"`
+	ModuleProgress      map[string]int     `json:"moduleProgress"`
 }

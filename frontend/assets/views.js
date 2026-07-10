@@ -127,9 +127,17 @@ const MOD2_PALETTES = [
 ];
 
 // Single mod2-card. onclick is a JS expression string; menuHTML goes inside mod2-card-top.
-function buildMod2CardHTML(m, topicCount, mi, onclick, menuHTML, doneClass) {
+// progressPct: number 0-100 to show a bar, or null to hide it.
+function buildMod2CardHTML(m, topicCount, mi, onclick, menuHTML, doneClass, progressPct) {
   const p = MOD2_PALETTES[mi % MOD2_PALETTES.length];
   const isDone = !!(doneClass && doneClass.trim());
+  const progressBar = progressPct != null ? `
+    <div class="mod2-prog-wrap">
+      <div class="mod2-prog-bar">
+        <div class="mod2-prog-fill" style="width:${progressPct}%;background:${p.color}"></div>
+      </div>
+      <span class="mod2-prog-pct" style="color:${p.color}">${progressPct}%</span>
+    </div>` : '';
   return `<div class="mod2-card${doneClass || ''}" onclick="${onclick}">
     <div class="mod2-card-top">
       <div class="mod2-icon" style="background:${p.bg};color:${p.color}">
@@ -139,6 +147,7 @@ function buildMod2CardHTML(m, topicCount, mi, onclick, menuHTML, doneClass) {
     </div>
     <div class="mod2-name">${esc(m.name || 'Untitled')}</div>
     <div class="mod2-desc">${m.description ? esc(m.description) : '<span style="font-style:italic;opacity:.5">No description</span>'}</div>
+    ${progressBar}
     <div class="mod2-foot">
       ${isDone
         ? `<span class="mod2-chip" style="background:rgba(34,197,94,.15);color:#22c55e">✓ Completed</span>`
@@ -493,7 +502,10 @@ function modulesHTML() {
     const menuHTML = S.ui.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>` : '';
-    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, !S.ui.editMode && isModuleComplete(m) ? ' mod2-done' : '');
+    const progressPct = S.ui.editMode ? null
+      : Runtime.trackProgress ? calcModuleProgress(m)
+      : ((S.ui.currentCourse?.moduleProgress || {})[m.moduleID] ?? null);
+    return buildMod2CardHTML(m, topics, i, `goTopics(${jsonAttr(m)})`, menuHTML, !S.ui.editMode && isModuleComplete(m) ? ' mod2-done' : '', progressPct);
   }).join('');
 
   return `<div class="course-page">

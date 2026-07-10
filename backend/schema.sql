@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
     enrolled_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     progress             JSON,
     percentage_completed INT NOT NULL DEFAULT 0,
+    module_progress      JSON,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (static_course_id) REFERENCES static_courses(static_course_id) ON DELETE CASCADE
 );

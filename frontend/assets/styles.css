@@ -292,6 +292,10 @@ input[type="checkbox"]:checked::after {
 .mod2-card:hover .mod2-menu { opacity: 1; }
 .mod2-name { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.3; }
 .mod2-desc { font-size: 12px; color: var(--text3); line-height: 1.55; flex: 1; white-space: pre-line; }
+.mod2-prog-wrap { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
+.mod2-prog-bar { flex: 1; height: 5px; background: rgba(100,100,100,.12); border-radius: 99px; overflow: hidden; }
+.mod2-prog-fill { height: 100%; border-radius: 99px; transition: width .3s ease; }
+.mod2-prog-pct { font-size: 11px; font-weight: 600; flex-shrink: 0; }
 .mod2-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .mod2-chip { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 .mod2-add-card {

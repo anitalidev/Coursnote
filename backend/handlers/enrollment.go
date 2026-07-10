@@ -110,6 +110,7 @@ func EnrolledCoursesHandler(w http.ResponseWriter, r *http.Request) {
 			IsActive:            sc.IsActive,
 			Progress:            &e.Progress,
 			CompletedPercentage: e.CompletedPercentage,
+			ModuleProgress:      e.ModuleProgress,
 			EnrolledAt:          &enrolledAt,
 		})
 	}
@@ -202,6 +203,7 @@ func EnrollmentProgressHandler(w http.ResponseWriter, r *http.Request) {
 			StaticCourseID      string                    `json:"staticCourseID"`
 			Progress            models.EnrollmentProgress `json:"progress"`
 			PercentageCompleted int                       `json:"percentageCompleted"`
+			ModuleProgress      map[string]int            `json:"moduleProgress"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" || body.StaticCourseID == "" {
 			writeError(w, http.StatusBadRequest, "userID, staticCourseID and progress required")
@@ -223,6 +225,10 @@ func EnrollmentProgressHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := store.repos.Enrollments.UpdatePercentageCompleted(body.UserID, body.StaticCourseID, body.PercentageCompleted); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if err := store.repos.Enrollments.UpdateModuleProgress(body.UserID, body.StaticCourseID, body.ModuleProgress); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

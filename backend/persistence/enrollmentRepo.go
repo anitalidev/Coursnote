@@ -22,6 +22,18 @@ func scanProgress(raw []byte, e *models.CourseEnrollment) error {
 	return nil
 }
 
+func scanModuleProgress(raw []byte, e *models.CourseEnrollment) error {
+	if len(raw) > 0 && string(raw) != "null" {
+		if err := json.Unmarshal(raw, &e.ModuleProgress); err != nil {
+			return err
+		}
+	}
+	if e.ModuleProgress == nil {
+		e.ModuleProgress = map[string]int{}
+	}
+	return nil
+}
+
 type SQLEnrollmentRepository struct {
 	db *sql.DB
 }
@@ -53,7 +65,7 @@ func (r *SQLEnrollmentRepository) Create(userID string, staticCourseID string) (
 
 func (r *SQLEnrollmentRepository) GetByUserID(userID string) ([]*models.CourseEnrollment, error) {
 	rows, err := r.db.Query(
-		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed FROM course_enrollments WHERE user_id = ?`,
+		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed, COALESCE(module_progress, '') FROM course_enrollments WHERE user_id = ?`,
 		userID,
 	)
 	if err != nil {
@@ -63,11 +75,14 @@ func (r *SQLEnrollmentRepository) GetByUserID(userID string) ([]*models.CourseEn
 	enrollments := []*models.CourseEnrollment{}
 	for rows.Next() {
 		e := &models.CourseEnrollment{}
-		var rawProgress []byte
-		if err := rows.Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage); err != nil {
+		var rawProgress, rawModuleProgress []byte
+		if err := rows.Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage, &rawModuleProgress); err != nil {
 			return nil, err
 		}
 		if err := scanProgress(rawProgress, e); err != nil {
+			return nil, err
+		}
+		if err := scanModuleProgress(rawModuleProgress, e); err != nil {
 			return nil, err
 		}
 		enrollments = append(enrollments, e)
@@ -80,13 +95,14 @@ func (r *SQLEnrollmentRepository) GetByUserID(userID string) ([]*models.CourseEn
 func (r *SQLEnrollmentRepository) GetByUserAndCourseID(userID string, courseID string) (*models.CourseEnrollment, error) {
 	e := &models.CourseEnrollment{}
 	var rawProgress []byte
+	var rawModuleProgress []byte
 	err := r.db.QueryRow(
-		`SELECT ce.enrollment_id, ce.user_id, ce.static_course_id, ce.enrolled_at, COALESCE(ce.progress, ''), ce.percentage_completed
+		`SELECT ce.enrollment_id, ce.user_id, ce.static_course_id, ce.enrolled_at, COALESCE(ce.progress, ''), ce.percentage_completed, COALESCE(ce.module_progress, '')
 		 FROM course_enrollments ce
 		 JOIN static_courses sc ON sc.static_course_id = ce.static_course_id
 		 WHERE ce.user_id = ? AND sc.course_id = ?`,
 		userID, courseID,
-	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage)
+	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage, &rawModuleProgress)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -94,6 +110,9 @@ func (r *SQLEnrollmentRepository) GetByUserAndCourseID(userID string, courseID s
 		return nil, err
 	}
 	if err := scanProgress(rawProgress, e); err != nil {
+		return nil, err
+	}
+	if err := scanModuleProgress(rawModuleProgress, e); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -104,12 +123,13 @@ func (r *SQLEnrollmentRepository) GetByUserAndCourseID(userID string, courseID s
 func (r *SQLEnrollmentRepository) GetByUserAndStaticCourseID(userID string, staticCourseID string) (*models.CourseEnrollment, error) {
 	e := &models.CourseEnrollment{}
 	var rawProgress []byte
+	var rawModuleProgress []byte
 	err := r.db.QueryRow(
-		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed
+		`SELECT enrollment_id, user_id, static_course_id, enrolled_at, COALESCE(progress, ''), percentage_completed, COALESCE(module_progress, '')
 		 FROM course_enrollments
 		 WHERE user_id = ? AND static_course_id = ?`,
 		userID, staticCourseID,
-	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage)
+	).Scan(&e.ID, &e.UserID, &e.StaticCourseID, &e.EnrolledAt, &rawProgress, &e.CompletedPercentage, &rawModuleProgress)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -117,6 +137,9 @@ func (r *SQLEnrollmentRepository) GetByUserAndStaticCourseID(userID string, stat
 		return nil, err
 	}
 	if err := scanProgress(rawProgress, e); err != nil {
+		return nil, err
+	}
+	if err := scanModuleProgress(rawModuleProgress, e); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -164,6 +187,28 @@ func (r *SQLEnrollmentRepository) UpdatePercentageCompleted(userID string, stati
 	res, err := r.db.Exec(
 		`UPDATE course_enrollments SET percentage_completed = ? WHERE user_id = ? AND static_course_id = ?`,
 		percentage, userID, staticCourseID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return errors.New("enrollment not found")
+	}
+	return nil
+}
+
+func (r *SQLEnrollmentRepository) UpdateModuleProgress(userID string, staticCourseID string, moduleProgress map[string]int) error {
+	if moduleProgress == nil {
+		moduleProgress = map[string]int{}
+	}
+	raw, err := json.Marshal(moduleProgress)
+	if err != nil {
+		return err
+	}
+	res, err := r.db.Exec(
+		`UPDATE course_enrollments SET module_progress = ? WHERE user_id = ? AND static_course_id = ?`,
+		raw, userID, staticCourseID,
 	)
 	if err != nil {
 		return err

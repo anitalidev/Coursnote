@@ -38,7 +38,8 @@ type MarketCourseDTO struct {
 	CourseOwner         string    `json:"courseOwner"`
 	IsActive            bool      `json:"isActive"`
 	Status              string    `json:"status"` // Status is either "enrolled", "", or "update"
-	CompletedPercentage int       `json:"completedPercentage"`
+	CompletedPercentage int            `json:"completedPercentage"`
+	ModuleProgress      map[string]int `json:"moduleProgress,omitempty"`
 
 	// Progress and EnrolledAt are only set on enrolled-course listings.
 	Progress   *models.EnrollmentProgress `json:"progress,omitempty"`
