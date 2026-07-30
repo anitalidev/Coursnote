@@ -5,10 +5,11 @@ import (
 	"time"
 )
 
+// Belongs/owned by a course, but the course may not record it's presence
 type StaticCourse struct {
-	ID        string `json:"id"`
-	CourseID  string `json:"courseId"`
-	ContentID string `json:"contentId"`
+	ID        string `json:"id"`        // self
+	CourseID  string `json:"courseId"`  // "owner"
+	ContentID string `json:"contentId"` // owns
 
 	Name        string `json:"name"`
 	Description string `json:"description"`

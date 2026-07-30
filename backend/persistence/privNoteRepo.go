@@ -20,7 +20,7 @@ func NewSQLPrivateNoteRepository(db *sql.DB) *SQLPrivateNoteRepository {
 func (r *SQLPrivateNoteRepository) GetPrivateNoteByID(id string) (*models.PrivateNote, error) {
 	n := &models.PrivateNote{PrivateNoteID: id}
 	err := r.db.QueryRow(`SELECT name, description, topic_id FROM private_notes WHERE private_note_id = ?`, id).
-		Scan(&n.Name, &n.Description, &n.TopicID)
+		Scan(&n.Name, &n.Content, &n.TopicID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("id does not exist")
 	}
@@ -39,7 +39,7 @@ func (r *SQLPrivateNoteRepository) CreatePrivateNote(info *PrivateNoteInfo) (*mo
 	return &models.PrivateNote{
 		PrivateNoteID: fmt.Sprintf("%d", id),
 		Name:          info.Name,
-		Description:   info.Description,
+		Content:       info.Description,
 		TopicID:       info.TopicID,
 	}, nil
 }

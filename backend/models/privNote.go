@@ -2,12 +2,11 @@ package models
 
 import "encoding/json"
 
-// TODO: Add "Content" of type Text element (?) or just have it be json.RawMessage
-
+// A struct representing a private note. Belongs to a Topic
 type PrivateNote struct {
 	PrivateNoteID string `json:"privateNoteID"` // self
+	TopicID       string `json:"topicID"`       // owner
 
-	Name        string          `json:"name"`
-	Description json.RawMessage `json:"description"` // (Is actually content)
-	TopicID     string          `json:"topicID"`     // owner
+	Name    string          `json:"name"`
+	Content json.RawMessage `json:"content"` // (Is actually content)
 }

@@ -31,7 +31,7 @@ func PrivateNoteHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, PrivateNoteDTO{
 			PrivateNoteID: note.PrivateNoteID,
 			Name:          note.Name,
-			Description:   note.Description,
+			Description:   note.Content,
 			TopicID:       note.TopicID,
 		})
 
@@ -55,7 +55,7 @@ func PrivateNoteHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, PrivateNoteDTO{
 			PrivateNoteID: note.PrivateNoteID,
 			Name:          note.Name,
-			Description:   note.Description,
+			Description:   note.Content,
 			TopicID:       note.TopicID,
 		})
 

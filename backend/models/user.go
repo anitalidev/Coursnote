@@ -1,13 +1,13 @@
 package models
 
+// A struct representing a user. Users have courses they own/write/author and user settings
 type User struct {
-	UserID string `json:"userID"` // self
+	UserID     string   `json:"userID"`    // self
+	CourseIDs  []string `json:"courseIDs"` // owns
+	SettingsID string   `json:"settings"`  // owns
 
-	Username  string   `json:"username"`
-	AvatarURL string   `json:"avatarURL,omitempty"`
-	CourseIDs []string `json:"courseIDs"` // owns
-
-	SettingsID string `json:"settings"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatarURL,omitempty"`
 }
 
 func (user *User) addCourse(courseID string) {
@@ -15,13 +15,15 @@ func (user *User) addCourse(courseID string) {
 }
 
 type UserWebSettings struct {
-	ID               string `json:"settingsID"`
-	BackgroundColour string `json:"backgroundColour"`
-	PrimaryColour    string `json:"primaryColour"`
-	GradientColour   string `json:"gradientColour"`
-	NavColour        string `json:"navColour"`
-	CardColour       string `json:"cardColour"`
-	TextColour       string `json:"textColour"`
-	AccentColour          string `json:"accentColour"`
-	SecondaryTextColour   string `json:"secondaryTextColour"`
+	ID string `json:"settingsID"` // self
+
+	// Colour settings:
+	BackgroundColour    string `json:"backgroundColour"`
+	PrimaryColour       string `json:"primaryColour"`
+	GradientColour      string `json:"gradientColour"`
+	NavColour           string `json:"navColour"`
+	CardColour          string `json:"cardColour"`
+	TextColour          string `json:"textColour"`
+	AccentColour        string `json:"accentColour"`
+	SecondaryTextColour string `json:"secondaryTextColour"`
 }
