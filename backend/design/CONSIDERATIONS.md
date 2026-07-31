@@ -93,7 +93,133 @@ Should a course know about its current static published version? What about the 
 
 The former seems helpful for intuitive/easy access. The latter, however, is not so necessary. Every time we build a course, do we really want to retrieve all static course versions immediately? Or can we easily retrieve that later. As long as the versions point back to the course they are for, we can easily query the version DB for an "owner" course ID and find versions that way.
 
+# DB again
+That makes sense, and it's actually a common reason to split it out.
 
+Keeping large content separate has a few advantages:
+
+Metadata queries stay lightweight. If you're listing published courses in the marketplace, you only need the title, author, colors, publish date, etc. You don't have to read a potentially huge HTML blob for every row.
+Less data transferred from the database. Reading hundreds of course listings is much faster if each row doesn't include megabytes of HTML.
+Cleaner separation of concerns. StaticCourse stores information about the publication, while StaticCourseContent stores the publication's actual content.
+
+# Hooking Up HTTP Requests
+
+To hook up HTTP requests, there are **three main things** to understand:
+
+## 1. HTTP Method (GET / POST / DELETE / PATCH)
+
+The HTTP method specifies **what action** the client wants to perform.
+
+Examples:
+
+```text
+GET    /users          -> Retrieve users
+POST   /users          -> Create a new user
+DELETE /users/{id}     -> Delete a user
+PATCH  /users/{id}     -> Update part of a user
+```
+
+---
+
+## 2. Path Values
+
+Path values are values embedded in the URL path that identify a **specific resource**.
+
+Route:
+
+```text
+GET /users/{id}
+```
+
+Request:
+
+```text
+GET /users/123
+```
+
+Here, the path value is:
+
+```text
+id = "123"
+```
+
+In Go:
+
+```go
+id := r.PathValue("id")
+```
+
+Use **path values** when identifying **which resource** is being accessed.
+
+Examples:
+
+```text
+GET /courses/42
+GET /users/123
+DELETE /topics/5
+```
+
+---
+
+## 3. Query Parameters
+
+Query parameters are optional key-value pairs appended to the URL after `?`.
+
+Use **query parameters** when they're **optional** or **modify the request**, rather than identifying the resource itself.
+
+Examples:
+
+Search/filter:
+
+```text
+GET /users?username=alice
+```
+
+Pagination:
+
+```text
+GET /courses?page=2&limit=20
+```
+
+Sorting:
+
+```text
+GET /courses?sort=name
+```
+
+In Go:
+
+```go
+username := r.URL.Query().Get("username")
+page := r.URL.Query().Get("page")
+```
+
+---
+
+## Rule of Thumb
+
+**Path Values** answer:
+
+> Which resource?
+
+Examples:
+
+```text
+GET /courses/42
+GET /users/123
+```
+
+**Query Parameters** answer:
+
+> How should I retrieve the resource?
+
+Examples:
+
+```text
+GET /courses?page=2&sort=name
+GET /users?username=alice
+GET /courses?published=true
+```
 
 # Design Patterns in the Code
 ### 1. Table Repositories are an example of Singleton in the case of this project

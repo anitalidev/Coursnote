@@ -17,7 +17,7 @@ const staticRoutes = {
   '/topic':        (id, CD) => CD.topicMap[id]      ?? null,
   '/coursepages':  (id, CD) => CD.coursePageMap?.[id] ?? null,
   '/privatenotes': (id, CD) => CD.privateNotes?.[id] ?? null,
-  '/user':         (_,  CD) => ({ id: 'static', username: 'Viewer', courseIDs: [CD.course.courseID] }),
+  '/user/static':  (_,  CD) => ({ id: 'static', username: 'Viewer', courseIDs: [CD.course.courseID] }),
   '/market':       ()       => [],
 };
 
@@ -38,7 +38,7 @@ function GET(path) {
   // Enrolled online: course pages live in the DB — fetch directly rather than
   // relying on rawElements being present in the (potentially old) static bundle.
   if (path.startsWith('/coursepages') && Runtime.enrollmentData) return req('GET', path);
-  if (path.startsWith('/user')) return req('GET', path);
+  if (path.startsWith('/user/')) return req('GET', path);
   return staticGet(path);
 }
 const POST = (path, body) => Runtime.trackProgress ? staticReadOnly()          : req('POST',   path, body);
