@@ -66,11 +66,18 @@ func main() {
 	mux.HandleFunc("PUT /api/topic", handlers.PutTopic)
 	mux.HandleFunc("DELETE /api/topic", handlers.DeleteTopic)
 
+	// staticContent.go
+	mux.HandleFunc("/api/staticcontent", handlers.GetStaticContent)
+
+	// privateNotes.go
+	mux.HandleFunc("/api/privatenotes", handlers.GetPrivateNote)
+	mux.HandleFunc("/api/privatenotes", handlers.PutPrivateNote)
+	mux.HandleFunc("/api/privatenotes", handlers.DeletePrivateNote)
+
 	// toFix
 
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
 	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
-	mux.HandleFunc("/api/staticcontent", handlers.GetStaticContent)
 
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
@@ -83,7 +90,6 @@ func main() {
 	mux.HandleFunc("/api/course/progress", handlers.EnrollmentProgressHandler)
 	mux.HandleFunc("/api/module", handlers.ModuleHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
-	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
 	mux.HandleFunc("/api/usersettings", handlers.UserSettingsHandler)
 
 	// SPA fallback: serve index.html for any non-API, non-asset route
