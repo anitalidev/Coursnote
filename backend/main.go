@@ -53,14 +53,24 @@ func main() {
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 	// Serve built frontend assets (JS/CSS bundles from vite build)
 	mux.Handle("/assets/", distFS)
-	mux.HandleFunc("/api/image", handlers.ImageHandler)
-	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
-	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 
+	// users.go
 	mux.HandleFunc("GET /api/user/{id}", handlers.GetUserByID)
 	mux.HandleFunc("GET /api/user", handlers.GetUserByUsername)
 	mux.HandleFunc("POST /api/user", handlers.PostUser)
 	mux.HandleFunc("DELETE /api/user/{id}", handlers.DeleteUser)
+
+	// topics.go
+	mux.HandleFunc("GET /api/topic", handlers.GetTopic)
+	mux.HandleFunc("POST /api/topic", handlers.PostTopic)
+	mux.HandleFunc("PUT /api/topic", handlers.PutTopic)
+	mux.HandleFunc("DELETE /api/topic", handlers.DeleteTopic)
+
+	// toFix
+
+	mux.HandleFunc("/api/image", handlers.ImageHandler)
+	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
+	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
 
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
@@ -72,7 +82,6 @@ func main() {
 	mux.HandleFunc("/api/course/enrolled", handlers.EnrolledCoursesHandler)
 	mux.HandleFunc("/api/course/progress", handlers.EnrollmentProgressHandler)
 	mux.HandleFunc("/api/module", handlers.ModuleHandler)
-	mux.HandleFunc("/api/topic", handlers.TopicHandler)
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
 	mux.HandleFunc("/api/privatenotes", handlers.PrivateNoteHandler)
 	mux.HandleFunc("/api/usersettings", handlers.UserSettingsHandler)
