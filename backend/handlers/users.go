@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/persistence"
@@ -26,25 +27,29 @@ type userDTO struct {
 // SERVER: if an internal error occurs
 // WRITES: JSON representing a single UserDTO
 func GetUserByUsername(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username") // try username instead
-
+	// normalise: lowercase + trim so lookups are case/whitespace-insensitive
+	username := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("username")))
 	if username == "" {
 		writeError(w, http.StatusBadRequest, "no username query specified")
 		return
 	}
-	// return user based on username
+
 	store.mu.RLock()
 	defer store.mu.RUnlock()
+
+	// search for user in DB
 	user, err := store.repos.Users.GetUserByUsername(username)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
+	// search for the user's settings in DB
 	settings, err := store.repos.Settings.GetByID(user.SettingsID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// combine user + their settings to write + return DTO
 	writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, AvatarURL: user.AvatarURL, CourseIDs: user.CourseIDs, Settings: *settings})
 }
 
@@ -55,25 +60,29 @@ func GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 // SERVER: if an internal error occurs
 // WRITES: JSON representing a single UserDTO
 func GetUserByID(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := r.PathValue("id") // try to obtain the id being searched user
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "No ID specified")
 		return
 	}
-	// Find user based on id
+
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
+	// Find user in DB based on id
 	user, err := store.repos.Users.GetUserByID(id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
+	// Find user settings for that user in DB
 	settings, err := store.repos.Settings.GetByID(user.SettingsID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Combine user + their settings to write + return as DTO
 	writeJSON(w, http.StatusOK, userDTO{ID: user.UserID, Username: user.Username, AvatarURL: user.AvatarURL, CourseIDs: user.CourseIDs, Settings: *settings})
 }
 
@@ -84,20 +93,28 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 // SERVER: if an internal error occurs
 // WRITES: JSON representing a single UserDTO (of the newly created user)
 func PostUser(w http.ResponseWriter, r *http.Request) {
-	var body struct { // this is the form of JSON that frontend will send back
+	// this is the form of JSON that frontend will include in request
+	var body struct {
 		Username string `json:"username"`
 	}
+	// deserialize
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" {
 		writeError(w, http.StatusBadRequest, "username required")
 		return
 	}
+	// normalise: lowercase + trim so stored usernames are case/whitespace-insensitive
+	body.Username = strings.ToLower(strings.TrimSpace(body.Username))
+
 	store.mu.Lock()
 	defer store.mu.Unlock()
+
+	// Ensure that username is unique
 	if _, err := store.repos.Users.GetUserByUsername(body.Username); err == nil {
 		writeError(w, http.StatusConflict, "username already exists")
 		return
 	}
 
+	// Create the user
 	user, err := store.repos.Users.CreateUser(&persistence.UserInfo{
 		Username: body.Username,
 	})
@@ -106,12 +123,14 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Grab its settings
 	settings, err := store.repos.Settings.GetByID(user.SettingsID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Write the DTO of the user just created
 	writeJSON(w, http.StatusCreated, userDTO{
 		ID: user.UserID, Username: user.Username, CourseIDs: user.CourseIDs, AvatarURL: user.AvatarURL,
 		Settings: models.UserWebSettings{
@@ -136,12 +155,14 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
+	// Confirm the user exists before attempting deletion
 	_, err := store.repos.Users.GetUserByID(id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
+	// Delete user (cascade-deletes all owned courses, modules, topics, etc.)
 	if err := store.repos.Users.DeleteUserByID(id); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
