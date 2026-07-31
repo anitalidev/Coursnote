@@ -70,7 +70,7 @@ func main() {
 
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
 	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
-	mux.HandleFunc("/api/staticcontent", handlers.StaticContentHandler)
+	mux.HandleFunc("/api/staticcontent", handlers.GetStaticContent)
 
 	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
