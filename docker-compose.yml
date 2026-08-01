@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: host.docker.internal
+  frontend:
+    build: ./frontend
+    ports:
+      - "3334:3334"
+    environment:
+      DB_HOST: host.docker.internal

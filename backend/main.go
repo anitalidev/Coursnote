@@ -67,15 +67,14 @@ func main() {
 	mux.HandleFunc("DELETE /api/topic", handlers.DeleteTopic)
 
 	// staticContent.go
-	mux.HandleFunc("/api/staticcontent", handlers.GetStaticContent)
+	mux.HandleFunc("GET /api/staticcontent", handlers.GetStaticContent)
 
 	// privateNotes.go
-	mux.HandleFunc("/api/privatenotes", handlers.GetPrivateNote)
-	mux.HandleFunc("/api/privatenotes", handlers.PutPrivateNote)
-	mux.HandleFunc("/api/privatenotes", handlers.DeletePrivateNote)
+	mux.HandleFunc("GET /api/privatenotes", handlers.GetPrivateNote)
+	mux.HandleFunc("PUT /api/privatenotes", handlers.PutPrivateNote)
+	mux.HandleFunc("DELETE /api/privatenotes", handlers.DeletePrivateNote)
 
 	// toFix
-
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
 	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
 
