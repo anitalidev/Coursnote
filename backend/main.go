@@ -74,11 +74,19 @@ func main() {
 	mux.HandleFunc("PUT /api/privatenotes", handlers.PutPrivateNote)
 	mux.HandleFunc("DELETE /api/privatenotes", handlers.DeletePrivateNote)
 
+	// modules.go
+	mux.HandleFunc("GET /api/module", handlers.GetModule)
+	mux.HandleFunc("PUT /api/module", handlers.PutModule)
+	mux.HandleFunc("POST /api/module", handlers.PostModule)
+	mux.HandleFunc("DELETE /api/module", handlers.DeleteModule)
+
+	// market.go
+	mux.HandleFunc("/api/market", handlers.MarketHandler)
+
 	// toFix
 	mux.HandleFunc("/api/image", handlers.ImageHandler)
 	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
 
-	mux.HandleFunc("/api/market", handlers.MarketHandler)
 	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
 	mux.HandleFunc("/api/course", handlers.CourseHandler)
 	mux.HandleFunc("/api/course/publish", handlers.CourseHandler)
@@ -87,7 +95,7 @@ func main() {
 	mux.HandleFunc("/api/course/update-enroll", handlers.UpdateEnrollHandler)
 	mux.HandleFunc("/api/course/enrolled", handlers.EnrolledCoursesHandler)
 	mux.HandleFunc("/api/course/progress", handlers.EnrollmentProgressHandler)
-	mux.HandleFunc("/api/module", handlers.ModuleHandler)
+
 	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
 	mux.HandleFunc("/api/usersettings", handlers.UserSettingsHandler)
 
