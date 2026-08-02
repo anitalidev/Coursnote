@@ -121,12 +121,10 @@ type EnrollmentRepository interface {
 	GetByUserAndStaticCourseID(userID string, staticCourseID string) (*models.CourseEnrollment, error)
 	// UpdateStaticCourse points an existing enrollment to a different static course version.
 	UpdateStaticCourse(enrollmentID string, staticCourseID string) error
-	// UpdatePercentageCompleted sets the overall completion percentage for the enrollment.
-	UpdatePercentageCompleted(userID string, staticCourseID string, percentage int) error
-	// UpdateModuleProgress replaces the per-module progress map for the enrollment.
-	UpdateModuleProgress(userID string, staticCourseID string, moduleProgress map[string]int) error
-	// UpdateProgress replaces the full progress snapshot for the enrollment.
-	UpdateProgress(userID string, staticCourseID string, progress models.EnrollmentProgress) error
+	// UpdatePercentageCompleted sets the overall completion percentage for the enrollment, replace per-
+	// module progress map, and replaces full-progress snapshot
+	UpdateProgress(userID string, staticCourseID string, percentage int,
+		moduleProgress map[string]int, progress models.EnrollmentProgress) error
 	// Delete removes the enrollment record.
 	Delete(enrollmentID string) error
 }

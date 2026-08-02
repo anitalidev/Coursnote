@@ -233,19 +233,11 @@ func PutEnrollmentProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.repos.Enrollments.UpdateProgress(body.UserID, body.StaticCourseID, body.Progress); err != nil {
+	if err := store.repos.Enrollments.UpdateProgress(body.UserID, body.StaticCourseID, body.PercentageCompleted, body.ModuleProgress, body.Progress); err != nil {
 		if err.Error() == "enrollment not found" {
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if err := store.repos.Enrollments.UpdatePercentageCompleted(body.UserID, body.StaticCourseID, body.PercentageCompleted); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if err := store.repos.Enrollments.UpdateModuleProgress(body.UserID, body.StaticCourseID, body.ModuleProgress); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

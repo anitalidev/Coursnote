@@ -160,55 +160,28 @@ func (r *SQLEnrollmentRepository) UpdateStaticCourse(enrollmentID string, static
 	return nil
 }
 
-// UpdateProgress replaces the progress blob on the user's enrollment in the
-// given static course. Keying on (user, static course) doubles as the
-// ownership check: a user can only ever write their own progress.
-func (r *SQLEnrollmentRepository) UpdateProgress(userID string, staticCourseID string, progress models.EnrollmentProgress) error {
-	progress.EnsureMaps()
-	raw, err := json.Marshal(progress)
-	if err != nil {
-		return err
-	}
-	res, err := r.db.Exec(
-		`UPDATE course_enrollments SET progress = ? WHERE user_id = ? AND static_course_id = ?`,
-		raw, userID, staticCourseID,
-	)
-	if err != nil {
-		return err
-	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return errors.New("enrollment not found")
-	}
-	return nil
-}
-
-func (r *SQLEnrollmentRepository) UpdatePercentageCompleted(userID string, staticCourseID string, percentage int) error {
-	res, err := r.db.Exec(
-		`UPDATE course_enrollments SET percentage_completed = ? WHERE user_id = ? AND static_course_id = ?`,
-		percentage, userID, staticCourseID,
-	)
-	if err != nil {
-		return err
-	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return errors.New("enrollment not found")
-	}
-	return nil
-}
-
-func (r *SQLEnrollmentRepository) UpdateModuleProgress(userID string, staticCourseID string, moduleProgress map[string]int) error {
+// UpdateProgress atomically writes percentage_completed, module_progress, and progress
+// in a single UPDATE. Keying on (user, static course) doubles as an ownership check.
+func (r *SQLEnrollmentRepository) UpdateProgress(userID string, staticCourseID string, percentage int, moduleProgress map[string]int, progress models.EnrollmentProgress) error {
 	if moduleProgress == nil {
 		moduleProgress = map[string]int{}
 	}
-	raw, err := json.Marshal(moduleProgress)
+	progress.EnsureMaps()
+
+	rawModule, err := json.Marshal(moduleProgress)
 	if err != nil {
 		return err
 	}
+	rawProgress, err := json.Marshal(progress)
+	if err != nil {
+		return err
+	}
+
 	res, err := r.db.Exec(
-		`UPDATE course_enrollments SET module_progress = ? WHERE user_id = ? AND static_course_id = ?`,
-		raw, userID, staticCourseID,
+		`UPDATE course_enrollments
+		 SET percentage_completed = ?, module_progress = ?, progress = ?
+		 WHERE user_id = ? AND static_course_id = ?`,
+		percentage, rawModule, rawProgress, userID, staticCourseID,
 	)
 	if err != nil {
 		return err
