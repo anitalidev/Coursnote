@@ -57,11 +57,10 @@ func courseToDTO(course *models.Course) CourseDTO {
 // Called while the store lock is already held.
 func TopicCount(course *models.Course) int {
 	total := 0
-	for _, moduleID := range course.ModuleIDs {
-		module, err := store.repos.Modules.GetModuleByID(moduleID)
-		if err != nil {
-			continue
-		}
+
+	modules, _ := store.repos.Modules.GetModulesByCourseID(course.CourseID)
+
+	for _, module := range modules {
 		total += len(module.TopicIDs)
 	}
 	return total

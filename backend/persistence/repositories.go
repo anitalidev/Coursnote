@@ -112,9 +112,15 @@ type EnrollmentRepository interface {
 	Delete(enrollmentID string) error
 }
 
+type CourseCounts struct {
+	NumModules int
+	NumTopics  int
+}
+
 type CourseRepository interface {
 	GetCourseByID(id string) (*models.Course, error)
 	GetCoursesByUserID(userID string) ([]*models.Course, error)
+	GetCourseCountsByIDs(ids []string) (map[string]CourseCounts, error)
 	CreateCourse(course *CourseInfo) (*models.Course, error)
 	DeleteCourseByID(id string) error
 	UpdateCourse(id string, name string, description string, leftColour string, rightColour string,
@@ -123,6 +129,7 @@ type CourseRepository interface {
 
 type ModuleRepository interface {
 	GetModuleByID(id string) (*models.Module, error)
+	GetModulesByCourseID(courseID string) ([]*models.Module, error)
 	CreateModule(module *ModuleInfo) (*models.Module, error)
 	DeleteModuleByID(id string) error
 	UpdateModule(id string, name string, description string) error

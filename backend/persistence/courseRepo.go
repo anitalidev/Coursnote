@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 )
@@ -28,6 +29,38 @@ func (r *SQLCourseRepository) GetCourseByID(id string) (*models.Course, error) {
 	}
 	c.ModuleIDs, err = r.moduleIDsForCourse(id)
 	return c, err
+}
+
+func (r *SQLCourseRepository) GetCourseCountsByIDs(ids []string) (map[string]CourseCounts, error) {
+	if len(ids) == 0 {
+		return map[string]CourseCounts{}, nil
+	}
+	placeholders := strings.Repeat("?,", len(ids))
+	placeholders = placeholders[:len(placeholders)-1]
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := r.db.Query(`
+		SELECT m.course_id, COUNT(DISTINCT m.module_id), COUNT(t.topic_id)
+		FROM modules m
+		LEFT JOIN topics t ON t.module_id = m.module_id
+		WHERE m.course_id IN (`+placeholders+`)
+		GROUP BY m.course_id`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]CourseCounts, len(ids))
+	for rows.Next() {
+		var courseID string
+		var counts CourseCounts
+		if err := rows.Scan(&courseID, &counts.NumModules, &counts.NumTopics); err != nil {
+			return nil, err
+		}
+		result[courseID] = counts
+	}
+	return result, rows.Err()
 }
 
 func (r *SQLCourseRepository) CreateCourse(info *CourseInfo) (*models.Course, error) {

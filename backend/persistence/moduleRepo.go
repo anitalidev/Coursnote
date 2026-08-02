@@ -30,6 +30,33 @@ func (r *SQLModuleRepository) GetModuleByID(id string) (*models.Module, error) {
 	return m, err
 }
 
+func (r *SQLModuleRepository) GetModulesByCourseID(courseID string) ([]*models.Module, error) {
+	rows, err := r.db.Query(`SELECT module_id, name, description FROM modules WHERE course_id = ?`, courseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var modules []*models.Module
+	for rows.Next() {
+		m := &models.Module{CourseID: courseID}
+		if err := rows.Scan(&m.ModuleID, &m.Name, &m.Description); err != nil {
+			return nil, err
+		}
+		m.TopicIDs, err = r.topicIDsForModule(m.ModuleID)
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if modules == nil {
+		modules = []*models.Module{}
+	}
+	return modules, nil
+}
+
 func (r *SQLModuleRepository) CreateModule(info *ModuleInfo) (*models.Module, error) {
 	// Verify course exists
 	var exists int

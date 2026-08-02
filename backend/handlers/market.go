@@ -98,14 +98,25 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 	enrolledCourse := map[string]bool{}
 	if userID := r.URL.Query().Get("userID"); userID != "" {
 		if enrollments, err := store.repos.Enrollments.GetByUserID(userID); err == nil {
+			scIDs := make([]string, 0, len(enrollments))
 			for _, e := range enrollments {
 				enrolledStatic[e.StaticCourseID] = true
-				if sc, err := store.repos.StaticCourses.GetByID(e.StaticCourseID); err == nil {
+				scIDs = append(scIDs, e.StaticCourseID)
+			}
+			if scs, err := store.repos.StaticCourses.GetByIDs(scIDs); err == nil {
+				for _, sc := range scs {
 					enrolledCourse[sc.CourseID] = true
 				}
 			}
 		}
 	}
+
+	// Batch-fetch live module/topic counts for all courses in one query.
+	courseIDs := make([]string, 0, len(staticCourses))
+	for _, sc := range staticCourses {
+		courseIDs = append(courseIDs, sc.CourseID)
+	}
+	courseCounts, _ := store.repos.Courses.GetCourseCountsByIDs(courseIDs)
 
 	// Assemble DTOs, overriding stored module/topic counts with live values and
 	// stamping each with the user's enrollment status.
@@ -125,9 +136,9 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 			CourseOwner: sc.CourseOwner,
 			IsActive:    sc.IsActive,
 		}
-		if course, err := store.repos.Courses.GetCourseByID(sc.CourseID); err == nil {
-			dto.NumModules = len(course.ModuleIDs)
-			dto.NumTopics = TopicCount(course)
+		if counts, ok := courseCounts[sc.CourseID]; ok {
+			dto.NumModules = counts.NumModules
+			dto.NumTopics = counts.NumTopics
 		}
 		if enrolledStatic[sc.ID] {
 			dto.Status = "enrolled"
