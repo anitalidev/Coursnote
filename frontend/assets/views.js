@@ -310,7 +310,6 @@ function homeHTML() {
 function coursesHTML() {
   const cards = S.data.courses.map(c => {
     const mods   = (c.moduleIDs || []).length;
-    const pct    = Math.round((c.pcompleted || 0) * 100);
     const topics = c.ntopics || 0;
 
     const menu = `<button class="cc2-menu" onclick="event.stopPropagation();openCourseMenu('${c.courseID}',${jsonAttr(c)},this)" title="Options">
@@ -484,7 +483,7 @@ function marketHTML() {
 function modulesHTML() {
   const c = S.ui.currentCourse;
   const totalTopics = S.data.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const pct = Runtime.trackProgress ? _computePercentageCompleted() : Math.round((S.ui.currentCourse.pcompleted || 0) * 100);
+  const pct = Runtime.trackProgress ? _computePercentageCompleted() : 0;
   const doneMods = Math.round(pct / 100 * S.data.modules.length);
   const bannerGrad = `linear-gradient(135deg,${c.leftColour || '#3b82f6'},${c.rightColour || '#06b6d4'})`;
 

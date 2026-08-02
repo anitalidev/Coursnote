@@ -22,7 +22,6 @@ type CourseDTO struct {
 	StaticCourseID string    `json:"staticCourseID"`
 	PublishDate    time.Time `json:"publishDate,omitempty"`
 	UserID         string    `json:"userID"`
-	PCompleted     float32   `json:"pcompleted"`
 	NTopics        int       `json:"ntopics"`
 	LeftColour     string    `json:"leftColour"`
 	RightColour    string    `json:"rightColour"`
@@ -44,7 +43,6 @@ func courseToDTO(course *models.Course) CourseDTO {
 		ModuleIDs:      course.ModuleIDs,
 		StaticCourseID: course.StaticCourseID,
 		UserID:         course.UserID,
-		PCompleted:     PercentageCompleted(course),
 		NTopics:        TopicCount(course),
 		LeftColour:     course.LeftColour,
 		RightColour:    course.RightColour,
@@ -53,12 +51,6 @@ func courseToDTO(course *models.Course) CourseDTO {
 		dto.PublishDate = date
 	}
 	return dto
-}
-
-// PercentageCompleted returns the fraction of the course's topics the user has completed.
-// TODO: implement — currently always returns 0.
-func PercentageCompleted(course *models.Course) float32 {
-	return 0
 }
 
 // TopicCount returns the total number of topics across all of a course's modules.

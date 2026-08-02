@@ -87,7 +87,7 @@ function renderSidebar() {
 
   const total = S.data.modules.length;
   const totalTopics = S.data.modules.reduce((n, m) => n + (m.topicIDs || []).length, 0);
-  const pct   = Runtime.trackProgress ? _computePercentageCompleted() : Math.round((S.ui.currentCourse?.pcompleted || 0) * 100);
+  const pct   = Runtime.trackProgress ? _computePercentageCompleted() : 0;
   const initial = (S.data.user.username || '?')[0].toUpperCase();
   const sbAvatarInner = S.data.user.avatarURL ? `<img src="${esc(S.data.user.avatarURL)}" class="sb-avatar-img">` : initial;
 
