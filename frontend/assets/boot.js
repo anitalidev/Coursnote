@@ -5,7 +5,7 @@
   if (saved) {
     const parsed = saved;
     try {
-      const fresh = await GET('/user?id=' + parsed.id);
+      const fresh = await GET('/user/' + parsed.id);
       S.data.user = { id: fresh.id, username: fresh.username, avatarURL: fresh.avatarURL || '', courseIDs: fresh.courseIDs || [], settings: fresh.settings || null };
       if (fresh.settings) {
         const r = document.documentElement;

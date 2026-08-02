@@ -17,7 +17,8 @@ type Topic struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
 	Elements    []elements.Element `json:"-"`
-	CompRules   []CompletionRule   `json:"compTypes"`
+	CompRules   []CompletionRule   `json:"compTypes"` // REQUIRES: at least one completion rule. Default manual if none
+	// TODO ^ scary requirement
 }
 type CompletionRule struct {
 	Type   CompletionRuleType `json:"type"`

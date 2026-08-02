@@ -20,7 +20,8 @@ function toggleUserMenu(e) {
   const rect = e.currentTarget.getBoundingClientRect();
   menu.style.display = 'block';
   menu.style.left = (rect.right + 8) + 'px';
-  menu.style.top = rect.top + 'px';
+  const top = Math.min(rect.top, window.innerHeight - menu.offsetHeight - 8);
+  menu.style.top = top + 'px';
   const close = () => { menu.style.display = 'none'; document.removeEventListener('click', close); };
   document.addEventListener('click', close);
 }
@@ -36,7 +37,7 @@ async function handleLogin(username) {
   } catch {
     user = await POST('/user', { username });
   }
-  const full = await GET('/user?id=' + user.id);
+  const full = await GET('/user/' + user.id);
   S.data.user = { id: user.id, username: user.username, avatarURL: full.avatarURL || '', courseIDs: full.courseIDs || [], settings: full.settings || user.settings || null };
   const activeSettings = full.settings || user.settings;
   if (activeSettings) applyAllColours(activeSettings);
@@ -52,7 +53,7 @@ async function handleLogin(username) {
 
 async function createCourse(name, desc) {
   await POST('/course', { name, description: desc, userID: S.data.user.id });
-  const full = await GET('/user?id=' + S.data.user.id);
+  const full = await GET('/user/' + S.data.user.id);
   S.data.user.courseIDs = full.courseIDs || [];
   S.data.courses = await loadCourses();
   render();
@@ -77,7 +78,7 @@ async function createTopic(name, desc) {
 async function deleteCourse(id) {
   if (!confirm('Delete this course and all its contents?')) return;
   await DEL('/course?id=' + id);
-  const full = await GET('/user?id=' + S.data.user.id);
+  const full = await GET('/user/' + S.data.user.id);
   S.data.user.courseIDs = full.courseIDs || [];
   S.data.courses = await loadCourses();
   render();

@@ -50,12 +50,14 @@ const staticShell = `<!DOCTYPE html>
 </body>
 </html>`
 
-func StaticContentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
+// HTTP Request Handlers
 
+// OVERALL: GET the static course viewer page for a given content ID
+// QPARAM: id (non-empty); userID (optional — if provided, enrollment is embedded in the page)
+// BADREQ: if id query param is missing/empty
+// NOTFND: if no static content with that id exists, or if content exists but has not been published yet
+// WRITES: HTML page (staticShell) with COURSE_DATA and ENROLLMENT_DATA injected as JS globals
+func GetStaticContent(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "id query param required")
@@ -65,18 +67,22 @@ func StaticContentHandler(w http.ResponseWriter, r *http.Request) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
+	// Fetch the published content blob for this content ID
 	content, err := store.repos.StaticContents.GetByID(id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
+	// A StaticContent row can exist before its content is published (empty blob)
 	if len(content.Content) == 0 {
 		writeError(w, http.StatusNotFound, "course content not yet published")
 		return
 	}
 
-	// When the viewer is enrolled, embed their enrollment so static-init.js
-	// persists progress to the enrollment instead of localStorage.
+	// Resolve enrollment: StaticContent → StaticCourse → Enrollment for this user.
+	// enrollmentJSON stays "null" when userID is absent or no enrollment is found;
+	// the frontend checks window.ENROLLMENT_DATA for null to decide between
+	// server-persisted progress and localStorage-only (preview) mode.
 	enrollmentJSON := "null"
 	if userID := r.URL.Query().Get("userID"); userID != "" {
 		if sc, err := store.repos.StaticCourses.GetByContentID(id); err == nil && sc != nil {

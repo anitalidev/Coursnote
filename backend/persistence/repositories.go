@@ -2,12 +2,16 @@ package persistence
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 	"github.com/anitalidev/Coursnote/backend/models/elements"
 	"github.com/anitalidev/Coursnote/backend/models/market"
 )
+
+// ErrNotFound is returned by repos when a record with the given ID does not exist.
+var ErrNotFound = errors.New("not found")
 
 // Calls to any non-repo-creation MUST hold lock when calling.
 

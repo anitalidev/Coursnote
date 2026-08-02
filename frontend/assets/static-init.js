@@ -377,7 +377,7 @@ if (_ED) {
   const _viewerID = (_ED && _ED.userID) || new URLSearchParams(location.search).get('userID');
   if (_viewerID) {
     try {
-      const user = await GET('/user?id=' + _viewerID);
+      const user = await GET('/user/' + _viewerID);
       if (user && user.settings) {
         const s = user.settings;
         const r = document.documentElement;

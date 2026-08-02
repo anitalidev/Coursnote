@@ -91,7 +91,7 @@ func (r *SQLTopicRepository) UpdateTopic(id string, name string, description str
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
-		return errors.New("id does not exist")
+		return ErrNotFound
 	}
 	return nil
 }

@@ -28,7 +28,7 @@ async function loadAllTopics(modules) {
 }
 
 async function refreshUser() {
-  const u = await GET('/user?id=' + S.data.user.id);
+  const u = await GET('/user/' + S.data.user.id);
   S.data.user = { id: u.id || S.data.user.id, username: u.username, avatarURL: u.avatarURL || '', courseIDs: u.courseIDs };
 }
 

@@ -10,7 +10,21 @@ import (
 	"time"
 )
 
-func ImageHandler(w http.ResponseWriter, r *http.Request) {
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+// allowedImageExts is the set of file extensions accepted for all image uploads.
+var allowedImageExts = map[string]bool{
+	".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
+}
+
+// ── Handlers ──────────────────────────────────────────────────────────────────
+
+// OVERALL: POST an image file for use inside a course page
+// RQBODY: multipart/form-data with field "image" (jpg, jpeg, png, gif, or webp; max 10 MB)
+// BADREQ: if the form cannot be parsed, the "image" field is absent, or the extension is unsupported
+// SERVER: if the upload directory cannot be created or the file cannot be saved
+// WRITES: JSON with { url: string } — the URL at which the saved image can be fetched
+func PostImage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -29,8 +43,7 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
-	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
-	if !allowed[ext] {
+	if !allowedImageExts[ext] {
 		writeError(w, http.StatusBadRequest, "unsupported image type")
 		return
 	}
@@ -47,26 +60,23 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer dst.Close()
-	io.Copy(dst, file)
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not write file")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
 		"url": "http://localhost:8081/uploads/" + filename,
 	})
 }
 
-func AvatarHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodDelete {
-		userID := r.URL.Query().Get("userID")
-		if userID == "" {
-			writeError(w, http.StatusBadRequest, "userID required")
-			return
-		}
-		store.mu.Lock()
-		defer store.mu.Unlock()
-		store.repos.Users.SetAvatarURL(userID, "")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
+// OVERALL: POST (upload) a new avatar image for the given user
+// QPARAM: userID (non-empty)
+// RQBODY: multipart/form-data with field "avatar" (jpg, jpeg, png, gif, or webp; max 5 MB)
+// BADREQ: if userID is absent, the form cannot be parsed, the "avatar" field is absent, or the extension is unsupported
+// SERVER: if the upload directory cannot be created, the file cannot be saved, or the user record cannot be updated
+// WRITES: JSON with { avatarURL: string } — the URL at which the saved avatar can be fetched
+func PostAvatar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -91,8 +101,7 @@ func AvatarHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
-	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
-	if !allowed[ext] {
+	if !allowedImageExts[ext] {
 		writeError(w, http.StatusBadRequest, "unsupported image type")
 		return
 	}
@@ -109,7 +118,10 @@ func AvatarHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer dst.Close()
-	io.Copy(dst, file)
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not write file")
+		return
+	}
 
 	url := "http://localhost:8081/uploads/avatars/" + filename
 
@@ -121,4 +133,29 @@ func AvatarHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"avatarURL": url})
+}
+
+// OVERALL: DELETE (clear) the avatar for the given user
+// QPARAM: userID (non-empty)
+// BADREQ: if userID is absent
+// SERVER: if the user record cannot be updated
+func DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "userID required")
+		return
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if err := store.repos.Users.SetAvatarURL(userID, ""); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not clear avatar")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
