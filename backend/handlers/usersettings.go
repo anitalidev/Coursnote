@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/anitalidev/Coursnote/backend/persistence"
 )
 
 func UserSettingsHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +33,10 @@ func UserSettingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := store.repos.Settings.UpdateSettingsByID(id, body.BackgroundColour, body.PrimaryColour, body.GradientColour, body.NavColour, body.CardColour, body.TextColour, body.AccentColour, body.SecondaryTextColour); err != nil {
+		if err := store.repos.Settings.UpdateSettingsColourByID(id, &persistence.ColourContent{
+			body.BackgroundColour, body.PrimaryColour, body.GradientColour,
+			body.NavColour, body.CardColour, body.TextColour,
+			body.AccentColour, body.SecondaryTextColour}); err != nil {
 			if err.Error() == "settings not found" {
 				writeError(w, http.StatusNotFound, err.Error())
 				return

@@ -26,22 +26,33 @@ func (r *SQLSettingsRepository) Create() (*models.UserWebSettings, error) {
 	}
 	id, _ := res.LastInsertId()
 	return &models.UserWebSettings{
-		ID:               fmt.Sprintf("%d", id),
-		BackgroundColour: "#0f1117",
-		PrimaryColour:    "#6c8ef7",
-		GradientColour:   "#a78bfa",
-		NavColour:        "#1a1d27",
-		CardColour:       "#1e2235",
-		TextColour:       "#e2e8f0",
-		AccentColour:          "#2e3352",
-		SecondaryTextColour:   "#94a3b8",
+		ID:                  fmt.Sprintf("%d", id),
+		BackgroundColour:    "#0f1117",
+		PrimaryColour:       "#6c8ef7",
+		GradientColour:      "#a78bfa",
+		NavColour:           "#1a1d27",
+		CardColour:          "#1e2235",
+		TextColour:          "#e2e8f0",
+		AccentColour:        "#2e3352",
+		SecondaryTextColour: "#94a3b8",
 	}, nil
 }
 
-func (r *SQLSettingsRepository) UpdateSettingsByID(id, backgroundColour, primaryColour, gradientColour, navColour, cardColour, textColour, accentColour, secondaryTextColour string) error {
+type ColourContent struct {
+	BackgroundColour    string `json:"backgroundColour"`
+	PrimaryColour       string `json:"primaryColour"`
+	GradientColour      string `json:"gradientColour"`
+	NavColour           string `json:"navColour"`
+	CardColour          string `json:"cardColour"`
+	TextColour          string `json:"textColour"`
+	AccentColour        string `json:"accentColour"`
+	SecondaryTextColour string `json:"secondaryTextColour"`
+}
+
+func (r *SQLSettingsRepository) UpdateSettingsColourByID(id string, c *ColourContent) error {
 	res, err := r.db.Exec(
 		`UPDATE user_settings SET background_colour = ?, primary_colour = ?, gradient_colour = ?, nav_colour = ?, card_colour = ?, text_colour = ?, accent_colour = ?, secondary_text_colour = ? WHERE settings_id = ?`,
-		backgroundColour, primaryColour, gradientColour, navColour, cardColour, textColour, accentColour, secondaryTextColour, id,
+		c.BackgroundColour, c.PrimaryColour, c.GradientColour, c.NavColour, c.CardColour, c.TextColour, c.AccentColour, c.SecondaryTextColour, id,
 	)
 	if err != nil {
 		return err

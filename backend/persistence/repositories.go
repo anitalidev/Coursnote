@@ -90,7 +90,7 @@ type SettingsRepository interface {
 	// GetByID retrieves web settings for the given settings ID.
 	GetByID(id string) (*models.UserWebSettings, error)
 	// UpdateSettingsByID replaces all colour fields for the given settings ID.
-	UpdateSettingsByID(id string, backgroundColour string, primaryColour string, gradientColour string, navColour string, cardColour string, textColour string, accentColour string, secondaryTextColour string) error
+	UpdateSettingsColourByID(id string, c *ColourContent) error
 }
 
 type UserRepository interface {
