@@ -34,9 +34,6 @@ func GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-
 	// search for user in DB
 	user, err := store.repos.Users.GetUserByUsername(username)
 	if err != nil {
@@ -65,9 +62,6 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "No ID specified")
 		return
 	}
-
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	// Find user in DB based on id
 	user, err := store.repos.Users.GetUserByID(id)
@@ -104,9 +98,6 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 	}
 	// normalise: lowercase + trim so stored usernames are case/whitespace-insensitive
 	body.Username = strings.ToLower(strings.TrimSpace(body.Username))
-
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Ensure that username is unique
 	if _, err := store.repos.Users.GetUserByUsername(body.Username); err == nil {
@@ -151,9 +142,6 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id path param required")
 		return
 	}
-
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Confirm the user exists before attempting deletion
 	_, err := store.repos.Users.GetUserByID(id)

@@ -26,8 +26,6 @@ func GetPrivateNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	note, err := store.repos.PrivateNotes.GetPrivateNoteByID(id)
 	if err != nil {
@@ -56,8 +54,6 @@ func PutPrivateNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.PrivateNotes.UpdatePrivateNoteDescription(body.ID, body.Description); err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
@@ -83,8 +79,6 @@ func DeletePrivateNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.PrivateNotes.DeletePrivateNoteByID(id); err != nil {
 		writeError(w, http.StatusNotFound, err.Error())

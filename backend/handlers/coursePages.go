@@ -31,8 +31,6 @@ func GetCoursePage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	page, err := store.repos.CoursePages.GetCoursePageByID(id)
 	if err != nil {
@@ -64,8 +62,6 @@ func PutCoursePage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.CoursePages.UpdateCoursePageDescription(body.ID, body.Description); err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
@@ -105,8 +101,6 @@ func DeleteCoursePage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.CoursePages.DeleteCoursePageByID(id); err != nil {
 		writeError(w, http.StatusNotFound, err.Error())

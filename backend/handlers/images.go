@@ -125,8 +125,6 @@ func PostAvatar(w http.ResponseWriter, r *http.Request) {
 
 	url := "http://localhost:8081/uploads/avatars/" + filename
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
 	if err := store.repos.Users.SetAvatarURL(userID, url); err != nil {
 		writeError(w, http.StatusInternalServerError, "could not update avatar")
 		return
@@ -150,9 +148,7 @@ func DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID required")
 		return
 	}
-
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	
 	if err := store.repos.Users.SetAvatarURL(userID, ""); err != nil {
 		writeError(w, http.StatusInternalServerError, "could not clear avatar")
 		return

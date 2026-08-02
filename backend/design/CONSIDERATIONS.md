@@ -43,7 +43,7 @@ WHERE course_id = ?;
 With one large JSON file, inserting or updating data usually requires rewriting the file. This makes concurrent access and save-as-you-go behavior more difficult.
 
 A SQL database supports incremental updates, concurrent users, transactions, indexes, and recovery mechanisms.
-
+Also, SQL DBs support concurrency without needing additional mutex handling. 
 ## Repository pattern
 
 A repository provides an application-facing interface for loading and saving domain objects while hiding the details of the storage technology.

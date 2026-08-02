@@ -79,8 +79,6 @@ func GetCoursesByUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	courses, err := store.repos.Courses.GetCoursesByUserID(userID)
 	if err != nil {
@@ -133,8 +131,6 @@ func GetCourse(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	course, err := store.repos.Courses.GetCourseByID(id)
 	if err != nil {
@@ -167,8 +163,6 @@ func PostCourse(w http.ResponseWriter, r *http.Request) {
 	if body.RightColour == "" {
 		body.RightColour = randomHex()
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	course, err := store.repos.Courses.CreateCourse(&persistence.CourseInfo{
 		Name:        body.Name,
@@ -202,9 +196,6 @@ func PublishCourse(w http.ResponseWriter, r *http.Request) {
 		CourseData json.RawMessage `json:"courseData"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
-
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	course, err := store.repos.Courses.GetCourseByID(id)
 	if err != nil {
@@ -282,8 +273,6 @@ func PutCourse(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id and name required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.Courses.UpdateCourse(body.ID, body.Name, body.Description,
 		body.LeftColour, body.RightColour, body.StaticCourseID); err != nil {
@@ -305,8 +294,6 @@ func DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Confirm the course exists before attempting deletion
 	if _, err := store.repos.Courses.GetCourseByID(id); err != nil {
@@ -331,8 +318,6 @@ func GetCourseVersions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	versions, err := store.repos.StaticCourses.GetVersionsByCourseID(id)
 	if err != nil {

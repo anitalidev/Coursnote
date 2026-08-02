@@ -64,9 +64,6 @@ func GetStaticContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-
 	// Fetch the published content blob for this content ID
 	content, err := store.repos.StaticContents.GetByID(id)
 	if err != nil {

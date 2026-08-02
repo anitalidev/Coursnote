@@ -29,8 +29,6 @@ func GetModule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	module, err := store.repos.Modules.GetModuleByID(id)
 	if err != nil {
@@ -61,8 +59,6 @@ func PostModule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name and courseID required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	module, err := store.repos.Modules.CreateModule(&persistence.ModuleInfo{
 		Name:        body.Name,
@@ -98,8 +94,6 @@ func PutModule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id and name required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.Modules.UpdateModule(body.ID, body.Name, body.Description); err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
@@ -127,8 +121,6 @@ func DeleteModule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Confirm the module exists before attempting deletion
 	if _, err := store.repos.Modules.GetModuleByID(id); err != nil {

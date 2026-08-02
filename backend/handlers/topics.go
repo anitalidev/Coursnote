@@ -35,8 +35,6 @@ func GetTopic(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	// Find topic in DB
 	topic, err := store.repos.Topics.GetTopicByID(id)
@@ -66,8 +64,6 @@ func PostTopic(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name and moduleID required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Guarantee at least one completion rule exists (defaults to self_reported)
 	compRules, warn := ensureCompRules(body.CompRules)
@@ -141,8 +137,6 @@ func PutTopic(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "description must be 100 characters or fewer")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Guarantee at least one completion rule exists (defaults to self_reported)
 	compRules, warn := ensureCompRules(body.CompRules)
@@ -175,8 +169,6 @@ func DeleteTopic(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "id query param required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	// Confirm the topic exists before attempting deletion
 	if _, err := store.repos.Topics.GetTopicByID(id); err != nil {

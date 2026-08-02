@@ -80,9 +80,6 @@ func MarketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-
 	// ── Fetch all active courses ──────────────────────────────────────────────
 
 	staticCourses, err := store.repos.StaticCourses.GetAllActiveStaticCourses()

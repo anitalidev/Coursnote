@@ -61,8 +61,6 @@ func PostEnroll(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if _, err := store.repos.Enrollments.Create(body.UserID, body.StaticCourseID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -89,8 +87,6 @@ func UpdateEnroll(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID and staticCourseID required")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	newSC, err := store.repos.StaticCourses.GetByID(body.StaticCourseID)
 	if err != nil {
@@ -135,8 +131,6 @@ func GetEnrolledCourses(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID query param required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	enrollments, err := store.repos.Enrollments.GetByUserID(userID)
 	if err != nil {
@@ -203,8 +197,6 @@ func GetEnrollmentProgress(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "userID and staticCourseID query params required")
 		return
 	}
-	store.mu.RLock()
-	defer store.mu.RUnlock()
 
 	e, err := store.repos.Enrollments.GetByUserAndStaticCourseID(userID, staticCourseID)
 	if err != nil {
@@ -240,8 +232,6 @@ func PutEnrollmentProgress(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid progress keys")
 		return
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.repos.Enrollments.UpdateProgress(body.UserID, body.StaticCourseID, body.Progress); err != nil {
 		if err.Error() == "enrollment not found" {

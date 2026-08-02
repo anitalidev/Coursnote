@@ -31,9 +31,6 @@ func UserSettingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		store.mu.Lock()
-		defer store.mu.Unlock()
-
 		if err := store.repos.Settings.UpdateSettingsByID(id, body.BackgroundColour, body.PrimaryColour, body.GradientColour, body.NavColour, body.CardColour, body.TextColour, body.AccentColour, body.SecondaryTextColour); err != nil {
 			if err.Error() == "settings not found" {
 				writeError(w, http.StatusNotFound, err.Error())

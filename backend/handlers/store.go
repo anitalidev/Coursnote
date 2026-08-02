@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"sync"
 
 	"github.com/anitalidev/Coursnote/backend/persistence"
 )
@@ -22,7 +21,6 @@ type repositories struct {
 
 type Store struct {
 	repos repositories
-	mu    sync.RWMutex
 }
 
 func newStore(db *sql.DB) *Store {
