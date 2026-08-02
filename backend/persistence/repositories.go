@@ -155,6 +155,7 @@ type StaticCourseRepository interface {
 	GetByIDs(ids []string) ([]*market.StaticCourse, error)
 	GetByContentID(contentID string) (*market.StaticCourse, error)
 	GetPublishDateByID(id string) (time.Time, error)
+	GetPublishDatesByIDs(ids []string) (map[string]time.Time, error)
 	Create(info *StaticCourseInfo) (*market.StaticCourse, error)
 	DeleteByID(id string) error
 	GetAllActiveStaticCourses() ([]*market.StaticCourse, error)

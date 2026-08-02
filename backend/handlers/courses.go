@@ -88,9 +88,36 @@ func GetCoursesByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	courseIDs := make([]string, len(courses))
+	staticIDs := make([]string, 0, len(courses))
+	for i, c := range courses {
+		courseIDs[i] = c.CourseID
+		if c.StaticCourseID != "" {
+			staticIDs = append(staticIDs, c.StaticCourseID)
+		}
+	}
+	counts, _ := store.repos.Courses.GetCourseCountsByIDs(courseIDs)
+	publishDates, _ := store.repos.StaticCourses.GetPublishDatesByIDs(staticIDs)
+
 	dtos := make([]CourseDTO, 0, len(courses))
-	for _, course := range courses {
-		dtos = append(dtos, courseToDTO(course))
+	for _, c := range courses {
+		dto := CourseDTO{
+			CourseID:       c.CourseID,
+			Name:           c.Name,
+			Description:    c.Description,
+			ModuleIDs:      c.ModuleIDs,
+			StaticCourseID: c.StaticCourseID,
+			UserID:         c.UserID,
+			LeftColour:     c.LeftColour,
+			RightColour:    c.RightColour,
+		}
+		if cnt, ok := counts[c.CourseID]; ok {
+			dto.NTopics = cnt.NumTopics
+		}
+		if date, ok := publishDates[c.StaticCourseID]; ok {
+			dto.PublishDate = date
+		}
+		dtos = append(dtos, dto)
 	}
 	writeJSON(w, http.StatusOK, dtos)
 }

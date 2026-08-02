@@ -82,6 +82,33 @@ func (r *SQLStaticCourseRepository) GetByContentID(contentID string) (*market.St
 	return sc, nil
 }
 
+func (r *SQLStaticCourseRepository) GetPublishDatesByIDs(ids []string) (map[string]time.Time, error) {
+	if len(ids) == 0 {
+		return map[string]time.Time{}, nil
+	}
+	placeholders := strings.Repeat("?,", len(ids))
+	placeholders = placeholders[:len(placeholders)-1]
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := r.db.Query(`SELECT static_course_id, publish_date FROM static_courses WHERE static_course_id IN (`+placeholders+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]time.Time, len(ids))
+	for rows.Next() {
+		var id string
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		result[id] = t
+	}
+	return result, rows.Err()
+}
+
 func (r *SQLStaticCourseRepository) GetPublishDateByID(id string) (time.Time, error) {
 	var t time.Time
 	err := r.db.QueryRow(

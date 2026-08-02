@@ -112,27 +112,59 @@ func (r *SQLCourseRepository) DeleteCourseByID(id string) error {
 }
 
 func (r *SQLCourseRepository) GetCoursesByUserID(userID string) ([]*models.Course, error) {
-	rows, err := r.db.Query(`SELECT course_id FROM courses WHERE user_id = ?`, userID)
+	rows, err := r.db.Query(`SELECT course_id, name, description, user_id, left_colour, right_colour, static_course_id FROM courses WHERE user_id = ?`, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var courses []*models.Course
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		c, err := r.GetCourseByID(id)
-		if err != nil {
+		c := &models.Course{ModuleIDs: []string{}}
+		if err := rows.Scan(&c.CourseID, &c.Name, &c.Description, &c.UserID, &c.LeftColour, &c.RightColour, &c.StaticCourseID); err != nil {
 			return nil, err
 		}
 		courses = append(courses, c)
 	}
-	if courses == nil {
-		courses = []*models.Course{}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return courses, rows.Err()
+	if len(courses) == 0 {
+		return []*models.Course{}, nil
+	}
+
+	// Batch fetch module IDs for all courses in one query
+	ids := make([]string, len(courses))
+	for i, c := range courses {
+		ids[i] = c.CourseID
+	}
+	placeholders := strings.Repeat("?,", len(ids))
+	placeholders = placeholders[:len(placeholders)-1]
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	mrows, err := r.db.Query(`SELECT course_id, module_id FROM modules WHERE course_id IN (`+placeholders+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer mrows.Close()
+	moduleMap := make(map[string][]string)
+	for mrows.Next() {
+		var courseID, moduleID string
+		if err := mrows.Scan(&courseID, &moduleID); err != nil {
+			return nil, err
+		}
+		moduleMap[courseID] = append(moduleMap[courseID], moduleID)
+	}
+	if err := mrows.Err(); err != nil {
+		return nil, err
+	}
+	for _, c := range courses {
+		if mids, ok := moduleMap[c.CourseID]; ok {
+			c.ModuleIDs = mids
+		}
+	}
+	return courses, nil
 }
 
 func (r *SQLCourseRepository) moduleIDsForCourse(courseID string) ([]string, error) {
