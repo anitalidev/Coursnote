@@ -43,9 +43,18 @@ func main() {
 
 	handlers.InitStore(db)
 
-	_, file, _, _ := runtime.Caller(0)
-	frontendAssets := filepath.Join(filepath.Dir(file), "..", "frontend", "assets")
-	frontendDist := filepath.Join(filepath.Dir(file), "..", "frontend", "dist")
+	frontendAssets := os.Getenv("FRONTEND_ASSETS")
+	frontendDist := os.Getenv("FRONTEND_DIST")
+	if frontendAssets == "" || frontendDist == "" {
+		_, file, _, _ := runtime.Caller(0)
+		base := filepath.Join(filepath.Dir(file), "..")
+		if frontendAssets == "" {
+			frontendAssets = filepath.Join(base, "frontend", "assets")
+		}
+		if frontendDist == "" {
+			frontendDist = filepath.Join(base, "frontend", "dist")
+		}
+	}
 	distFS := http.FileServer(http.Dir(frontendDist))
 
 	mux := http.NewServeMux()
