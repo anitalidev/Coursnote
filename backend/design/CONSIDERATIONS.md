@@ -86,6 +86,8 @@ For instance, how shall we query the database to get all the topics belonging to
 (Given that n is the amount of topics belonging to module of ID 241) 
 I mean one does N + 1 queries, N of which are on the topic DB... and the other only does 1... hmmmm
 
+Also, how much responsibility should each repo request have? If split up updating/deleting/creating into too many repo calls, then you can get issues with one of the calls not working and so you have a half-finished state. But if too few, may be too specific / overkill. 
+
 # Published Course Versioning
 A good demonstration of making sure things only take on responsibility for things they are responsible for.
 

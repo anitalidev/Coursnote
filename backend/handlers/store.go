@@ -41,7 +41,9 @@ func newStore(db *sql.DB) *Store {
 }
 
 var store *Store
+var baseURL string
 
-func InitStore(db *sql.DB) {
+func InitStore(db *sql.DB, appBaseURL string) {
 	store = newStore(db)
+	baseURL = appBaseURL
 }

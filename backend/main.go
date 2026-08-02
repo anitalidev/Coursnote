@@ -41,7 +41,11 @@ func main() {
 	}
 	defer db.Close()
 
-	handlers.InitStore(db)
+	appBaseURL := os.Getenv("APP_BASE_URL")
+	if appBaseURL == "" {
+		appBaseURL = "http://localhost:8081"
+	}
+	handlers.InitStore(db, appBaseURL)
 
 	frontendAssets := os.Getenv("FRONTEND_ASSETS")
 	frontendDist := os.Getenv("FRONTEND_DIST")

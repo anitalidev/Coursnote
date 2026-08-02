@@ -66,7 +66,7 @@ func PostImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
-		"url": "http://localhost:8081/uploads/" + filename,
+		"url": baseURL + "/uploads/" + filename,
 	})
 }
 
@@ -123,7 +123,7 @@ func PostAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := "http://localhost:8081/uploads/avatars/" + filename
+	url := baseURL + "/uploads/avatars/" + filename
 
 	if err := store.repos.Users.SetAvatarURL(userID, url); err != nil {
 		writeError(w, http.StatusInternalServerError, "could not update avatar")
