@@ -51,7 +51,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/static/assets/", http.StripPrefix("/static/assets/", http.FileServer(http.Dir(frontendAssets))))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
-	// Serve built frontend assets (JS/CSS bundles from vite build)
 	mux.Handle("/assets/", distFS)
 
 	// users.go
@@ -74,30 +73,43 @@ func main() {
 	mux.HandleFunc("PUT /api/privatenotes", handlers.PutPrivateNote)
 	mux.HandleFunc("DELETE /api/privatenotes", handlers.DeletePrivateNote)
 
-	// modules.go
-	mux.HandleFunc("GET /api/module", handlers.GetModule)
-	mux.HandleFunc("PUT /api/module", handlers.PutModule)
-	mux.HandleFunc("POST /api/module", handlers.PostModule)
-	mux.HandleFunc("DELETE /api/module", handlers.DeleteModule)
+	// images.go
+	mux.HandleFunc("POST /api/image", handlers.PostImage)
+	mux.HandleFunc("POST /api/user/avatar", handlers.PostAvatar)
+	mux.HandleFunc("DELETE /api/user/avatar", handlers.DeleteAvatar)
 
 	// market.go
-	mux.HandleFunc("/api/market", handlers.MarketHandler)
+	mux.HandleFunc("GET /api/market", handlers.MarketHandler)
 
-	// toFix
-	mux.HandleFunc("/api/image", handlers.ImageHandler)
-	mux.HandleFunc("GET /api/user/avatar", handlers.AvatarHandler)
+	// courses.go
+	mux.HandleFunc("GET /api/courses", handlers.GetCoursesByUser)
+	mux.HandleFunc("GET /api/course", handlers.GetCourse)
+	mux.HandleFunc("POST /api/course", handlers.PostCourse)
+	mux.HandleFunc("POST /api/course/publish", handlers.PublishCourse)
+	mux.HandleFunc("PUT /api/course", handlers.PutCourse)
+	mux.HandleFunc("DELETE /api/course", handlers.DeleteCourse)
+	mux.HandleFunc("GET /api/course/versions", handlers.GetCourseVersions)
 
-	mux.HandleFunc("/api/courses", handlers.CoursesByUserHandler)
-	mux.HandleFunc("/api/course", handlers.CourseHandler)
-	mux.HandleFunc("/api/course/publish", handlers.CourseHandler)
-	mux.HandleFunc("/api/course/versions", handlers.CourseVersionsHandler)
-	mux.HandleFunc("/api/course/enroll", handlers.EnrollHandler)
-	mux.HandleFunc("/api/course/update-enroll", handlers.UpdateEnrollHandler)
-	mux.HandleFunc("/api/course/enrolled", handlers.EnrolledCoursesHandler)
-	mux.HandleFunc("/api/course/progress", handlers.EnrollmentProgressHandler)
+	// enrollment.go
+	mux.HandleFunc("POST /api/course/enroll", handlers.PostEnroll)
+	mux.HandleFunc("POST /api/course/update-enroll", handlers.UpdateEnroll)
+	mux.HandleFunc("GET /api/course/enrolled", handlers.GetEnrolledCourses)
+	mux.HandleFunc("GET /api/course/progress", handlers.GetEnrollmentProgress)
+	mux.HandleFunc("PUT /api/course/progress", handlers.PutEnrollmentProgress)
 
-	mux.HandleFunc("/api/coursepages", handlers.CoursePageHandler)
-	mux.HandleFunc("/api/usersettings", handlers.UserSettingsHandler)
+	// modules.go
+	mux.HandleFunc("GET /api/module", handlers.GetModule)
+	mux.HandleFunc("POST /api/module", handlers.PostModule)
+	mux.HandleFunc("PUT /api/module", handlers.PutModule)
+	mux.HandleFunc("DELETE /api/module", handlers.DeleteModule)
+
+	// coursePages.go
+	mux.HandleFunc("GET /api/coursepages", handlers.GetCoursePage)
+	mux.HandleFunc("PUT /api/coursepages", handlers.PutCoursePage)
+	mux.HandleFunc("DELETE /api/coursepages", handlers.DeleteCoursePage)
+
+	// usersettings.go
+	mux.HandleFunc("PUT /api/usersettings", handlers.UserSettingsHandler)
 
 	// SPA fallback: serve index.html for any non-API, non-asset route
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
