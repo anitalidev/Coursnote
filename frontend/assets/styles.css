@@ -10,7 +10,7 @@
   --col-border: #2e3352;
   --border: var(--col-border);
   --accent: rgb(var(--col-blue));
-  --accent-hover: #5a7ef5;
+  --accent-hover: color-mix(in srgb, rgb(var(--col-blue)) 85%, black);
   --accent2: rgb(var(--col-purple));
   --accent3: #34d399;
   --accent4: #fb923c;

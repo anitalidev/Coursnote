@@ -14,6 +14,11 @@ Runtime.courseData     = window.COURSE_DATA;
 Runtime.enrollmentData = window.ENROLLMENT_DATA || null;
 
 const _CD = Runtime.courseData;
+if (!_CD) {
+  const loading = document.getElementById('app-loading');
+  if (loading) loading.innerHTML = '<p style="color:red;font-size:14px;font-family:sans-serif;text-align:center">Failed to load course data.<br>Please refresh the page.</p>';
+  throw new Error('window.COURSE_DATA is missing — the page HTML may be malformed');
+}
 _CD.courseMap = { [_CD.course.courseID]: _CD.course };
 _CD.moduleMap = {};
 _CD.topicMap  = {};
@@ -398,10 +403,15 @@ if (_ED) {
     } catch (_) {}
   }
 
-  if (location.hash && location.hash !== '#' && location.hash !== '#courses') {
-    await restoreFromHash(location.hash);
-  } else {
-    await goModules(_CD.course);
+  try {
+    if (location.hash && location.hash !== '#' && location.hash !== '#courses') {
+      await restoreFromHash(location.hash);
+    } else {
+      await goModules(_CD.course);
+    }
+    if (_ED) _sendProgress();
+  } finally {
+    const loading = document.getElementById('app-loading');
+    if (loading) loading.remove();
   }
-  if (_ED) _sendProgress();
 })();

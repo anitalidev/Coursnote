@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/anitalidev/Coursnote/backend/models"
 )
@@ -64,8 +66,8 @@ const staticShell = `<!DOCTYPE html>
   require(['vs/editor/editor.main'], function() { window.dispatchEvent(new Event('monaco-ready')); });
 </script>
 <script type="module" src="/static/assets/static-main.js"></script>
-<script>window.COURSE_DATA = %s;</script>
-<script>window.ENROLLMENT_DATA = %s;</script>
+<script>window.COURSE_DATA = __COURSE_DATA__;</script>
+<script>window.ENROLLMENT_DATA = __ENROLLMENT_DATA__;</script>
 <script src="/static/assets/config.js"></script>
 <script src="/static/assets/storage.js"></script>
 <script src="/static/assets/runtime.js"></script>
@@ -128,6 +130,17 @@ func GetStaticContent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Escape the JSON for safe inline <script> injection.
+	// Without this, a "</script>" string inside the course content would break
+	// out of the script tag and render the rest of the JSON as visible page text.
+	var safeCourse, safeEnrollment bytes.Buffer
+	json.HTMLEscape(&safeCourse, content.Content)
+	json.HTMLEscape(&safeEnrollment, []byte(enrollmentJSON))
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, staticShell, string(content.Content), enrollmentJSON)
+	out := strings.NewReplacer(
+		"__COURSE_DATA__",     safeCourse.String(),
+		"__ENROLLMENT_DATA__", safeEnrollment.String(),
+	).Replace(staticShell)
+	io.WriteString(w, out)
 }

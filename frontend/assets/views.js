@@ -23,11 +23,13 @@ function settingsHTML() {
         </div>
         <div class="settings-avatar-actions">
           <p class="settings-label">${esc(S.data.user.username)}</p>
-          <label class="btn btn-secondary settings-upload-btn">
-            Upload Photo
-            <input type="file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-          </label>
-          ${avatarSrc ? `<button class="btn btn-danger" style="margin-top:6px" onclick="removeAvatar()">Remove Photo</button>` : ''}
+          <div style="display:flex;align-items:center;gap:8px">
+            <label class="btn btn-secondary settings-upload-btn">
+              Upload Photo
+              <input type="file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+            </label>
+            ${avatarSrc ? `<button class="btn btn-ghost" onclick="removeAvatar()">Remove</button>` : ''}
+          </div>
           <p class="settings-hint" id="avatar-status"></p>
         </div>
       </div>
