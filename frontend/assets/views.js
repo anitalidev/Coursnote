@@ -312,7 +312,7 @@ function coursesHTML() {
     const mods   = (c.moduleIDs || []).length;
     const topics = c.ntopics || 0;
 
-    const menu = `<button class="cc2-menu" onclick="event.stopPropagation();openCourseMenu('${c.courseID}',${jsonAttr(c)},this)" title="Options">
+    const menu = `<button class="cc2-menu" onclick="event.stopPropagation();openCourseMenu('${c.courseID}',${jsonAttr(c)},this)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>`;
 
@@ -498,7 +498,7 @@ function modulesHTML() {
 
   const modCards = S.data.modules.map((m, i) => {
     const topics = (m.topicIDs || []).length;
-    const menuHTML = S.ui.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)" title="Options">
+    const menuHTML = S.ui.editMode ? `<button class="mod2-menu" onclick="event.stopPropagation();openModuleMenu('${m.moduleID}',this)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>` : '';
     const progressPct = S.ui.editMode ? null

@@ -3,22 +3,13 @@
 (async () => {
   const saved = Storage.loadUser();
   if (saved) {
-    const parsed = saved;
+    // Apply cached settings immediately so colours are correct before the network
+    // round-trip completes, preventing a flash of the default dark theme.
+    if (saved.settings) applyAllColours(saved.settings);
     try {
-      const fresh = await GET('/user/' + parsed.id);
+      const fresh = await GET('/user/' + saved.id);
       S.data.user = { id: fresh.id, username: fresh.username, avatarURL: fresh.avatarURL || '', courseIDs: fresh.courseIDs || [], settings: fresh.settings || null };
-      if (fresh.settings) {
-        const r = document.documentElement;
-        const bg  = _hexToRGB(fresh.settings.backgroundColour);
-        const bl  = _hexToRGB(fresh.settings.primaryColour);
-        const pur = _hexToRGB(fresh.settings.gradientColour);
-        if (bg)  r.style.setProperty('--col-bg',       bg);
-        if (bl)  r.style.setProperty('--col-blue',     bl);
-        if (pur) r.style.setProperty('--col-purple',   pur);
-        if (fresh.settings.primaryColour) r.style.setProperty('--accent-hover', _darkenHex(fresh.settings.primaryColour));
-        if (fresh.settings.accentColour)        r.style.setProperty('--col-border', fresh.settings.accentColour);
-        if (fresh.settings.secondaryTextColour) r.style.setProperty('--col-text2',  fresh.settings.secondaryTextColour);
-      }
+      if (fresh.settings) applyAllColours(fresh.settings);
       Storage.saveUser(S.data.user);
       if (location.hash && location.hash !== '#courses') {
         await restoreFromHash(location.hash);

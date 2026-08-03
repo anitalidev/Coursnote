@@ -21,6 +21,8 @@ function buildSbStatsCardHTML(nModules, nTopics, pctHTML, style) {
 }
 
 function render() {
+  const loading = document.getElementById('app-loading');
+  if (loading) loading.remove();
   renderSidebar();
   renderMain();
 }

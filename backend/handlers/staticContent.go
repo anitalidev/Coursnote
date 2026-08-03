@@ -16,8 +16,40 @@ const staticShell = `<!DOCTYPE html>
 <title>Coursnote</title>
 <link rel="stylesheet" href="/static/assets/styles.css">
 <link rel="stylesheet" href="/static/assets/toolbar.css">
+<script>
+  (function () {
+    try {
+      var u = JSON.parse(localStorage.getItem('coursnote_user'));
+      if (!u || !u.settings) return;
+      var s = u.settings;
+      var r = document.documentElement;
+      function toRGB(hex) {
+        if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+        var n = parseInt(hex.slice(1), 16);
+        return ((n >> 16) & 255) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255);
+      }
+      var bg = toRGB(s.backgroundColour), bl = toRGB(s.primaryColour), pur = toRGB(s.gradientColour);
+      if (bg)  r.style.setProperty('--col-bg',     bg);
+      if (bl)  r.style.setProperty('--col-blue',   bl);
+      if (pur) r.style.setProperty('--col-purple', pur);
+      if (s.navColour)           r.style.setProperty('--col-nav',    s.navColour);
+      if (s.cardColour)          r.style.setProperty('--col-card',   s.cardColour);
+      if (s.textColour)          r.style.setProperty('--col-text',   s.textColour);
+      if (s.accentColour)        r.style.setProperty('--col-border', s.accentColour);
+      if (s.secondaryTextColour) r.style.setProperty('--col-text2',  s.secondaryTextColour);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
+
+<div id="app-loading" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;gap:10px">
+  <div style="width:10px;height:10px;border-radius:50%;background:rgb(var(--col-blue));animation:_ld .9s ease-in-out infinite"></div>
+  <div style="width:10px;height:10px;border-radius:50%;background:rgb(var(--col-blue));animation:_ld .9s ease-in-out .2s infinite"></div>
+  <div style="width:10px;height:10px;border-radius:50%;background:rgb(var(--col-blue));animation:_ld .9s ease-in-out .4s infinite"></div>
+</div>
+<style>@keyframes _ld{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}</style>
+
 <nav id="sidebar">
   <div id="sidebar-header"><h2>Coursnote</h2><p>Your course notes</p></div>
   <div id="sidebar-nav"></div>

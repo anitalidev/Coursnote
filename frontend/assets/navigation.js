@@ -53,6 +53,11 @@ async function goCourses() {
   if (!(await _preNav())) return;
   destroyPNEditor();
   S.ui.currentCourse = null; S.ui.currentModule = null; S.ui.currentTopic = null;
+  // Render immediately with whatever courses are already in state so the
+  // correct background and shell appear before the network round-trip completes.
+  S.ui.view = 'courses';
+  pushHash('#courses');
+  render();
   S.data.courses = await loadCourses();
   const progMap = {};
   await Promise.all(S.data.courses.map(async c => {
